@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+
+{% block title %}Resultados da Busca{% endblock %}
+
+{% block head %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+{% endblock %}
+
+{% block content %}
+<header>
+    <h1>Resultados da Busca</h1>
+    <p>Exibindo {{ pagination.total }} produto(s) para: <strong>"{{ termo }}"</strong></p>
+</header>
+
+<div class="search-results-container">
+    <!-- Controles de Ordenação -->
+    <div class="sort-controls">
+        <span>Ordenar por:</span>
+        {# O filtro 'merge' combina os argumentos da busca atual com o novo 'sort_by' #}
+        <a href="{{ url_for('buscar', **(search_args|merge({'sort_by': 'codigo'}))) }}" 
+           class="button sort-button {% if sort_by == 'codigo' %}active{% endif %}">
+           Código
+        </a>
+        <a href="{{ url_for('buscar', **(search_args|merge({'sort_by': 'nome'}))) }}" 
+           class="button sort-button {% if sort_by == 'nome' %}active{% endif %}">
+           Nome
+        </a>
+    </div>
+
+    {% if pagination.items %}
+        <table class="results-table">
+            <thead>
+                <tr>
+                    <th>Código</th>
+                    <th>Nome</th>
+                    <th>Veículo</th>
+                    <th>Ano</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for produto in pagination.items %} {# Adiciona a classe 'product-row' e o data-attribute com a URL da imagem #}
+                <tr class="product-row" {% if produto.imagens %}data-image-url="{{ url_for('uploaded_file', filename=produto.imagens[0].filename) }}"{% endif %}>
+                    <td>
+                        <a href="{{ url_for('detalhe_peca', id=produto.id) }}" style="font-weight: bold;">
+                            {{ produto.codigo|highlight(termo)|safe }}
+                        </a>
+                    </td>
+                    <td>{{ produto.nome|highlight(termo)|safe }}</td>
+                    {# Acessa a primeira aplicação de forma segura #}
+                    {% set primeira_app = produto.aplicacoes[0] if produto.aplicacoes else none %}
+                    <td>{{ (primeira_app.veiculo if primeira_app else '')|highlight(termo)|safe }}</td>
+                    <td>{{ (primeira_app.ano if primeira_app else '')|highlight(termo)|safe }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Navegação da Paginação -->
+        <div class="pagination">
+            {# Link para a primeira página #}
+            {% if pagination.has_prev %}
+                <a href="{{ url_for('buscar', page=1, **search_args) }}">&laquo; Primeira</a>
+                <a href="{{ url_for('buscar', page=pagination.prev_num, **search_args) }}">&lsaquo; Anterior</a>
+            {% endif %}
+
+            {# Números das páginas #}
+            {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                {% if page_num %}
+                    {% if pagination.page == page_num %}
+                        <a class="active">{{ page_num }}</a>
+                    {% else %}
+                        <a href="{{ url_for('buscar', page=page_num, **search_args) }}">{{ page_num }}</a>
+                    {% endif %}
+                {% else %}
+                    <span class="ellipsis">…</span>
+                {% endif %}
+            {% endfor %}
+
+            {# Link para a próxima página #}
+            {% if pagination.has_next %}
+                <a href="{{ url_for('buscar', page=pagination.next_num, **search_args) }}">Próxima &rsaquo;</a>
+                <a href="{{ url_for('buscar', page=pagination.pages, **search_args) }}">Última &raquo;</a>
+            {% endif %}
+        </div>
+
+    {% else %}
+        <div class="no-results">
+            <p>Nenhum produto encontrado com os critérios da sua busca.</p>
+            <a href="{{ url_for('index') }}" class="button">Voltar para a busca</a>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Container para a pré-visualização da imagem (inicialmente oculto) -->
+<div id="image-preview-container">
+    <img id="image-preview" src="" alt="Pré-visualização">
+</div>
+
+<style>
+    .sort-controls { margin-bottom: 20px; }
+    .sort-button.active { background-color: var(--cor-principal); color: white; font-weight: bold; }
+
+    /* Estilos para a pré-visualização da imagem */
+    #image-preview-container {
+        display: none; /* Começa oculto */
+        position: absolute; /* Posição flutuante */
+        padding: 5px;
+        background-color: white;
+        border: 2px solid var(--cor-principal, #ff6600);
+        border-radius: 5px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        z-index: 100; /* Fica na frente de outros elementos */
+        pointer-events: none; /* Impede que o mouse interaja com a imagem */
+    }
+    #image-preview {
+        width: 200px;
+        height: 200px;
+        object-fit: cover;
+    }
+</style>
+
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const previewContainer = document.getElementById('image-preview-container');
+        const previewImage = document.getElementById('image-preview');
+        const productRows = document.querySelectorAll('.product-row');
+
+        productRows.forEach(row => {
+            const imageUrl = row.dataset.imageUrl;
+            if (!imageUrl) return; // Pula linhas sem imagem
+
+            row.addEventListener('mousemove', (e) => {
+                previewContainer.style.display = 'block';
+                // Posiciona o container um pouco à direita e abaixo do cursor
+                previewContainer.style.left = (e.pageX + 15) + 'px';
+                previewContainer.style.top = (e.pageY + 15) + 'px';
+            });
+
+            row.addEventListener('mouseenter', () => {
+                previewImage.src = imageUrl;
+            });
+
+            row.addEventListener('mouseleave', () => {
+                previewContainer.style.display = 'none';
+            });
+        });
+    });
+    </script>
+{% endblock %}

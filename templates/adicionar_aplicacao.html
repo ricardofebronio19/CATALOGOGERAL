@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Adicionar Aplicação para {{ produto.nome }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Adicionar Aplicação para: <br> {{ produto.nome }} ({{ produto.codigo }})</h1>
+        </header>
+
+        <form action="{{ url_for('adicionar_aplicacao', produto_id=produto.id) }}" method="POST" class="search-section">
+            <div class="search-field">
+                <label for="num_original">Nº Original / Similar:</label>
+                <input type="text" id="num_original" name="num_original">
+            </div>
+            <div class="search-field">
+                <label for="veiculo">Veículo:</label>
+                <input type="text" id="veiculo" name="veiculo">
+            </div>
+            <div class="search-field">
+                <label for="ano">Ano:</label>
+                <input type="text" id="ano" name="ano">
+            </div>
+            <div class="search-field">
+                <label for="motor">Motor:</label>
+                <input type="text" id="motor" name="motor">
+            </div>
+            <div class="search-field">
+                <label for="conf_mtr">Conf. MTR:</label>
+                <input type="text" id="conf_mtr" name="conf_mtr">
+            </div>
+            
+            <button type="submit">Cadastrar Aplicação</button>
+            <a href="{{ url_for('detalhe_peca', id=produto.id) }}" class="button" style="background-color: #555; color: white; padding: 12px 20px; text-decoration: none; border-radius: 4px;">Cancelar</a>
+        </form>
+    </div>
+</body>
+</html>

@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Catálogo de Peças{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    {% set cor = config_aparencia.cor_principal or '#ff6600' %}
+    <style>
+        header,
+        button,
+        .button,
+        .add-application-btn {
+            background-color: {{ cor }};
+        }
+
+        .product-item strong,
+        .product-detail-header span {
+            color: {{ cor }};
+        }
+
+        button:hover,
+        .button:hover {
+            filter: brightness(90%);
+        }
+        @media (max-width: 600px) {
+            header, nav, main, footer {
+                padding: 8px;
+                font-size: 1em;
+            }
+            .product-item, .product-detail {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+    </style>
+    {% block head %}{% endblock %}
+</head>
+
+<body>
+
+    <div class="container">
+        <header>
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+                <a href="{{ url_for('index') }}" style="text-decoration: none; color: white; display: flex; align-items: center;">
+                    {% if config_aparencia.logo_path %}
+                    <img src="{{ url_for('uploaded_file', filename=config_aparencia.logo_path) }}" alt="Logo"
+                        style="max-height: 60px; vertical-align: middle;">
+                    {% else %}
+                    <h1 style="margin: 0;">Catálogo de Peças</h1>
+                    {% endif %}
+                </a>
+                <nav style="display: flex; gap: 10px;">
+                    {% if current_user.is_authenticated %}
+                        <a href="{{ url_for('adicionar_peca') }}" class="button" style="color: white;">Adicionar Peça</a>
+                        {% if is_admin %}
+                            <a href="{{ url_for('configuracoes') }}" class="button" style="color: white;">Configurações</a>
+                            <a href="{{ url_for('gerenciar_usuarios') }}" class="button" style="color: white;">Usuários</a>
+                        {% endif %}
+                        <a href="{{ url_for('logout') }}" class="button" style="color: white;">Logout</a>
+                    {% else %}
+                        <a href="{{ url_for('login') }}" class="button" style="color: white;">Login</a>
+                    {% endif %}
+                </nav>
+            </div>
+        </header>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="flash-messages">
+            {% for category, message in messages %}
+            <div class="alert-{{ category }}"
+                style="padding: 15px; margin: 10px 0; border-radius: 5px; background-color: {% if category == 'success' %}#d4edda{% else %}#f8d7da{% endif %}; color: {% if category == 'success' %}#155724{% else %}#721c24{% endif %};">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        <main>
+            {% block content %}{% endblock %}
+        </main>
+
+        <footer>
+            {% if voltar_url %}
+                <a href="{{ voltar_url }}" style="display: block; margin-top: 20px;">Voltar</a>
+            {% else %}
+                <a href="{{ url_for('index') }}" style="display: block; margin-top: 20px;">Voltar para a Busca</a>
+            {% endif %}
+            <small>&copy; {{ now().year if now else '2024' }} Catálogo de Peças</small>
+        </footer>
+    </div>
+    {% block scripts %}{% endblock %}
+    <script>
+        document.addEventListener('keydown', function(event) {
+            // Verifica se a tecla pressionada foi 'Escape'
+            if (event.key === 'Escape') {
+                // A variável 'voltar_url' é injetada pelo Jinja2
+                const voltarUrl = "{{ voltar_url or '' }}";
+                if (voltarUrl) {
+                    window.location.href = voltarUrl;
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>

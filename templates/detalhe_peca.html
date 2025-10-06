@@ -1,0 +1,460 @@
+{% extends "base.html" %}
+
+{% block title %}{{ produto.nome }} - Detalhes{% endblock %}
+
+{% block head %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+{% endblock %}
+
+{% block content %}
+        <header>
+            <h1>Detalhes do Produto</h1>
+        </header>
+
+        <div class="product-detail-header">
+            <div class="product-detail-info">
+                <h2>{{ produto.nome }}</h2>
+                <p>
+                    <strong>Código:</strong> 
+                    <span id="product-code">{{ produto.codigo }}</span>
+                    <button onclick="copyToClipboard('{{ produto.codigo }}', 'Código do produto')" title="Copiar código" style="background: none; border: none; cursor: pointer; padding: 0 5px;">
+                        <img src="{{ url_for('static', filename='copy-icon.svg') }}" alt="Copiar" style="width: 16px; height: 16px; vertical-align: middle;">
+                    </button>
+                </p>
+                <p><strong>Grupo:</strong> {{ produto.grupo or 'N/A' }}</p>
+                <p><strong>Fornecedor:</strong> {{ produto.fornecedor or 'N/A' }}</p>
+                {% if produto.medidas %}
+                <div class="detail-multiline-field">
+                    <strong>Medidas:</strong> <pre>{{ produto.medidas }}</pre>
+                </div>
+                {% endif %}
+                {% if current_user.is_authenticated %}
+                    <div style="margin-top: 10px;">
+                        <a href="{{ url_for('editar_peca', id=produto.id) }}" class="button" style="background-color: #007bff;">Editar Peça</a>
+                        <a href="{{ url_for('clonar_peca', id=produto.id) }}" class="button" style="background-color: #17a2b8;">Clonar</a>
+                        <form action="{{ url_for('excluir_peca', id=produto.id) }}" method="POST" style="display: inline;" onsubmit="return confirm('Tem certeza que deseja excluir esta peça? Todas as suas aplicações e relações de similaridade serão perdidas.');">
+                            <button type="submit" class="button" style="background-color: #dc3545;">Excluir Peça</button>
+                        </form>
+                    </div>
+                {% endif %}
+            </div>
+            <!-- Galeria de Imagens -->
+            <div class="image-gallery">
+                <div class="main-image-container">
+                    <img id="mainProductImage" src="{% if produto.imagens %}{{ url_for('uploaded_file', filename=produto.imagens[0].filename) }}{% else %}https://via.placeholder.com/250x250/eee/aaa?text=Sem+Imagem{% endif %}" alt="Imagem Principal do Produto" class="product-detail-image" title="Clique para ampliar">
+                </div>
+                {% if produto.imagens|length > 1 %}
+                <div class="thumbnail-container">
+                    {% for imagem in produto.imagens %}
+                    <img src="{{ url_for('uploaded_file', filename=imagem.filename) }}" alt="Miniatura {{ loop.index }}" class="thumbnail-image" onclick="changeMainImage('{{ url_for('uploaded_file', filename=imagem.filename) }}')">
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="details-layout-container">
+            <!-- Seção de Conversões (Esquerda) -->
+            {% if produto.conversoes %}
+            <div class="info-section-lateral">
+                <h3>Conversões</h3>
+                <pre id="conversoes-content">{{ produto.conversoes }}</pre>
+            </div>
+            {% endif %}
+
+            <!-- Seção de Aplicações (Centro) -->
+            <div class="application-section">
+                <h3>
+                    <span>Aplicações</span>
+                    <button id="clear-filter-btn" class="button" style="display: none; background-color: #6c757d; font-size: 0.8em; padding: 5px 10px;">Limpar Filtro</button>
+                </h3>
+                <div class="filter-help-text">
+                    <img src="{{ url_for('static', filename='info-icon.svg') }}" alt="Info">
+                    <span>Clique em uma aplicação para filtrar os produtos similares.</span>
+                </div>
+
+                {% if aplicacoes_agrupadas %}
+                    <table class="application-table">
+                        <thead>
+                            <tr>
+                                <th>Veículo</th>
+                                <th>Ano</th>
+                                <th>Motor</th>
+                                <th>Configuraçâo</th>
+                            </tr>
+                        </thead>
+                        <tbody id="application-table-body">
+                            {% for montadora, lista_aplicacoes in aplicacoes_agrupadas.items() %}
+                                <!-- Linha do cabeçalho do fabricante -->
+                                <tr class="fabricante-header">
+                                    <td colspan="4"><strong>{{ montadora }}</strong></td>
+                                </tr>
+                                <!-- Linhas das aplicações para este fabricante -->
+                                {% for aplicacao in lista_aplicacoes %}
+                                    <tr class="application-row" 
+                                        data-veiculo="{{ aplicacao.veiculo or '' }}" 
+                                        data-ano="{{ aplicacao.ano or '' }}" 
+                                        data-motor="{{ aplicacao.motor or '' }}"
+                                        title="Clique para filtrar similares por esta aplicação"
+                                        style="cursor: pointer;">
+                                        <td>{{ aplicacao.veiculo or '' }}</td>
+                                        <td>{{ aplicacao.ano or '' }}</td>
+                                        <td>{{ aplicacao.motor or '' }}</td>
+                                        <td>{{ aplicacao.conf_mtr or '' }}</td>
+                                    </tr>
+                                {% endfor %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <p style="padding: 15px; text-align: center;">Nenhuma aplicação cadastrada para este produto.</p>
+                {% endif %}
+            </div>
+
+            <!-- Seção de Medidas (Direita) -->
+            {% if produto.medidas %}
+            <div class="info-section-lateral">
+                <h3>Medidas</h3>
+                <pre>{{ produto.medidas }}</pre>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Seção de Observações -->
+        {% if produto.observacoes %}
+        <div class="info-section similar-section">
+            <h3>Observações</h3>
+            <pre>{{ produto.observacoes }}</pre>
+        </div>
+        {% endif %}
+
+        <!-- Seção de Produtos Similares -->
+        {% if produto.similares or sugestoes_similares %}
+        <div id="similar-products-section" class="application-section similar-section">
+            <h3>Produtos Similares</h3>
+            <table class="application-table">
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>Código</th>
+                        <th>Fornecedor</th>
+                        <th>Tipo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Similares Manuais -->
+                    {% for similar in produto.similares|sort(attribute='codigo') %}
+                        {% set app_data = [] %}
+                        {% for app in similar.aplicacoes %}
+                            {% do app_data.append({
+                                'veiculo': app.veiculo|default('', true)|trim,
+                                'ano': app.ano|default('', true)|trim,
+                                'motor': app.motor|default('', true)|trim
+                            }) %}
+                        {% endfor %}
+                        {% set app_json = app_data|tojson %}
+
+                        <tr class="similar-row" data-applications="{{ app_json }}">
+                            <td>
+                                <a href="{{ url_for('detalhe_peca', id=similar.id) }}" style="text-decoration: none; color: #0056b3; font-weight: bold;">
+                                    {{ similar.nome }}
+                                </a>
+                            </td>
+                            <td>{{ similar.codigo }}</td>
+                            <td>{{ similar.fornecedor or 'N/A' }}</td>
+                            <td><span class="badge badge-manual">Manual</span></td>
+                        </tr>
+                    {% endfor %}
+
+                    <!-- Sugestões Automáticas por Conversão -->
+                    {% for sugestao in sugestoes_similares|sort(attribute='codigo') %}
+                        {% set app_data = [] %}
+                        {% for app in sugestao.aplicacoes %}
+                            {% do app_data.append({
+                                'veiculo': app.veiculo|default('', true)|trim,
+                                'ano': app.ano|default('', true)|trim,
+                                'motor': app.motor|default('', true)|trim
+                            }) %}
+                        {% endfor %}
+                        {% set app_json = app_data|tojson %}
+                        <tr class="similar-row" data-applications="{{ app_json }}">
+                            <td>
+                                <a href="{{ url_for('detalhe_peca', id=sugestao.id) }}" style="text-decoration: none; color: #0056b3; font-weight: bold;">
+                                    {{ sugestao.nome }}
+                                </a>
+                            </td>
+                            <td>{{ sugestao.codigo }}</td>
+                            <td>{{ sugestao.fornecedor or 'N/A' }}</td>
+                            <td><span class="badge badge-auto">Sugestão</span></td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+                <tbody id="no-similar-results-row" style="display: none;"><tr class="no-results-row"><td colspan="4">Nenhum produto similar encontrado para a aplicação selecionada.</td></tr></tbody>
+            </table>
+        </div>
+        {% endif %}
+
+        <!-- Seção de Produtos Similares (MANUAL) -->
+
+        <!-- O Modal/Popup da Imagem -->
+        <div id="imageModal" class="image-modal">
+            <span class="modal-close">&times;</span>
+            <img class="modal-content" id="modalImage">
+        </div>
+
+        <style>
+            .badge {
+                padding: 3px 8px;
+                border-radius: 10px;
+                font-size: 0.8em;
+                font-weight: bold;
+                color: white;
+            }
+            .badge-manual { background-color: #6c757d; } /* Cinza */
+            .badge-auto { background-color: #17a2b8; } /* Ciano */
+
+            .application-row.active-filter {
+                background-color: #fff3cd !important; /* Amarelo claro para destacar */
+                font-weight: bold;
+            }
+            .no-results-row td {
+                text-align: center;
+                padding: 20px;
+                color: #666;
+                font-style: italic;
+            }
+            .filter-help-text {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding: 8px 15px;
+                background-color: #f8f9fa;
+                font-size: 0.9em;
+                color: #555;
+            }
+            .filter-help-text img { width: 16px; height: 16px; }
+        </style>
+
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    {% raw %}
+    <script>
+        // Função para trocar a imagem principal na galeria
+        function changeMainImage(newSrc) {
+            const mainImage = document.getElementById('mainProductImage');
+            if (mainImage) mainImage.src = newSrc;
+        }
+
+        function copyToClipboard(text, type = 'Texto') {
+            navigator.clipboard.writeText(text).then(function() {
+                // Cria uma notificação temporária
+                const notification = document.createElement('div');
+                notification.innerText = `${type} copiado: ${text}`;
+                notification.style.position = 'fixed';
+                notification.style.bottom = '20px';
+                notification.style.left = '50%';
+                notification.style.transform = 'translateX(-50%)';
+                notification.style.backgroundColor = '#28a745';
+                notification.style.color = 'white';
+                notification.style.padding = '10px 20px';
+                notification.style.borderRadius = '5px';
+                document.body.appendChild(notification);
+                setTimeout(() => { document.body.removeChild(notification); }, 2000);
+            }, function(err) {
+                console.error('Erro ao copiar texto: ', err);
+            });
+        }
+
+        // --- Lógica Principal da Página ---
+        document.addEventListener('DOMContentLoaded', function() {
+
+            /**
+             * Configura a funcionalidade do modal de imagem (zoom).
+             */
+            function setupImageModal() {
+                const modal = document.getElementById("imageModal");
+                const mainImg = document.getElementById("mainProductImage");
+                const modalImg = document.getElementById("modalImage");
+                const closeSpan = document.getElementsByClassName("modal-close")[0];
+
+                if (!modal || !mainImg || !modalImg || !closeSpan) return;
+
+                const openModal = () => {
+                    modal.style.display = "flex";
+                    modalImg.src = mainImg.src;
+                };
+
+                const closeModal = () => {
+                    modal.style.display = "none";
+                };
+
+                mainImg.addEventListener('click', openModal);
+                closeSpan.addEventListener('click', closeModal);
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) closeModal(); // Fecha se clicar fora da imagem
+                });
+
+                // Listener de 'keydown' para fechar o modal com a tecla 'Escape'
+                document.addEventListener('keydown', (event) => {
+                    if (event.key === "Escape" && modal.style.display === "flex") {
+                        event.stopImmediatePropagation(); // Impede que outros listeners de 'Escape' sejam acionados
+                        closeModal();
+                    }
+                });
+            }
+
+            /**
+             * Transforma a seção de conversões em elementos clicáveis.
+             */
+            function setupInteractiveConversions() {
+                const container = document.getElementById('conversoes-content');
+                if (!container) return;
+
+                const rawText = container.innerText;
+                const lines = rawText.split('\n').filter(line => line.trim() !== '');
+
+                const newHtml = lines.map(line => {
+                    const trimmedLine = line.trim();
+                    // Heurística: uma linha é marca se for maiúscula e não contiver números.
+                    const isLikelyBrand = /^[A-Z\s]+$/.test(trimmedLine) && !/\d/.test(trimmedLine);
+
+                    if (isLikelyBrand) {
+                        return `<span class="conversion-brand">${trimmedLine}</span>`;
+                    } else {
+                        // Adiciona a funcionalidade de clique para copiar
+                        return `<span class="conversion-code" title="Clique para copiar: ${trimmedLine}" onclick="copyToClipboard('${trimmedLine}', 'Código de conversão')">${trimmedLine}</span>`;
+                    }
+                }).join('\n');
+
+                container.innerHTML = newHtml;
+            }
+
+            /**
+             * Configura a lógica de filtragem de produtos similares ao clicar em uma aplicação.
+             */
+            function setupSimilarFiltering() {
+                const tableBody = document.getElementById('application-table-body');
+                const similarRows = document.querySelectorAll('.similar-row');
+                const noResultsRow = document.getElementById('no-similar-results-row');
+                const clearFilterBtn = document.getElementById('clear-filter-btn');
+
+                if (!tableBody || !clearFilterBtn || similarRows.length === 0) return;
+            
+            /**
+             * Converte uma string de ano (ex: "2010", "2010/2015", "2018/...") 
+             * em um objeto com ano inicial e final.
+             * @param {string} yearStr A string do ano.
+             * @returns {{start: number, end: number}}
+             */
+            function parseYearRange(yearStr) {
+                if (!yearStr || !yearStr.trim()) {
+                    return { start: -Infinity, end: Infinity }; // Corresponde a qualquer ano se vazio
+                }
+                yearStr = yearStr.trim();
+
+                // Formato: 2018/... ou 2018/
+                if (yearStr.endsWith('/...') || yearStr.endsWith('/')) {
+                    const startYear = parseInt(yearStr, 10); // Especifica o radix 10
+                    return { start: startYear, end: Infinity };
+                }
+                // Formato: .../2015 ou /2015
+                if (yearStr.startsWith('.../') || yearStr.startsWith('/')) {
+                    const endYear = parseInt(yearStr.substring(yearStr.indexOf('/') + 1), 10);
+                    return { start: -Infinity, end: endYear };
+                }
+                // Formato: 2010/2015
+                if (yearStr.includes('/')) {
+                    const parts = yearStr.split('/');
+                    const start = parseInt(parts[0], 10);
+                    const end = parseInt(parts[1], 10);
+                    return { start: Math.min(start, end), end: Math.max(start, end) };
+                }
+                // Formato: 2010
+                const singleYear = parseInt(yearStr, 10);
+                if (!isNaN(singleYear)) {
+                    return { start: singleYear, end: singleYear };
+                }
+
+                return { start: -Infinity, end: Infinity }; // Fallback
+            }
+
+            /**
+             * Verifica se dois intervalos de anos se sobrepõem.
+             * @param {{start: number, end: number}} range1
+             * @param {{start: number, end: number}} range2
+             * @returns {boolean}
+             */
+            function rangesOverlap(range1, range2) {
+                // A sobreposição existe se o início de um intervalo for menor ou igual ao fim do outro, e vice-versa.
+                return range1.start <= range2.end && range2.start <= range1.end;
+            }
+
+            function filterSimilars(clickedRow) {
+                // Captura todos os dados da aplicação clicada
+                const filtro = {
+                    veiculo: clickedRow.dataset.veiculo.trim().toLowerCase(),
+                    anoRange: parseYearRange(clickedRow.dataset.ano),
+                    motor: clickedRow.dataset.motor.trim().toLowerCase()
+                };
+                let visibleCount = 0;
+
+                // Limpa o filtro ativo anterior
+                tableBody.querySelectorAll('.application-row.active-filter').forEach(row => row.classList.remove('active-filter'));
+                clickedRow.classList.add('active-filter');
+
+                similarRows.forEach(row => {
+                    const applications = JSON.parse(row.dataset.applications || '[]');
+                    
+                    // Verifica se alguma aplicação do produto similar corresponde aos critérios do filtro.
+                    // A verificação do ano agora usa a sobreposição de intervalos.
+                    const hasMatch = applications.some(app => {
+                        const appAnoRange = parseYearRange(app.ano);
+                        
+                        // O motor é opcional: se o filtro ou a aplicação não tiverem motor, ignora a verificação do motor.
+                        const motorMatch = !filtro.motor || !app.motor || app.motor.toLowerCase() === filtro.motor;
+
+                        return app.veiculo.toLowerCase() === filtro.veiculo &&
+                               rangesOverlap(appAnoRange, filtro.anoRange) &&
+                               motorMatch;
+                    });
+
+                    if (hasMatch) {
+                        row.style.display = '';
+                        visibleCount++;
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+
+                noResultsRow.style.display = visibleCount === 0 ? '' : 'none';
+                clearFilterBtn.style.display = 'inline-block';
+            }
+
+            function clearFilter() {
+                tableBody.querySelectorAll('.application-row.active-filter').forEach(row => row.classList.remove('active-filter'));
+                similarRows.forEach(row => row.style.display = '');
+                noResultsRow.style.display = 'none';
+                clearFilterBtn.style.display = 'none';
+            }
+
+            // Event Delegation: Adiciona um único listener ao corpo da tabela
+            tableBody.addEventListener('click', (event) => {
+                const clickedRow = event.target.closest('.application-row');
+                if (clickedRow) {
+                    filterSimilars(clickedRow);
+                }
+            });
+
+            clearFilterBtn.addEventListener('click', clearFilter);
+            }
+
+            // Inicializa todos os módulos da página
+            setupImageModal();
+            setupInteractiveConversions();
+            setupSimilarFiltering();
+        });
+    </script>
+    {% endraw %}
+{% endblock %}
