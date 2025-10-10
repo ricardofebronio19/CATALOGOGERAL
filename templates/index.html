@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}Página Inicial{% endblock %}
+
+{% block content %}
+    <header>
+        <h1>Catálogo de Peças</h1>
+        <p>Encontre peças por código, nome, aplicação e mais.</p>
+    </header>
+
+    <div class="main-layout">
+        <aside class="sidebar">
+            <h2>Montadoras</h2>
+            <ul>
+                {% for montadora, veiculos in montadoras_com_veiculos.items() %}
+                    <li class="montadora-item">
+                        <div class="montadora-header">
+                            <a href="{{ url_for('buscar', montadora=montadora) }}">{{ montadora }}</a>
+                            {% if veiculos %}<span class="toggle-veiculos">+</span>{% endif %}
+                        </div>
+                        {% if veiculos %}
+                        <ul class="veiculos-list" style="display: none;">
+                            {% for veiculo in veiculos|sort %}
+                                <li><a href="{{ url_for('buscar', montadora=montadora, aplicacao=veiculo) }}" class="veiculo-link">{{ veiculo }}</a></li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        </aside>
+
+        <div class="main-content">
+            {% include 'partials/_search_form.html' ignore missing %}
+        </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Delegação de evento para os cabeçalhos das montadoras
+            document.querySelector('.sidebar ul').addEventListener('click', function(e) {
+                // Encontra o cabeçalho da montadora que foi clicado
+                const header = e.target.closest('.montadora-header');
+                if (!header) return; // Sai se o clique não foi no cabeçalho
+
+                // Encontra a lista de veículos correspondente
+                const veiculosList = header.nextElementSibling;
+                if (!veiculosList || !veiculosList.classList.contains('veiculos-list')) return;
+
+                // Encontra o ícone de toggle
+                const toggle = header.querySelector('.toggle-veiculos');
+
+                // Alterna a exibição da lista
+                if (veiculosList.style.display === 'none') {
+                    veiculosList.style.display = 'block';
+                    if (toggle) toggle.textContent = '−'; // Símbolo de menos
+                } else {
+                    veiculosList.style.display = 'none';
+                    if (toggle) toggle.textContent = '+';
+                }
+            });
+        });
+    </script>
+{% endblock %}

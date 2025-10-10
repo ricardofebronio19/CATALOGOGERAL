@@ -1,0 +1,7 @@
+Flask
+Flask-SQLAlchemy
+Flask-Login
+packaging
+requests
+waitress
+psycopg2-binary

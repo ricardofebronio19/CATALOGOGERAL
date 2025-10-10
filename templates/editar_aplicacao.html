@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Editar Aplicação</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Editar Aplicação para: <br> {{ aplicacao.produto.nome }} ({{ aplicacao.produto.codigo }})</h1>
+        </header>
+
+        <form action="{{ url_for('editar_aplicacao', id=aplicacao.id) }}" method="POST" class="search-section">
+            <div class="search-field">
+                <label for="num_original">Nº Original / Similar:</label>
+                <input type="text" id="num_original" name="num_original" value="{{ aplicacao.num_original or '' }}">
+            </div>
+            <div class="search-field">
+                <label for="veiculo">Veículo:</label>
+                <input type="text" id="veiculo" name="veiculo" value="{{ aplicacao.veiculo or '' }}">
+            </div>
+            <div class="search-field">
+                <label for="ano">Ano:</label>
+                <input type="text" id="ano" name="ano" value="{{ aplicacao.ano or '' }}">
+            </div>
+            <div class="search-field">
+                <label for="motor">Motor:</label>
+                <input type="text" id="motor" name="motor" value="{{ aplicacao.motor or '' }}">
+            </div>
+            <div class="search-field">
+                <label for="conf_mtr">Conf. MTR:</label>
+                <input type="text" id="conf_mtr" name="conf_mtr" value="{{ aplicacao.conf_mtr or '' }}">
+            </div>
+            
+            <button type="submit">Salvar Alterações</button>
+            <a href="{{ url_for('detalhe_peca', id=aplicacao.produto.id) }}" class="button" style="background-color: #555; color: white; padding: 12px 20px; text-decoration: none; border-radius: 4px;">Cancelar</a>
+        </form>
+    </div>
+</body>
+</html>

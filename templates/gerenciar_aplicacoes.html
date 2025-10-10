@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Gerenciar Aplicações</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Gerenciar Aplicações</h1>
+            <p>Produto: <strong>{{ produto.nome }} ({{ produto.codigo }})</strong></p>
+        </header>
+
+        <!-- Seção para Adicionar Nova Aplicação -->
+        <div class="search-section" style="margin-bottom: 30px;">
+            <h2>Adicionar Nova Aplicação</h2>
+            <form action="{{ url_for('gerenciar_aplicacoes', produto_id=produto.id) }}" method="POST" style="display: flex; flex-wrap: wrap; gap: 20px;">
+                <div class="search-field">
+                    <label for="veiculo">Veículo:</label>
+                    <input type="text" id="veiculo" name="veiculo" required>
+                </div>
+                <div class="search-field">
+                    <label for="ano">Ano:</label>
+                    <input type="text" id="ano" name="ano">
+                </div>
+                <div class="search-field">
+                    <label for="motor">Motor:</label>
+                    <input type="text" id="motor" name="motor">
+                </div>
+                <div class="search-field">
+                    <label for="conf_mtr">Conf. MTR:</label>
+                    <input type="text" id="conf_mtr" name="conf_mtr">
+                </div>
+                <div style="align-self: flex-end; width: 100%;">
+                    <button type="submit">Adicionar Aplicação</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Seção para Listar Aplicações Existentes -->
+        <div class="application-section">
+            <h3>Aplicações Cadastradas</h3>
+            <table class="application-table">
+                <thead>
+                    <tr>
+                        <th>Veículo</th>
+                        <th>Ano</th>
+                        <th>Motor</th>
+                        <th>Conf. MTR</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for aplicacao in produto.aplicacoes %}
+                    <tr>
+                        <td>{{ aplicacao.veiculo or '' }}</td>
+                        <td>{{ aplicacao.ano or '' }}</td>
+                        <td>{{ aplicacao.motor or '' }}</td>
+                        <td>{{ aplicacao.conf_mtr or '' }}</td>
+                        <td>
+                            <a href="{{ url_for('editar_aplicacao', id=aplicacao.id) }}" style="font-size: 0.9em; text-decoration: none; color: #007bff; margin-right: 10px;">Editar</a>
+                            <form action="{{ url_for('excluir_aplicacao', id=aplicacao.id) }}" method="POST" style="display: inline;" onsubmit="return confirm('Tem certeza que deseja excluir esta aplicação?');">
+                                <button type="submit" class="button-link-danger">Excluir</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" style="text-align: center;">Nenhuma aplicação cadastrada.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <a href="{{ url_for('detalhe_peca', id=produto.id) }}" style="display: block; margin-top: 20px;">Voltar para Detalhes do Produto</a>
+
+    </div>
+    <style>
+        .button-link-danger {
+            background: none;
+            border: none;
+            color: #dc3545;
+            text-decoration: none;
+            cursor: pointer;
+            padding: 0;
+            font-size: 0.9em;
+            font-family: inherit;
+        }
+    </style>
+</body>
+</html>

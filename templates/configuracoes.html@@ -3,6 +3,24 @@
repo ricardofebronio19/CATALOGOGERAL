@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block title %}Configurações{% endblock %}
+
+{% block content %}
+<header>
+    <h1>Configurações do Sistema</h1>
+    <p style="font-size: 0.9em; color: #eee;">Versão Atual: {{ app_version }}</p>
+</header>
+
+<!-- Seção de Atualização (só aparece se houver uma nova versão) -->
+{% if update_info %}
+<div class="update-notification">
+    <h2><img src="{{ url_for('static', filename='update-icon.svg') }}" alt="Update"> Nova Atualização Disponível!</h2>
+    <p>Uma nova versão <strong>({{ update_info.latest_version }})</strong> do catálogo está disponível.</p>
+    <div class="release-notes">
+        <strong>Notas da versão:</strong>
+        <pre>{{ update_info.release_notes }}</pre>
+    </div>
+    <form action="{{ url_for('apply_update') }}" method="POST" onsubmit="return confirm('A aplicação será reiniciada para instalar a atualização. Deseja continuar?');">
+        <button type="submit" class="button update-button">Baixar e Instalar Atualização</button>
+    </form>
+</div>
+{% endif %}
+
+<div class="config-container">
+    <!-- Seção de Aparência -->
+    <div class="config-section">
+        <h2>Aparência</h2>
+        <form action="{{ url_for('configuracoes') }}" method="POST" enctype="multipart/form-data" class="search-section" style="max-width: 600px;">
+            <div class="search-field">
+                <label for="cor_principal">Cor Principal:</label>
+                <input type="color" id="cor_principal" name="cor_principal" value="{{ config.cor_principal }}">
+            </div>
+            <div class="search-field">
+                <label for="logo">Logo do Catálogo (substituir):</label>
+                <input type="file" id="logo" name="logo" accept="image/*">
+                {% if config.logo_path %}
+                <p style="margin-top: 10px;">Logo atual: <img src="{{ url_for('uploaded_file', filename=config.logo_path) }}" alt="Logo Atual" style="max-height: 40px; vertical-align: middle; background: #f0f0f0; padding: 5px;"></p>
+                {% endif %}
+            </div>
+            <button type="submit">Salvar Aparência</button>
+        </form>
+    </div>
+
+    <!-- Seção de Importação -->
+    <div class="config-section">
+        <h2>Importar Dados</h2>
+        <form action="{{ url_for('importar_csv_route') }}" method="POST" enctype="multipart/form-data" class="search-section" style="max-width: 600px;">
+            <div class="search-field">
+                <label for="csv_file">Importar Produtos de CSV:</label>
+                <input type="file" id="csv_file" name="csv_file" accept=".csv" required>
+            </div>
+            <button type="submit">Importar CSV</button>
+        </form>
+    </div>
+
+    <!-- Seção de Backup e Restauração -->
+    <div class="config-section">
+        <h2>Backup e Restauração</h2>
+        <div style="display: flex; gap: 20px; align-items: center;">
+            <div>
+                <p>Crie uma cópia de segurança de todo o catálogo, incluindo produtos, imagens e configurações.</p>
+                <a href="{{ url_for('backup') }}" class="button">Fazer Backup Agora</a>
+            </div>
+            <form action="{{ url_for('restaurar') }}" method="POST" enctype="multipart/form-data" onsubmit="return confirm('ATENÇÃO: A restauração substituirá TODOS os dados atuais. Esta ação não pode ser desfeita. Deseja continuar?');">
+                <p>Restaure o catálogo a partir de um arquivo de backup (.zip).</p>
+                <input type="file" name="backup_file" accept=".zip" required>
+                <button type="submit" class="button" style="background-color: #dc3545;">Restaurar Backup</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    .config-container {
+        display: flex;
+        flex-direction: column;
+        gap: 30px;
+    }
+    .config-section {
+        padding: 20px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        background-color: #f9f9f9;
+    }
+    .config-section h2 {
+        margin-top: 0;
+        border-bottom: 2px solid var(--cor-principal, #ff6600);
+        padding-bottom: 10px;
+        margin-bottom: 20px;
+    }
+    .update-notification {
+        background-color: #e6f7ff;
+        border: 1px solid #91d5ff;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 30px;
+    }
+    .update-notification h2 {
+        color: #0050b3;
+        margin-top: 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .update-notification h2 img {
+        width: 24px;
+        height: 24px;
+    }
+    .update-button {
+        background-color: #28a745; /* Verde */
+    }
+    .release-notes pre {
+        background-color: #fff;
+        padding: 10px;
+        border-radius: 4px;
+        white-space: pre-wrap;
+    }
+    .progress-bar-background {
+        width: 100%;
+        background-color: #e9ecef;
+        border-radius: 5px;
+        height: 24px;
+        overflow: hidden;
+    }
+    .progress-bar-foreground {
+        width: 0%;
+        height: 100%;
+        background-color: #28a745;
+        text-align: center;
+        line-height: 24px;
+        color: white;
+        font-weight: bold;
+        transition: width 0.4s ease;
+    }
+</style>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+</script>
+{% endblock %}

@@ -1,0 +1,245 @@
+{% extends "base.html" %}
+
+{% block title %}Adicionar Nova Peça{% endblock %}
+
+{% block head %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">    
+{% endblock %}
+
+{% block content %}
+        {# Passa as URLs necessárias para o JavaScript através de atributos de dados no body #}
+        <body data-product-id="" 
+              data-get-montadora-url="{{ url_for('get_montadora_for_veiculo') }}"
+              data-similar-search-url="{{ url_for('buscar_pecas_similares') }}"
+        >
+
+        <header>
+            <h1>Adicionar Nova Peça</h1>
+        </header>
+
+        <form action="{{ url_for('adicionar_peca') }}" method="POST" enctype="multipart/form-data" class="search-section" novalidate>
+
+            <div class="search-field">
+                <label for="nome">Nome da Peça</label>
+                <input type="text" id="nome" name="nome" class="form-control" required>
+            </div>
+            <div class="search-field">
+                <label for="codigo">Código</label>
+                <input type="text" id="codigo" name="codigo" class="form-control" required>
+                <div id="codigo-validation-message" class="validation-message"></div>
+            </div>
+            
+            <datalist id="montadoras-lista">
+                {% for fab_item in montadoras %}
+                    <option value="{{ fab_item }}">
+                {% endfor %}
+            </datalist>
+
+            <div class="search-field">
+                <label for="fornecedor">Fornecedor</label>
+                <input type="text" id="fornecedor" name="fornecedor" list="fornecedores-lista" autocomplete="off">
+                <datalist id="fornecedores-lista">
+                    {% for forn_item in fornecedores %}
+                        <option value="{{ forn_item }}">
+                    {% endfor %}
+                </datalist>
+            </div>
+
+            <div class="search-field">
+                <label for="grupo">Grupo</label>
+                <input type="text" id="grupo" name="grupo" list="grupos-lista" autocomplete="off">
+                <datalist id="grupos-lista">
+                    {% for grupo_item in grupos %}
+                        <option value="{{ grupo_item }}">
+                    {% endfor %}
+                </datalist>
+            </div>
+
+            <div class="search-field">
+                <label for="medidas">Medidas</label>
+                <textarea id="medidas" name="medidas" rows="4" placeholder="Ex: 200mm x 50mm (uma medida por linha)"></textarea>
+            </div>
+
+            <!-- Seção de Aplicações Dinâmicas -->
+            <div id="aplicacoes-container" style="width: 100%;">
+                <!-- O JavaScript irá adicionar os blocos de aplicação aqui -->
+            </div>
+            <button type="button" id="add-aplicacao-btn" style="background-color: #17a2b8; margin-top: 19px; margin-bottom: 20px;">Adicionar aplicação</button>
+
+            <!-- Campo de busca para Códigos Similares -->
+            <div class="search-field" style="width: 48%;">
+                <label for="similar-search">Buscar Códigos Similares:</label>
+                <div class="similar-search-container">
+                    <input type="text" id="similar-search" placeholder="Digite código ou nome para buscar..." autocomplete="off">
+                    <div id="similar-results" class="similar-results"></div>
+                </div>
+                <div id="selected-similar-list" class="selected-similar-list"></div>
+                <input type="hidden" id="similares_ids" name="similares_ids">
+            </div>
+
+            <!-- Seção de Conversões -->
+            <div class="search-field" style="width: 100%;">
+                <label for="conversoes">Nº Conversão</label>
+                <textarea id="conversoes" name="conversoes" rows="8"></textarea>
+            </div>
+
+            <div class="search-field" style="width: 100%;">
+                <label for="observacoes">Observações</label>
+                <textarea id="observacoes" name="observacoes" rows="4"></textarea>
+            </div>
+
+            <div class="search-field">
+                <label for="imagens">Adicionar Novas Imagens</label>
+                <input type="file" id="imagens" name="imagens" multiple accept="image/*">
+                <div id="new-image-preview-container" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px;"></div>
+                
+                <hr style="margin: 15px 0;">
+
+                <label for="imagem_url">Ou Adicionar Imagem por URL</label>
+                <input type="url" id="imagem_url" name="imagem_url" placeholder="https://exemplo.com/imagem.jpg" style="width: 100%; box-sizing: border-box;">
+            </div>
+            
+            <input type="submit" value="Adicionar Peça">
+            <a href="{{ url_for('index') }}" class="button" style="background-color: #555; color: white; padding: 12px 20px; text-decoration: none; border-radius: 4px;">Cancelar</a>
+        </form>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    {# Reutiliza os mesmos scripts de editar_peca.html, com pequenas adaptações #}
+    <script>
+        // Script para adicionar/remover blocos de aplicação
+        document.getElementById('add-aplicacao-btn').addEventListener('click', function() {
+            const container = document.getElementById('aplicacoes-container');
+            const index = container.getElementsByClassName('aplicacao-bloco').length;
+            
+            const novoBloco = document.createElement('div');
+            novoBloco.classList.add('aplicacao-bloco');
+            novoBloco.style.marginTop = '20px';
+            novoBloco.dataset.index = index;
+            novoBloco.innerHTML = `
+                <h4 style="width: 100%; margin-top: 0;">Nova Aplicação ${index + 1}</h4>
+                <input type="hidden" name="aplicacoes-${index}-id" id="aplicacoes-${index}-id">
+                <div class="search-field"><label for="aplicacoes-${index}-veiculo">Veículo:</label><input type="text" id="aplicacoes-${index}-veiculo" name="aplicacoes-${index}-veiculo"></div>
+                <div class="search-field"><label for="aplicacoes-${index}-ano">Ano:</label><input type="text" id="aplicacoes-${index}-ano" name="aplicacoes-${index}-ano"></div>
+                <div class="search-field"><label for="aplicacoes-${index}-motor">Motor:</label><input type="text" id="aplicacoes-${index}-motor" name="aplicacoes-${index}-motor"></div>
+                <div class="search-field"><label for="aplicacoes-${index}-conf_mtr">Conf. MTR:</label><input type="text" id="aplicacoes-${index}-conf_mtr" name="aplicacoes-${index}-conf_mtr"></div>
+                <div class="search-field"><label for="aplicacoes-${index}-montadora">Montadora:</label><input type="text" id="aplicacoes-${index}-montadora" name="aplicacoes-${index}-montadora" list="montadoras-lista" autocomplete="off"></div>
+                <div style="width: 100%; text-align: right;"><button type="button" class="remove-aplicacao-btn" style="background-color: #dc3545; font-size: 0.9em; padding: 8px 12px;">Remover</button></div>
+            `;
+            
+            container.appendChild(novoBloco);
+        });
+
+        document.getElementById('aplicacoes-container').addEventListener('click', function(e) {
+            if (e.target && e.target.classList.contains('remove-aplicacao-btn')) {
+                e.target.closest('.aplicacao-bloco').remove();
+            }
+        });
+
+        // --- Validação de Código em Tempo Real (Adição) ---
+        const codigoInput = document.getElementById('codigo');
+        const validationMessage = document.getElementById('codigo-validation-message');
+        let debounceTimer;
+
+        codigoInput.addEventListener('input', function() {
+            clearTimeout(debounceTimer);
+            const codigo = this.value.trim();
+            if (codigo.length < 3) { validationMessage.textContent = ''; return; }
+
+            debounceTimer = setTimeout(() => {
+                fetch(`{{ url_for('check_codigo') }}?codigo=${encodeURIComponent(codigo)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.exists) {
+                            validationMessage.textContent = `Atenção: Código já em uso pelo produto "${data.nome}".`;
+                            validationMessage.className = 'validation-message error';
+                        } else {
+                            validationMessage.textContent = 'Código disponível!';
+                            validationMessage.className = 'validation-message success';
+                        }
+                    });
+            }, 500);
+        });
+
+        // --- Lógica para busca e seleção de produtos similares ---
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('similar-search');
+            const resultsContainer = document.getElementById('similar-results');
+            const selectedList = document.getElementById('selected-similar-list');
+            const hiddenInput = document.getElementById('similares_ids');
+            const searchUrl = document.body.dataset.similarSearchUrl;
+            const excludeId = document.body.dataset.productId;
+
+            let similarDebounceTimer;
+
+            // Função para atualizar o input hidden com os IDs selecionados
+            function updateHiddenInput() {
+                const selectedItems = selectedList.querySelectorAll('.selected-similar-item');
+                const ids = Array.from(selectedItems).map(item => item.dataset.id);
+                hiddenInput.value = ids.join(',');
+            }
+
+            // Adiciona um item à lista de selecionados
+            function addSelectedItem(item) {
+                // Verifica se o item já foi adicionado
+                if (selectedList.querySelector(`[data-id="${item.id}"]`)) {
+                    return;
+                }
+
+                const div = document.createElement('div');
+                div.className = 'selected-similar-item';
+                div.dataset.id = item.id;
+                div.innerHTML = `<span>${item.codigo} - ${item.nome}</span><button type="button" class="remove-similar-btn" title="Remover">×</button>`;
+                selectedList.appendChild(div);
+                updateHiddenInput();
+            }
+
+            // Evento de input no campo de busca
+            searchInput.addEventListener('input', function() {
+                clearTimeout(similarDebounceTimer);
+                const query = this.value.trim();
+
+                if (query.length < 2) {
+                    resultsContainer.innerHTML = '';
+                    resultsContainer.style.display = 'none';
+                    return;
+                }
+
+                similarDebounceTimer = setTimeout(() => {
+                    fetch(`${searchUrl}?q=${encodeURIComponent(query)}&exclude_id=${excludeId || ''}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            resultsContainer.innerHTML = '';
+                            if (data.items && data.items.length > 0) {
+                                data.items.forEach(item => {
+                                    const div = document.createElement('div');
+                                    div.className = 'similar-result-item';
+                                    div.textContent = `${item.codigo} - ${item.nome}`;
+                                    div.addEventListener('click', () => {
+                                        addSelectedItem(item);
+                                        searchInput.value = '';
+                                        resultsContainer.style.display = 'none';
+                                    });
+                                    resultsContainer.appendChild(div);
+                                });
+                                resultsContainer.style.display = 'block';
+                            } else {
+                                resultsContainer.style.display = 'none';
+                            }
+                        });
+                }, 300);
+            });
+
+            // Evento para remover um item selecionado
+            selectedList.addEventListener('click', function(e) {
+                if (e.target.classList.contains('remove-similar-btn')) {
+                    e.target.closest('.selected-similar-item').remove();
+                    updateHiddenInput();
+                }
+            });
+        });
+    </script>
+    {# Inclui os scripts de editar_peca.html que são reutilizáveis #}
+    <script src="{{ url_for('static', filename='js/form_helpers.js') }}"></script>
+{% endblock %}

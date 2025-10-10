@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}Resultados da Busca{% endblock %}
+
+{% block content %}
+<header>
+    <h1>Resultados da Busca</h1>
+    <p>
+        {% if pagination.total > 0 %}
+            Exibindo {{ pagination.items|length }} de {{ pagination.total }} resultados para "<strong>{{ termo }}</strong>".
+        {% else %}
+            Nenhum resultado encontrado para "<strong>{{ termo }}</strong>".
+        {% endif %}
+    </p>
+</header>
+
+<div class="results-controls">
+    <div class="sort-options">
+        <span>Ordenar por:</span>
+        {# CORREÇÃO: Remove os parâmetros de ordenação antigos de search_args #}
+        {# Isso garante que o filtro 'merge' adicione os novos valores a uma base limpa. #}
+        {% do search_args.pop('sort_by', None) %}
+        {% do search_args.pop('sort_order', None) %}
+        {# Lógica para o link de ordenação por CÓDIGO #}
+        {% set codigo_order = 'asc' if sort_by != 'codigo' else ('desc' if sort_order == 'asc' else 'asc') %}
+        <a href="{{ url_for('buscar', **search_args|merge({'sort_by': 'codigo', 'sort_order': codigo_order})) }}" class="button {% if sort_by == 'codigo' %}active{% endif %}">
+            Código
+            {% if sort_by == 'codigo' %}
+                <span class="sort-arrow">{{ '▲' if sort_order == 'asc' else '▼' }}</span>
+            {% endif %}
+        </a>
+
+        {# Lógica para o link de ordenação por NOME #}
+        {% set nome_order = 'asc' if sort_by != 'nome' else ('desc' if sort_order == 'asc' else 'asc') %}
+        <a href="{{ url_for('buscar', **search_args|merge({'sort_by': 'nome', 'sort_order': nome_order})) }}" class="button {% if sort_by == 'nome' %}active{% endif %}">
+            Nome
+            {% if sort_by == 'nome' %}
+                <span class="sort-arrow">{{ '▲' if sort_order == 'asc' else '▼' }}</span>
+            {% endif %}
+        </a>
+    </div>
+    {% if pagination.total > 0 and is_admin %}
+        <a href="{{ url_for('exportar_csv', **search_args) }}" class="button">Exportar para CSV</a>
+    {% endif %}
+</div>
+
+<table class="results-table">
+    <thead>
+        <tr>
+            <th>Código</th>
+            <th>Nome</th>
+            <th>Fornecedor</th>
+            <th>Grupo</th>
+            <th>Aplicações</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for produto in pagination.items %}
+        <tr>
+            <td><a href="{{ url_for('detalhe_peca', id=produto.id) }}">{{ produto.codigo|highlight(termo) }}</a></td>
+            <td>{{ produto.nome|highlight(termo) }}</td>
+            <td>{{ produto.fornecedor|default('N/A', true)|highlight(termo) }}</td>
+            <td>{{ produto.grupo|default('N/A', true) }}</td>
+            <td>
+                {% set montadoras = produto.aplicacoes|map(attribute='montadora')|unique|list %}
+                {{ montadoras|join(' | ') }}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<!-- Paginação -->
+{% if pagination.pages > 1 %}
+<div class="pagination">
+    {% if pagination.has_prev %}
+        <a href="{{ url_for('buscar', page=pagination.prev_num, **search_args) }}">&laquo; Anterior</a>
+    {% endif %}
+
+    {# Mostra links para 2 páginas antes, a atual, e 2 páginas depois, com elipses para o resto #}
+    {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+        {% if p %}
+            <a href="{{ url_for('buscar', page=p, **search_args) }}" class="{% if p == pagination.page %}active{% endif %}">{{ p }}</a>
+        {% else %}
+            <span class="ellipsis">…</span>
+        {% endif %}
+    {% endfor %}
+
+    {% if pagination.has_next %}
+        <a href="{{ url_for('buscar', page=pagination.next_num, **search_args) }}">Próxima &raquo;</a>
+    {% endif %}
+</div>
+{% endif %}
+
+{% endblock %}
