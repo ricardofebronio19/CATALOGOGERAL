@@ -137,7 +137,7 @@ def main():
     """Ponto de entrada principal para a interface de linha de comando."""
     parser = argparse.ArgumentParser(description="Servidor e gerenciador do Catálogo de Peças.")
     # Adiciona os argumentos do servidor ao parser principal para que possam ser usados sem o comando 'run'
-    parser.add_argument('--host', type=str, default='127.0.0.1', help='O host para o servidor (ex: 0.0.0.0 para acesso na rede).')
+    parser.add_argument('--host', type=str, default='0.0.0.0', help='O host para o servidor (ex: 0.0.0.0 para acesso na rede).')
     parser.add_argument('--port', type=int, default=8000, help='A porta para o servidor.')
     parser.add_argument('--no-browser', action='store_true', help='Não abre o navegador automaticamente.')
 
