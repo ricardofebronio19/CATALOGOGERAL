@@ -21,7 +21,7 @@ import re # Importado para a lógica de importação de CSV
 
 # --- Configurações de Atualização ---
 VERSION = "1.0.0"  # Versão atual da aplicação
-UPDATE_CONFIG_URL = "https://raw.githubusercontent.com/SEU_USUARIO/catalogo-pecas-releases/main/update_config.json" # URL para o JSON de configuração da atualização
+UPDATE_CONFIG_URL = "https://raw.githubusercontent.com/ricardofebronio19/CATALOGOGERAL/main/update_config.json" # URL para o JSON de configuração da atualização
 
 # Esta rota deve ser definida após a criação do objeto 'app', então será movida para depois da definição do app.
 

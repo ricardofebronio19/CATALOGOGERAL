@@ -6,6 +6,7 @@ import shutil
 import webbrowser
 import argparse
 import sys
+import threading
 
 def perform_restore_from_backup():
     """Verifica e executa a restauração a partir de um arquivo de backup pendente."""

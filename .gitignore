@@ -1,0 +1,34 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+.venv/
+
+# Distribution / packaging
+build/
+dist/
+Output/
+*.spec
+
+# Installer / build artefacts
+*.exe
+*.msi
+
+# Local app data and DB
+AppData/
+**/catalogo.db
+*.db
+
+# Logs
+*.log
+
+# Editor files
+.vscode/
+*.swp
+*.swo
+
+# OS files
+Thumbs.db
+.DS_Store
