@@ -48,12 +48,16 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload release asset
-        uses: softprops/action-upload-release-asset@v1
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: dist\CatalogoDePecas.exe
-          asset_name: CatalogoDePecas.exe
-          asset_content_type: application/octet-stream
+      - name: Upload release asset (PowerShell)
+        if: steps.create_release.outputs.upload_url != ''
+        shell: pwsh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $uploadUrl = "${{ steps.create_release.outputs.upload_url }}?name=CatalogoDePecas.exe"
+          Write-Host "Uploading asset to $uploadUrl"
+          if (-not (Test-Path 'dist\CatalogoDePecas.exe')) {
+            Write-Error 'Asset not found: dist\CatalogoDePecas.exe'
+            exit 1
+          }
+          Invoke-WebRequest -Uri $uploadUrl -Method Post -Headers @{ Authorization = "token $env:GITHUB_TOKEN" } -InFile 'dist\CatalogoDePecas.exe' -ContentType 'application/octet-stream'
