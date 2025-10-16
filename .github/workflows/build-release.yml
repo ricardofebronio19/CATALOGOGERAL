@@ -82,7 +82,8 @@ jobs:
           } else {
             $uploadUrl = $response.upload_url -replace '\{\?name,label\}', ''
           }
-          $uploadUri = "$uploadUrl?name=$assetName"
+          # Use $() to ensure PowerShell interpola a variável inteira antes do '?'
+          $uploadUri = "$($uploadUrl)?name=$assetName"
           Write-Host "Uploading asset $assetName to $uploadUri"
           # Usamos Invoke-RestMethod para que erros apareçam como JSON
           Invoke-RestMethod -Uri $uploadUri -Method Post -Headers $headers -InFile $AssetPath -ContentType 'application/octet-stream'
