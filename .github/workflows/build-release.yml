@@ -72,10 +72,17 @@ jobs:
           $response = Invoke-RestMethod -Uri $createUrl -Method Post -Headers $headers -Body $bodyObj -ContentType 'application/json'
           if (-not $response) { Write-Error 'Failed to create release'; exit 1 }
 
-          $uploadUrl = $response.upload_url -replace '\{\?name,label\}', ''
           $assetName = Split-Path $AssetPath -Leaf
+          # Alguns responses podem não expor upload_url; logamos e construimos a URL a partir do id se necessário
+          Write-Host "Create release response id: $($response.id)"
+          Write-Host "Create release response upload_url: $($response.upload_url)"
+          if ($null -eq $response.upload_url -or $response.upload_url -eq '') {
+            Write-Host 'upload_url not present in response, constructing from release id'
+            $uploadUrl = "https://uploads.github.com/repos/$Repo/releases/$($response.id)/assets"
+          } else {
+            $uploadUrl = $response.upload_url -replace '\{\?name,label\}', ''
+          }
           $uploadUri = "$uploadUrl?name=$assetName"
-
           Write-Host "Uploading asset $assetName to $uploadUri"
           # Usamos Invoke-RestMethod para que erros apareçam como JSON
           Invoke-RestMethod -Uri $uploadUri -Method Post -Headers $headers -InFile $AssetPath -ContentType 'application/octet-stream'
