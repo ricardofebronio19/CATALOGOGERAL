@@ -57,6 +57,13 @@ jobs:
             Write-Error "Asset not found: $assetPath"
             exit 1
           }
-          Write-Host "Creating release $tag and uploading asset $assetPath"
-          # Executa o script local criado no repositório
-          & .\scripts\create_release.ps1 -TagName $tag -ReleaseName $releaseName -Body $body -AssetPath $assetPath -Repo "ricardofebronio19/CATALOGOGERAL"
+          $scriptPath = Join-Path $env:GITHUB_WORKSPACE 'scripts\create_release.ps1'
+          Write-Host "Looking for script at: $scriptPath"
+          if (-not (Test-Path $scriptPath)) {
+            Write-Error "Script not found: $scriptPath"
+            Write-Host "Repository root listing (first 200 entries):"
+            Get-ChildItem -Path $env:GITHUB_WORKSPACE -Recurse -Force -ErrorAction SilentlyContinue | Select-Object FullName,Length | Select-Object -First 200 | Format-Table -AutoSize
+            exit 1
+          }
+          Write-Host "Creating release $tag and uploading asset $assetPath using script $scriptPath"
+          & "$scriptPath" -TagName $tag -ReleaseName $releaseName -Body $body -AssetPath $assetPath -Repo "ricardofebronio19/CATALOGOGERAL"
