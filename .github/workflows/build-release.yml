@@ -63,10 +63,16 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          $uploadUrl = "${{ steps.create_release.outputs.upload_url }}?name=CatalogoDePecas.exe"
+          # O output upload_url pode vir no formato '.../assets{?name,label}'. Removemos o template antes de usar.
+          $baseUploadUrl = "${{ steps.create_release.outputs.upload_url }}"
+          $baseUploadUrl = $baseUploadUrl -replace '\{\?name,label\}', ''
+          $assetPath = 'dist\CatalogoDePecas.exe'
+          $assetName = Split-Path $assetPath -Leaf
+          $uploadUrl = "$baseUploadUrl?name=$assetName"
           Write-Host "Uploading asset to $uploadUrl"
-          if (-not (Test-Path 'dist\CatalogoDePecas.exe')) {
-            Write-Error 'Asset not found: dist\CatalogoDePecas.exe'
+          if (-not (Test-Path $assetPath)) {
+            Write-Error "Asset not found: $assetPath"
             exit 1
           }
-          Invoke-WebRequest -Uri $uploadUrl -Method Post -Headers @{ Authorization = "token $env:GITHUB_TOKEN" } -InFile 'dist\CatalogoDePecas.exe' -ContentType 'application/octet-stream'
+          # Usamos Invoke-RestMethod para obter resposta JSON do GitHub em caso de erro.
+          Invoke-RestMethod -Uri $uploadUrl -Method Post -Headers @{ Authorization = "token $env:GITHUB_TOKEN"; 'Accept' = 'application/vnd.github+json' } -InFile $assetPath -ContentType 'application/octet-stream'
