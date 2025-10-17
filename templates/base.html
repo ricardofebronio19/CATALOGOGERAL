@@ -1,110 +1,96 @@
 <!DOCTYPE html>
 <html lang="pt-br">
-
 <head>
     <meta charset="UTF-8">
-    <title>{% block title %}Catálogo de Peças{% endblock %}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Catálogo de Peças{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    {% set cor = config_aparencia.cor_principal or '#ff6600' %}
     <style>
-        header,
-        button,
-        .button,
-        .add-application-btn {
-            background-color: {{ cor }};
-        }
-
-        .product-item strong,
-        .product-detail-header span {
-            color: {{ cor }};
-        }
-
-        button:hover,
-        .button:hover {
-            filter: brightness(90%);
-        }
-        @media (max-width: 600px) {
-            header, nav, main, footer {
-                padding: 8px;
-                font-size: 1em;
-            }
-            .product-item, .product-detail {
-                flex-direction: column;
-                align-items: stretch;
-            }
+        :root {
+            --cor-principal: {{ config_aparencia.cor_principal|default('#ff6600') }};
         }
     </style>
     {% block head %}{% endblock %}
 </head>
-
 <body>
-
-    <div class="container">
-        <header>
-            <div style="display: flex; align-items: center; justify-content: space-between;">
-                <a href="{{ url_for('index') }}" style="text-decoration: none; color: white; display: flex; align-items: center;">
+    <nav class="top-nav">
+        <div class="nav-content-wrapper">
+            <div class="nav-left">
+                <a href="{{ url_for('main.index') }}" class="logo-link">
                     {% if config_aparencia.logo_path %}
-                    <img src="{{ url_for('uploaded_file', filename=config_aparencia.logo_path) }}" alt="Logo"
-                        style="max-height: 60px; vertical-align: middle;">
+                        <img src="{{ url_for('uploaded_file', filename=config_aparencia.logo_path) }}" alt="Logo" class="logo-img" style="max-height: 40px; width: auto; vertical-align: middle;">
                     {% else %}
-                    <h1 style="margin: 0;">Catálogo de Peças</h1>
+                        <span class="logo-text">Catálogo</span>
                     {% endif %}
                 </a>
-                <nav style="display: flex; gap: 10px;">
+            </div>
+
+            <div class="nav-center-group">
+                {% if show_top_search is not defined or show_top_search %}
+                    <div class="nav-center">
+                        <form action="{{ url_for('main.buscar') }}" method="GET" class="search-form">
+                            <input type="search" name="termo" placeholder="Buscar por código, nome, aplicação..." value="{{ termo or '' }}">
+                            <button type="submit">Buscar</button>
+                        </form>
+                    </div>
+                {% endif %}
+    
+                <div class="nav-right">
+                    <a href="{{ url_for('main.index') }}" class="button">Nova Busca</a>
                     {% if current_user.is_authenticated %}
-                        <a href="{{ url_for('adicionar_peca') }}" class="button" style="color: white;">Adicionar Peça</a>
                         {% if is_admin %}
-                            <a href="{{ url_for('configuracoes') }}" class="button" style="color: white;">Configurações</a>
-                            <a href="{{ url_for('gerenciar_usuarios') }}" class="button" style="color: white;">Usuários</a>
+                            <a href="{{ url_for('admin.adicionar_peca') }}" class="button">Adicionar Peça</a>
+                            <a href="{{ url_for('admin.gerenciar_usuarios') }}" class="button">Usuários</a>
+                            <a href="{{ url_for('admin.pagina_tarefas') }}" class="button">Tarefas</a>
+                            <a href="{{ url_for('admin.configuracoes') }}" class="button">Config.</a>
                         {% endif %}
-                        <a href="{{ url_for('logout') }}" class="button" style="color: white;">Logout</a>
+                        <a href="{{ url_for('auth.logout') }}" class="button">Sair</a>
                     {% else %}
-                        <a href="{{ url_for('login') }}" class="button" style="color: white;">Login</a>
+                        <a href="{{ url_for('auth.login') }}" class="button">Login</a>
                     {% endif %}
-                </nav>
+                </div>
             </div>
-        </header>
-
-        {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-        <div class="flash-messages">
-            {% for category, message in messages %}
-            <div class="alert-{{ category }}"
-                style="padding: 15px; margin: 10px 0; border-radius: 5px; background-color: {% if category == 'success' %}#d4edda{% else %}#f8d7da{% endif %}; color: {% if category == 'success' %}#155724{% else %}#721c24{% endif %};">
-                {{ message }}
-            </div>
-            {% endfor %}
         </div>
-        {% endif %}
-        {% endwith %}
+    </nav>
 
-        <main>
-            {% block content %}{% endblock %}
-        </main>
-
-        <footer>
-            {% if voltar_url %}
-                <a href="{{ voltar_url }}" style="display: block; margin-top: 20px;">Voltar</a>
-            {% else %}
-                <a href="{{ url_for('index') }}" style="display: block; margin-top: 20px;">Voltar para a Busca</a>
+    <div class="flash-messages">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash-message flash-{{ category }}">{{ message }}</div>
+                {% endfor %}
             {% endif %}
-            <small>&copy; {{ now().year if now else '2024' }} Catálogo de Peças</small>
-        </footer>
+        {% endwith %}
     </div>
-    {% block scripts %}{% endblock %}
+
+    <main class="container">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer>
+        <p>Catálogo de Peças v{{ app_version }} - Desenvolvido com Flask.</p>
+        {% if update_info %}
+            <p class="update-available">
+                <a href="{{ update_info.release_url }}" target="_blank">
+                    Nova versão disponível: {{ update_info.version }}! Clique para baixar.
+                </a>
+            </p>
+        {% endif %}
+    </footer>
+
+    {% block scripts %}
     <script>
-        document.addEventListener('keydown', function(event) {
-            // Verifica se a tecla pressionada foi 'Escape'
-            if (event.key === 'Escape') {
-                // A variável 'voltar_url' é injetada pelo Jinja2
-                const voltarUrl = "{{ voltar_url or '' }}";
-                if (voltarUrl) {
-                    window.location.href = voltarUrl;
-                }
-            }
+        // Script para fechar as mensagens flash
+        document.addEventListener('DOMContentLoaded', function() {
+            const flashMessages = document.querySelectorAll('.flash-message');
+            flashMessages.forEach(function(message) {
+                message.addEventListener('click', function() {
+                    this.style.opacity = '0';
+                    setTimeout(() => this.remove(), 300);
+                });
+            });
         });
     </script>
+    {% endblock %}
 </body>
-
 </html>

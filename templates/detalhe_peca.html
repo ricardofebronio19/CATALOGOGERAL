@@ -25,14 +25,14 @@
                 <p><strong>Fornecedor:</strong> {{ produto.fornecedor or 'N/A' }}</p>
                 {% if produto.medidas %}
                 <div class="detail-multiline-field">
-                    <strong>Medidas:</strong> <pre>{{ produto.medidas }}</pre>
+                    <strong>Medidas:</strong> <pre>{{ produto.medidas | highlight(termo) }}</pre>
                 </div>
                 {% endif %}
-                {% if current_user.is_authenticated %}
+                {% if is_admin %}
                     <div style="margin-top: 10px;">
-                        <a href="{{ url_for('editar_peca', id=produto.id) }}" class="button" style="background-color: #007bff;">Editar Peça</a>
-                        <a href="{{ url_for('clonar_peca', id=produto.id) }}" class="button" style="background-color: #17a2b8;">Clonar</a>
-                        <form action="{{ url_for('excluir_peca', id=produto.id) }}" method="POST" style="display: inline;" onsubmit="return confirm('Tem certeza que deseja excluir esta peça? Todas as suas aplicações e relações de similaridade serão perdidas.');">
+                        <a href="{{ url_for('admin.editar_peca', id=produto.id) }}" class="button" style="background-color: #007bff;">Editar Peça</a>
+                        <a href="{{ url_for('admin.clonar_peca', id=produto.id) }}" class="button" style="background-color: #17a2b8;">Clonar</a>
+                        <form action="{{ url_for('admin.excluir_peca', id=produto.id) }}" method="POST" style="display: inline;" onsubmit="return confirm('Tem certeza que deseja excluir esta peça? Todas as suas aplicações e relações de similaridade serão perdidas.');">
                             <button type="submit" class="button" style="background-color: #dc3545;">Excluir Peça</button>
                         </form>
                     </div>
@@ -41,7 +41,7 @@
             <!-- Galeria de Imagens -->
             <div class="image-gallery">
                 <div class="main-image-container">
-                    <img id="mainProductImage" src="{% if produto.imagens %}{{ url_for('uploaded_file', filename=produto.imagens[0].filename) }}{% else %}https://via.placeholder.com/250x250/eee/aaa?text=Sem+Imagem{% endif %}" alt="Imagem Principal do Produto" class="product-detail-image" title="Clique para ampliar">
+                    <img id="mainProductImage" src="{% if produto.imagens %}{{ url_for('uploaded_file', filename=produto.imagens[0].filename) }}{% else %}https://via.placeholder.com/250x250/eee/aaa?text=Sem+Imagem{% endif %}" alt="Imagem do Produto" class="product-detail-image" title="Clique para ampliar">
                 </div>
                 {% if produto.imagens|length > 1 %}
                 <div class="thumbnail-container">
@@ -58,7 +58,7 @@
             {% if produto.conversoes %}
             <div class="info-section-lateral">
                 <h3>Conversões</h3>
-                <pre id="conversoes-content">{{ produto.conversoes }}</pre>
+                <pre id="conversoes-content">{{ produto.conversoes | highlight(termo) }}</pre>
             </div>
             {% endif %}
 
@@ -97,10 +97,10 @@
                                         data-motor="{{ aplicacao.motor or '' }}"
                                         title="Clique para filtrar similares por esta aplicação"
                                         style="cursor: pointer;">
-                                        <td>{{ aplicacao.veiculo or '' }}</td>
-                                        <td>{{ aplicacao.ano or '' }}</td>
-                                        <td>{{ aplicacao.motor or '' }}</td>
-                                        <td>{{ aplicacao.conf_mtr or '' }}</td>
+                                        <td>{{ (aplicacao.veiculo or '') | highlight(termo) }}</td>
+                                        <td>{{ (aplicacao.ano or '') | highlight(termo) }}</td>
+                                        <td>{{ (aplicacao.motor or '') | highlight(termo) }}</td>
+                                        <td>{{ (aplicacao.conf_mtr or '') | highlight(termo) }}</td>
                                     </tr>
                                 {% endfor %}
                             {% endfor %}
@@ -115,7 +115,7 @@
             {% if produto.medidas %}
             <div class="info-section-lateral">
                 <h3>Medidas</h3>
-                <pre>{{ produto.medidas }}</pre>
+                <pre>{{ produto.medidas | highlight(termo) }}</pre>
             </div>
             {% endif %}
         </div>
@@ -124,7 +124,7 @@
         {% if produto.observacoes %}
         <div class="info-section similar-section">
             <h3>Observações</h3>
-            <pre>{{ produto.observacoes }}</pre>
+            <pre>{{ produto.observacoes | highlight(termo) }}</pre>
         </div>
         {% endif %}
 
@@ -135,6 +135,7 @@
             <table class="application-table">
                 <thead>
                     <tr>
+                        <th style="width: 80px;">Imagem</th>
                         <th>Nome</th>
                         <th>Código</th>
                         <th>Fornecedor</th>
@@ -156,7 +157,10 @@
 
                         <tr class="similar-row" data-applications="{{ app_json }}">
                             <td>
-                                <a href="{{ url_for('detalhe_peca', id=similar.id) }}" style="text-decoration: none; color: #0056b3; font-weight: bold;">
+                                <img src="{% if similar.imagens %}{{ url_for('uploaded_file', filename=similar.imagens[0].filename) }}{% else %}https://via.placeholder.com/60x60/eee/aaa?text=Sem+Imagem{% endif %}" alt="Miniatura de {{ similar.nome }}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px;">
+                            </td>
+                            <td>
+                                <a href="{{ url_for('main.detalhe_peca', id=similar.id) }}" style="text-decoration: none; color: #0056b3; font-weight: bold;">
                                     {{ similar.nome }}
                                 </a>
                             </td>
@@ -179,7 +183,10 @@
                         {% set app_json = app_data|tojson %}
                         <tr class="similar-row" data-applications="{{ app_json }}">
                             <td>
-                                <a href="{{ url_for('detalhe_peca', id=sugestao.id) }}" style="text-decoration: none; color: #0056b3; font-weight: bold;">
+                                <img src="{% if sugestao.imagens %}{{ url_for('uploaded_file', filename=sugestao.imagens[0].filename) }}{% else %}https://via.placeholder.com/60x60/eee/aaa?text=Sem+Imagem{% endif %}" alt="Miniatura de {{ sugestao.nome }}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px;">
+                            </td>
+                            <td>
+                                <a href="{{ url_for('main.detalhe_peca', id=sugestao.id) }}" style="text-decoration: none; color: #0056b3; font-weight: bold;">
                                     {{ sugestao.nome }}
                                 </a>
                             </td>
@@ -189,7 +196,7 @@
                         </tr>
                     {% endfor %}
                 </tbody>
-                <tbody id="no-similar-results-row" style="display: none;"><tr class="no-results-row"><td colspan="4">Nenhum produto similar encontrado para a aplicação selecionada.</td></tr></tbody>
+                <tbody id="no-similar-results-row" style="display: none;"><tr class="no-results-row"><td colspan="5">Nenhum produto similar encontrado para a aplicação selecionada.</td></tr></tbody>
             </table>
         </div>
         {% endif %}

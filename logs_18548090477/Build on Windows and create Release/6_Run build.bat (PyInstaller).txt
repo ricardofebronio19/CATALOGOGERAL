@@ -1,0 +1,164 @@
+﻿2025-10-16T02:11:08.8104674Z ##[group]Run .\build.bat
+2025-10-16T02:11:08.8104984Z [36;1m.\build.bat[0m
+2025-10-16T02:11:08.8132103Z shell: C:\Windows\system32\cmd.EXE /D /E:ON /V:OFF /S /C "CALL "{0}""
+2025-10-16T02:11:08.8132410Z env:
+2025-10-16T02:11:08.8132656Z   pythonLocation: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2025-10-16T02:11:08.8133075Z   PKG_CONFIG_PATH: C:\hostedtoolcache\windows\Python\3.12.10\x64/lib/pkgconfig
+2025-10-16T02:11:08.8133477Z   Python_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2025-10-16T02:11:08.8133825Z   Python2_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2025-10-16T02:11:08.8134177Z   Python3_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2025-10-16T02:11:08.8134460Z ##[endgroup]
+2025-10-16T02:11:08.8342074Z 
+2025-10-16T02:11:08.8345268Z [BUILD] Iniciando o processo de build para CatalogoDePecas v1.5...
+2025-10-16T02:11:08.8370055Z 
+2025-10-16T02:11:08.8381435Z [1/4] Limpando diretorios antigos (build, dist, Output)...
+2025-10-16T02:11:08.8393944Z      Limpeza concluida.
+2025-10-16T02:11:08.8419251Z 
+2025-10-16T02:11:08.8423883Z [2/4] Empacotando a aplicacao com PyInstaller (modo --onefile)...
+2025-10-16T02:11:08.8427642Z [2/4] Empacotando a aplicacao com PyInstaller (modo --onefile)...
+2025-10-16T02:11:08.8438720Z [INFO] Usando launcher Python: .venv\Scripts\python.exe
+2025-10-16T02:11:09.1077962Z 
+2025-10-16T02:11:09.1079934Z [AVISO] PyInstaller nao encontrado no ambiente selecionado. Tentando instalar via pip...
+2025-10-16T02:11:10.4920394Z Collecting pyinstaller
+2025-10-16T02:11:10.5153643Z   Downloading pyinstaller-6.16.0-py3-none-win_amd64.whl.metadata (8.5 kB)
+2025-10-16T02:11:10.5721321Z Collecting altgraph (from pyinstaller)
+2025-10-16T02:11:10.5765331Z   Downloading altgraph-0.17.4-py2.py3-none-any.whl.metadata (7.3 kB)
+2025-10-16T02:11:10.6361566Z Collecting packaging>=22.0 (from pyinstaller)
+2025-10-16T02:11:10.6408052Z   Downloading packaging-25.0-py3-none-any.whl.metadata (3.3 kB)
+2025-10-16T02:11:10.6952813Z Collecting pefile!=2024.8.26,>=2022.5.30 (from pyinstaller)
+2025-10-16T02:11:10.7049066Z   Downloading pefile-2023.2.7-py3-none-any.whl.metadata (1.4 kB)
+2025-10-16T02:11:10.7740316Z Collecting pyinstaller-hooks-contrib>=2025.8 (from pyinstaller)
+2025-10-16T02:11:10.7779766Z   Downloading pyinstaller_hooks_contrib-2025.9-py3-none-any.whl.metadata (16 kB)
+2025-10-16T02:11:10.8350595Z Collecting pywin32-ctypes>=0.2.1 (from pyinstaller)
+2025-10-16T02:11:10.8395794Z   Downloading pywin32_ctypes-0.2.3-py3-none-any.whl.metadata (3.9 kB)
+2025-10-16T02:11:11.0127294Z Collecting setuptools>=42.0.0 (from pyinstaller)
+2025-10-16T02:11:11.0205095Z   Downloading setuptools-80.9.0-py3-none-any.whl.metadata (6.6 kB)
+2025-10-16T02:11:11.0810737Z Downloading pyinstaller-6.16.0-py3-none-win_amd64.whl (1.4 MB)
+2025-10-16T02:11:11.1396003Z    ---------------------------------------- 1.4/1.4 MB 17.9 MB/s  0:00:00
+2025-10-16T02:11:11.1435920Z Downloading packaging-25.0-py3-none-any.whl (66 kB)
+2025-10-16T02:11:11.1755827Z Downloading pefile-2023.2.7-py3-none-any.whl (71 kB)
+2025-10-16T02:11:11.2108586Z Downloading pyinstaller_hooks_contrib-2025.9-py3-none-any.whl (444 kB)
+2025-10-16T02:11:11.2500441Z Downloading pywin32_ctypes-0.2.3-py3-none-any.whl (30 kB)
+2025-10-16T02:11:11.2830246Z Downloading setuptools-80.9.0-py3-none-any.whl (1.2 MB)
+2025-10-16T02:11:11.3278124Z    ---------------------------------------- 1.2/1.2 MB 20.0 MB/s  0:00:00
+2025-10-16T02:11:11.3326255Z Downloading altgraph-0.17.4-py2.py3-none-any.whl (21 kB)
+2025-10-16T02:11:11.4362709Z Installing collected packages: altgraph, setuptools, pywin32-ctypes, pefile, packaging, pyinstaller-hooks-contrib, pyinstaller
+2025-10-16T02:11:14.1411583Z 
+2025-10-16T02:11:14.1441459Z Successfully installed altgraph-0.17.4 packaging-25.0 pefile-2023.2.7 pyinstaller-6.16.0 pyinstaller-hooks-contrib-2025.9 pywin32-ctypes-0.2.3 setuptools-80.9.0
+2025-10-16T02:11:14.5632855Z 221 INFO: PyInstaller: 6.16.0, contrib hooks: 2025.9
+2025-10-16T02:11:14.5635686Z 221 INFO: Python: 3.12.10
+2025-10-16T02:11:14.5837617Z 243 INFO: Platform: Windows-2025Server-10.0.26100-SP0
+2025-10-16T02:11:14.5838155Z 243 INFO: Python environment: D:\a\CATALOGOGERAL\CATALOGOGERAL\.venv
+2025-10-16T02:11:14.5842602Z 243 INFO: wrote D:\a\CATALOGOGERAL\CATALOGOGERAL\CatalogoDePecas.spec
+2025-10-16T02:11:14.5872899Z 245 INFO: Module search paths (PYTHONPATH):
+2025-10-16T02:11:14.5873322Z ['D:\\a\\CATALOGOGERAL\\CATALOGOGERAL',
+2025-10-16T02:11:14.5873656Z  'C:\\hostedtoolcache\\windows\\Python\\3.12.10\\x64\\python312.zip',
+2025-10-16T02:11:14.5874013Z  'C:\\hostedtoolcache\\windows\\Python\\3.12.10\\x64\\DLLs',
+2025-10-16T02:11:14.5874335Z  'C:\\hostedtoolcache\\windows\\Python\\3.12.10\\x64\\Lib',
+2025-10-16T02:11:14.5874633Z  'C:\\hostedtoolcache\\windows\\Python\\3.12.10\\x64',
+2025-10-16T02:11:14.5874909Z  'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv',
+2025-10-16T02:11:14.5875209Z  'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages',
+2025-10-16T02:11:14.5875627Z  'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\setuptools\\_vendor',
+2025-10-16T02:11:14.5876012Z  'D:\\a\\CATALOGOGERAL']
+2025-10-16T02:11:14.8446649Z 504 INFO: Appending 'datas' from .spec
+2025-10-16T02:11:14.8457257Z 505 INFO: checking Analysis
+2025-10-16T02:11:14.8458341Z 505 INFO: Building Analysis because Analysis-00.toc is non existent
+2025-10-16T02:11:14.8458890Z 505 INFO: Looking for Python shared library...
+2025-10-16T02:11:14.8459726Z 505 INFO: Using Python shared library: C:\hostedtoolcache\windows\Python\3.12.10\x64\python312.dll
+2025-10-16T02:11:14.8460243Z 506 INFO: Running Analysis Analysis-00.toc
+2025-10-16T02:11:14.8461497Z 506 INFO: Target bytecode optimization level: 0
+2025-10-16T02:11:14.8461923Z 506 INFO: Initializing module dependency graph...
+2025-10-16T02:11:14.8581224Z 518 INFO: Initializing module graph hook caches...
+2025-10-16T02:11:14.8803320Z 539 INFO: Analyzing modules for base_library.zip ...
+2025-10-16T02:11:15.7093710Z 1368 INFO: Processing standard module hook 'hook-encodings.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+2025-10-16T02:11:18.1973315Z 3855 INFO: Processing standard module hook 'hook-pickle.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+2025-10-16T02:11:19.2472709Z 4906 INFO: Processing standard module hook 'hook-heapq.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+2025-10-16T02:11:20.3077421Z 5966 INFO: Caching module dependency graph...
+2025-10-16T02:11:20.3462200Z 6006 INFO: Analyzing D:\a\CATALOGOGERAL\CATALOGOGERAL\run.py
+2025-10-16T02:11:20.4270363Z 6087 INFO: Processing standard module hook 'hook-platform.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+2025-10-16T02:11:20.7502976Z 6409 INFO: Processing standard module hook 'hook-sqlalchemy.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+2025-10-16T02:11:21.6807385Z 7339 INFO: Processing standard module hook 'hook-sysconfig.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+2025-10-16T02:11:21.6894636Z 7349 INFO: Processing pre-safe-import-module hook 'hook-importlib_metadata.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+2025-10-16T02:11:21.6901235Z 7349 INFO: SetuptoolsInfo: initializing cached setuptools info...
+2025-10-16T02:11:25.4538858Z 11114 INFO: Setuptools: 'importlib_metadata' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.importlib_metadata'!
+2025-10-16T02:11:25.4600777Z 11119 INFO: Processing standard module hook 'hook-setuptools.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+2025-10-16T02:11:25.4709861Z 11129 INFO: Processing pre-safe-import-module hook 'hook-distutils.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+2025-10-16T02:11:25.4966813Z 11155 INFO: Processing pre-safe-import-module hook 'hook-jaraco.functools.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+2025-10-16T02:11:25.4969369Z 11155 INFO: Setuptools: 'jaraco.functools' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.jaraco.functools'!
+2025-10-16T02:11:25.5052858Z 11165 INFO: Processing pre-safe-import-module hook 'hook-more_itertools.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+2025-10-16T02:11:25.5055813Z 11165 INFO: Setuptools: 'more_itertools' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.more_itertools'!
+2025-10-16T02:11:25.6206122Z 11279 INFO: Processing pre-safe-import-module hook 'hook-typing_extensions.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+2025-10-16T02:11:25.9414334Z 11600 INFO: Processing standard module hook 'hook-multiprocessing.util.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+2025-10-16T02:11:26.1300812Z 11788 INFO: Processing standard module hook 'hook-xml.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+2025-10-16T02:11:26.3950905Z 12053 INFO: Processing standard module hook 'hook-_ctypes.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+2025-10-16T02:11:26.9252451Z 12583 INFO: Processing pre-safe-import-module hook 'hook-packaging.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+2025-10-16T02:11:27.1185630Z 12778 INFO: Processing pre-safe-import-module hook 'hook-jaraco.text.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+2025-10-16T02:11:27.1187186Z 12778 INFO: Setuptools: 'jaraco.text' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.jaraco.text'!
+2025-10-16T02:11:27.1276993Z 12786 INFO: Processing standard module hook 'hook-setuptools._vendor.jaraco.text.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+2025-10-16T02:11:27.1288758Z 12788 INFO: Processing pre-safe-import-module hook 'hook-importlib_resources.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+2025-10-16T02:11:27.1296143Z 12788 INFO: Processing pre-safe-import-module hook 'hook-jaraco.context.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+2025-10-16T02:11:27.1298335Z 12788 INFO: Setuptools: 'jaraco.context' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.jaraco.context'!
+2025-10-16T02:11:27.3638181Z 13023 INFO: Processing pre-safe-import-module hook 'hook-backports.tarfile.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+2025-10-16T02:11:27.3640612Z 13023 INFO: Setuptools: 'backports.tarfile' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.backports.tarfile'!
+2025-10-16T02:11:27.4439520Z 13103 INFO: Processing standard module hook 'hook-backports.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+2025-10-16T02:11:27.7731268Z 13432 INFO: Processing pre-safe-import-module hook 'hook-tomli.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+2025-10-16T02:11:27.7733403Z 13432 INFO: Setuptools: 'tomli' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.tomli'!
+2025-10-16T02:11:28.2179800Z 13877 INFO: Processing pre-safe-import-module hook 'hook-wheel.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+2025-10-16T02:11:28.2181419Z 13877 INFO: Setuptools: 'wheel' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.wheel'!
+2025-10-16T02:11:28.4080333Z 14066 INFO: Processing standard module hook 'hook-setuptools._vendor.importlib_metadata.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+2025-10-16T02:11:28.4092835Z 14068 INFO: Processing pre-safe-import-module hook 'hook-zipp.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+2025-10-16T02:11:28.4094916Z 14068 INFO: Setuptools: 'zipp' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.zipp'!
+2025-10-16T02:11:31.6017024Z 17260 INFO: Processing standard module hook 'hook-urllib3.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+2025-10-16T02:11:32.1251912Z 17783 INFO: Processing standard module hook 'hook-charset_normalizer.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+2025-10-16T02:11:32.2512932Z 17910 INFO: Processing standard module hook 'hook-certifi.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+2025-10-16T02:11:33.3568851Z 19015 INFO: Processing standard module hook 'hook-difflib.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+2025-10-16T02:11:33.5301431Z 19190 INFO: Processing standard module hook 'hook-jinja2.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+2025-10-16T02:11:34.1399783Z 19799 INFO: Processing standard module hook 'hook-sqlite3.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+2025-10-16T02:11:34.5231791Z 20182 INFO: Processing module hooks (post-graph stage)...
+2025-10-16T02:11:34.8162341Z 20474 INFO: Processing standard module hook 'hook-sqlalchemy.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+2025-10-16T02:11:35.1557548Z 20815 WARNING: Hidden import "pysqlite2" not found!
+2025-10-16T02:11:35.1560579Z 20815 WARNING: Hidden import "MySQLdb" not found!
+2025-10-16T02:11:35.1563890Z 20815 WARNING: Hidden import "psycopg2" not found!
+2025-10-16T02:11:36.0746508Z 21734 INFO: Performing binary vs. data reclassification (33 entries)
+2025-10-16T02:11:36.0777523Z 21737 INFO: Looking for ctypes DLLs
+2025-10-16T02:11:36.1140690Z 21773 INFO: Analyzing run-time hooks ...
+2025-10-16T02:11:36.1168797Z 21775 INFO: Including run-time hook 'pyi_rth_inspect.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+2025-10-16T02:11:36.1191516Z 21779 INFO: Including run-time hook 'pyi_rth_pkgutil.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+2025-10-16T02:11:36.1210158Z 21779 INFO: Including run-time hook 'pyi_rth_multiprocessing.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+2025-10-16T02:11:36.1227642Z 21781 INFO: Including run-time hook 'pyi_rth_setuptools.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+2025-10-16T02:11:36.1341103Z 21793 INFO: Creating base_library.zip...
+2025-10-16T02:11:36.1554153Z 21815 INFO: Looking for dynamic libraries
+2025-10-16T02:11:36.9777745Z 22637 INFO: Extra DLL search directories (AddDllDirectory): []
+2025-10-16T02:11:36.9778214Z 22637 INFO: Extra DLL search directories (PATH): []
+2025-10-16T02:11:37.9695362Z 23629 WARNING: Library not found: could not resolve 'api-ms-win-core-path-l1-1-0.dll', dependency of 'C:\\hostedtoolcache\\windows\\Python\\3.12.10\\x64\\python312.dll'.
+2025-10-16T02:11:37.9797762Z 23638 INFO: Warnings written to D:\a\CATALOGOGERAL\CATALOGOGERAL\build\CatalogoDePecas\warn-CatalogoDePecas.txt
+2025-10-16T02:11:38.0730563Z 23731 INFO: Graph cross-reference written to D:\a\CATALOGOGERAL\CATALOGOGERAL\build\CatalogoDePecas\xref-CatalogoDePecas.html
+2025-10-16T02:11:38.1047937Z 23764 INFO: checking PYZ
+2025-10-16T02:11:38.1048617Z 23764 INFO: Building PYZ because PYZ-00.toc is non existent
+2025-10-16T02:11:38.1049812Z 23764 INFO: Building PYZ (ZlibArchive) D:\a\CATALOGOGERAL\CATALOGOGERAL\build\CatalogoDePecas\PYZ-00.pyz
+2025-10-16T02:11:39.0850778Z 24744 INFO: Building PYZ (ZlibArchive) D:\a\CATALOGOGERAL\CATALOGOGERAL\build\CatalogoDePecas\PYZ-00.pyz completed successfully.
+2025-10-16T02:11:39.1217643Z 24781 INFO: checking PKG
+2025-10-16T02:11:39.1218712Z 24781 INFO: Building PKG because PKG-00.toc is non existent
+2025-10-16T02:11:39.1219364Z 24781 INFO: Building PKG (CArchive) CatalogoDePecas.pkg
+2025-10-16T02:11:43.1392295Z 28798 INFO: Building PKG (CArchive) CatalogoDePecas.pkg completed successfully.
+2025-10-16T02:11:43.1428676Z 28802 INFO: Bootloader D:\a\CATALOGOGERAL\CATALOGOGERAL\.venv\Lib\site-packages\PyInstaller\bootloader\Windows-64bit-intel\runw.exe
+2025-10-16T02:11:43.1429949Z 28802 INFO: checking EXE
+2025-10-16T02:11:43.1430491Z 28802 INFO: Building EXE because EXE-00.toc is non existent
+2025-10-16T02:11:43.1431019Z 28802 INFO: Building EXE from EXE-00.toc
+2025-10-16T02:11:43.1432562Z 28802 INFO: Copying bootloader EXE to D:\a\CATALOGOGERAL\CATALOGOGERAL\dist\CatalogoDePecas.exe
+2025-10-16T02:11:43.1452874Z 28804 INFO: Copying icon to EXE
+2025-10-16T02:11:43.1472143Z 28806 INFO: Copying 0 resources to EXE
+2025-10-16T02:11:43.1472816Z 28806 INFO: Embedding manifest in EXE
+2025-10-16T02:11:43.1491619Z 28808 INFO: Appending PKG archive to EXE
+2025-10-16T02:11:43.1582757Z 28818 INFO: Fixing EXE headers
+2025-10-16T02:11:43.2858557Z 28945 INFO: Building EXE from EXE-00.toc completed successfully.
+2025-10-16T02:11:43.2897407Z 28949 INFO: Build complete! The results are available in: D:\a\CATALOGOGERAL\CATALOGOGERAL\dist
+2025-10-16T02:11:43.3782603Z      PyInstaller concluiu com sucesso. O executavel esta em 'dist'.
+2025-10-16T02:11:43.3809290Z 
+2025-10-16T02:11:43.3813021Z [3/4] Criando o instalador com Inno Setup...
+2025-10-16T02:11:43.3820512Z [AVISO] Etapa do Inno Setup pulada. O executavel foi gerado em 'dist' mas o instalador nao sera criado.
+2025-10-16T02:11:43.3846840Z 
+2025-10-16T02:11:43.3850291Z [4/4] SUCESSO! Processo de build concluido.
+2025-10-16T02:11:43.3853440Z       O executavel foi gerado na pasta 'dist'. (Instalador Inno Setup foi pulado
+2025-10-16T02:11:43.3856464Z       O instalador foi gerado na pasta 'Output'.
+2025-10-16T02:11:43.3865476Z Press any key to continue . . . 

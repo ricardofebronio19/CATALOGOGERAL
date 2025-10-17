@@ -1,0 +1,5 @@
+2025-10-16T01:24:36.9270000Z Job is waiting for a hosted runner to come online.
+2025-10-16T01:24:36.9230000Z Requested labels: windows-latest
+2025-10-16T01:24:36.9230000Z Job defined at: ricardofebronio19/CATALOGOGERAL/.github/workflows/build-release.yml@refs/tags/v1.5-rc4
+2025-10-16T01:24:36.9230000Z Waiting for a runner to pick up this job...
+2025-10-16T01:24:36.9280000Z Job is about to start running on the hosted runner: GitHub Actions 1000000004

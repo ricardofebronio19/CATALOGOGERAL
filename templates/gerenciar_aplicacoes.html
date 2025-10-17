@@ -15,7 +15,7 @@
         <!-- Seção para Adicionar Nova Aplicação -->
         <div class="search-section" style="margin-bottom: 30px;">
             <h2>Adicionar Nova Aplicação</h2>
-            <form action="{{ url_for('gerenciar_aplicacoes', produto_id=produto.id) }}" method="POST" style="display: flex; flex-wrap: wrap; gap: 20px;">
+            <form action="{{ url_for('admin.gerenciar_aplicacoes', produto_id=produto.id) }}" method="POST" style="display: flex; flex-wrap: wrap; gap: 20px;">
                 <div class="search-field">
                     <label for="veiculo">Veículo:</label>
                     <input type="text" id="veiculo" name="veiculo" required>
@@ -59,8 +59,8 @@
                         <td>{{ aplicacao.motor or '' }}</td>
                         <td>{{ aplicacao.conf_mtr or '' }}</td>
                         <td>
-                            <a href="{{ url_for('editar_aplicacao', id=aplicacao.id) }}" style="font-size: 0.9em; text-decoration: none; color: #007bff; margin-right: 10px;">Editar</a>
-                            <form action="{{ url_for('excluir_aplicacao', id=aplicacao.id) }}" method="POST" style="display: inline;" onsubmit="return confirm('Tem certeza que deseja excluir esta aplicação?');">
+                            <a href="{{ url_for('admin.editar_aplicacao', id=aplicacao.id) }}" style="font-size: 0.9em; text-decoration: none; color: #007bff; margin-right: 10px;">Editar</a>
+                            <form action="{{ url_for('admin.excluir_aplicacao', id=aplicacao.id) }}" method="POST" style="display: inline;" onsubmit="return confirm('Tem certeza que deseja excluir esta aplicação?');">
                                 <button type="submit" class="button-link-danger">Excluir</button>
                             </form>
                         </td>

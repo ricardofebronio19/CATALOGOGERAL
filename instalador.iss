@@ -15,7 +15,7 @@
   #define MyExeName "CatalogoDePecas.exe"
 #endif
 #ifndef MyIconFile
-  #define MyIconFile "E:\programaçao\catalogo geral python\static\favicon.ico"
+  #define MyIconFile "static\\favicon.ico"
 #endif
 [Setup]
 ; Informações básicas da aplicação
@@ -27,7 +27,10 @@ AppSupportURL=https://www.seusite.com.br
 AppUpdatesURL=https://www.seusite.com.br
 
 ; Diretório de instalação padrão (em Arquivos de Programas)
-DefaultDirName={autopf}\CatalogoDePecas
+; Diretório de instalação padrão alterado para a pasta do usuário
+; Isso evita a necessidade de privilégios de administrador (UAC) e
+; permite que o aplicativo grave no banco e uploads sem problemas.
+DefaultDirName={userappdata}\CatalogoDePecas
 ; Nome da pasta no Menu Iniciar
 DefaultGroupName=Catálogo de Peças
 ; Define o diretório base de onde os arquivos de origem serão lidos.
@@ -42,12 +45,14 @@ Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
  
-; Ícone que será exibido no instalador e no Adicionar/Remover Programas
-SetupIconFile="{#MyIconFile}"
+; Ícone do instalador desativado para evitar problemas de caminho em ambientes com acentuação
+; (opcional: aponte para um .ico em caminho ASCII e reative esta linha)
+; SetupIconFile="static\\favicon.ico"
 UninstallDisplayIcon={app}\{#MyExeName}
 
 ; Requer privilégios de administrador para instalar em Arquivos de Programas
-PrivilegesRequired=admin
+; Não requer privilégios de administrador — instalador copia o banco e uploads para {userappdata}
+PrivilegesRequired=none
 
 
 [Languages]
@@ -63,8 +68,12 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 [Files]
 ; Copia TODOS os arquivos e subpastas da saída do PyInstaller para o diretório de instalação
 ; IMPORTANTE: Execute o PyInstaller antes de compilar este script!
-; A origem agora é relativa ao 'SourceDir' definido acima (a pasta 'dist').
+; A origem do executável é relativa ao 'SourceDir' (pasta 'dist').
 Source: "{#MyExeName}"; DestDir: "{app}"; Flags: ignoreversion
+; Banco de dados e imagens - copiados para a pasta do usuário ({userappdata})
+; para permitir gravação sem UAC.
+Source: "..\build\package\data\catalogo.db"; DestDir: "{userappdata}\{#MyAppName}"; Flags: ignoreversion skipifsourcedoesntexist; Check: not FileExists(ExpandConstant('{userappdata}\\{#MyAppName}\\catalogo.db'))
+Source: "..\build\package\uploads\*"; DestDir: "{userappdata}\{#MyAppName}\uploads"; Flags: ignoreversion recursesubdirs createallsubdirs skipifsourcedoesntexist
 
 [Icons]
 ; Atalho no Menu Iniciar

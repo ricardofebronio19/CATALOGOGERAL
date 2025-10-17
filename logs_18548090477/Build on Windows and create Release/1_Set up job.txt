@@ -1,0 +1,31 @@
+﻿2025-10-16T02:10:34.6671629Z Current runner version: '2.328.0'
+2025-10-16T02:10:34.6718184Z ##[group]Runner Image Provisioner
+2025-10-16T02:10:34.6718976Z Hosted Compute Agent
+2025-10-16T02:10:34.6719462Z Version: 20250912.392
+2025-10-16T02:10:34.6720030Z Commit: d921fda672a98b64f4f82364647e2f10b2267d0b
+2025-10-16T02:10:34.6720676Z Build Date: 2025-09-12T15:23:14Z
+2025-10-16T02:10:34.6721181Z ##[endgroup]
+2025-10-16T02:10:34.6721656Z ##[group]Operating System
+2025-10-16T02:10:34.6722150Z Microsoft Windows Server 2025
+2025-10-16T02:10:34.6722670Z 10.0.26100
+2025-10-16T02:10:34.6723052Z Datacenter
+2025-10-16T02:10:34.6723480Z ##[endgroup]
+2025-10-16T02:10:34.6723884Z ##[group]Runner Image
+2025-10-16T02:10:34.6724348Z Image: windows-2025
+2025-10-16T02:10:34.6724802Z Version: 20250929.44.1
+2025-10-16T02:10:34.6725699Z Included Software: https://github.com/actions/runner-images/blob/win25/20250929.44/images/windows/Windows2025-Readme.md
+2025-10-16T02:10:34.6727428Z Image Release: https://github.com/actions/runner-images/releases/tag/win25%2F20250929.44
+2025-10-16T02:10:34.6728669Z ##[endgroup]
+2025-10-16T02:10:34.6729672Z ##[group]GITHUB_TOKEN Permissions
+2025-10-16T02:10:34.6731357Z Contents: write
+2025-10-16T02:10:34.6731833Z Metadata: read
+2025-10-16T02:10:34.6732316Z Packages: write
+2025-10-16T02:10:34.6732735Z ##[endgroup]
+2025-10-16T02:10:34.6734648Z Secret source: Actions
+2025-10-16T02:10:34.6735331Z Prepare workflow directory
+2025-10-16T02:10:34.7058278Z Prepare all required actions
+2025-10-16T02:10:34.7095441Z Getting action download info
+2025-10-16T02:10:35.1253668Z Download action repository 'actions/checkout@v4' (SHA:08eba0b27e820071cde6df949e0beb9ba4906955)
+2025-10-16T02:10:35.3302460Z Download action repository 'actions/setup-python@v4' (SHA:7f4fc3e22c37d6ff65e88745f38bd3157c663f7c)
+2025-10-16T02:10:35.4766969Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2025-10-16T02:10:35.8045707Z Complete job name: Build on Windows and create Release

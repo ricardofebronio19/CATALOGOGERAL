@@ -11,7 +11,7 @@
             <h1>Login</h1>
         </header>
 
-        <form method="POST" action="{{ url_for('login') }}" class="search-section" style="flex-direction: column;">
+    <form method="POST" action="{{ url_for('auth.login') }}" class="search-section" style="flex-direction: column;">
             <div class="search-field" style="width: 100%;">
                 <label for="username">Usuário:</label>
                 <input type="text" id="username" name="username" required>
@@ -25,7 +25,7 @@
         </form>
         
         <div style="margin-top: 20px; text-align: center;">
-            <p>Use 'admin' e 'admin123' para o primeiro acesso.</p>
+            <p>Se o usuário 'admin' foi criado na inicialização, a senha temporária é exibida no terminal onde o servidor foi iniciado.</p>
         </div>
     </div>
 </body>

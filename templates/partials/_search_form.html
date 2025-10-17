@@ -1,34 +1,36 @@
-<form action="{{ url_for('buscar') }}" method="GET" class="search-section" id="search-form">
-    <div class="search-field">
-        <label for="termo">Busca Geral:</label>
-        <input type="text" id="termo" name="termo" placeholder="Nome, código, aplicação..." value="{{ request.args.get('termo', '') }}">
-    </div>
-    <div class="search-field">
-        <label for="codigo_produto">Código do Produto:</label>
-        <input type="text" id="codigo_produto" name="codigo_produto" placeholder="Ex: AL-123" value="{{ request.args.get('codigo_produto', '') }}">
-    </div>
-    <div class="search-field">
-        <label for="montadora">Montadora:</label>
-        <input type="text" id="montadora" name="montadora" placeholder="Ex: Fiat" value="{{ request.args.get('montadora', '') }}">
-    </div>
-    <div class="search-field">
-        <label for="aplicacao">Aplicação (Veículo/Motor):</label>
-        <input type="text" id="aplicacao" name="aplicacao" placeholder="Ex: Palio 1.0" value="{{ request.args.get('aplicacao', '') }}">
-    </div>
-    <div class="search-field">
-        <label for="grupo">Grupo:</label>
-        <input type="text" id="grupo" name="grupo" placeholder="Ex: Suspensão" value="{{ request.args.get('grupo', '') }}">
-    </div>
-    <div class="search-field">
-        <label for="medidas">Medidas:</label>
-        <input type="text" id="medidas" name="medidas" placeholder="Ex: 250mm x 50mm" value="{{ request.args.get('medidas', '') }}">
+<form action="{{ url_for('main.buscar') }}" method="GET" class="search-section" id="search-form">
+    <div class="form-grid">
+        <div class="search-field">
+            <label for="termo">Busca Geral:</label>
+            <input type="text" id="termo" name="termo" placeholder="Nome, código, aplicação..." value="{{ request.args.get('termo', '') }}">
+        </div>
+        <div class="search-field">
+            <label for="codigo_produto">Código do Produto:</label>
+            <input type="text" id="codigo_produto" name="codigo_produto" placeholder="Ex: AL-123" value="{{ request.args.get('codigo_produto', '') }}">
+        </div>
+        <div class="search-field">
+            <label for="montadora">Montadora:</label>
+            <input type="text" id="montadora" name="montadora" placeholder="Ex: Fiat" value="{{ request.args.get('montadora', '') }}">
+        </div>
+        <div class="search-field">
+            <label for="aplicacao">Aplicação (Veículo/Motor):</label>
+            <input type="text" id="aplicacao" name="aplicacao" placeholder="Ex: Palio 1.0" value="{{ request.args.get('aplicacao', '') }}">
+        </div>
+        <div class="search-field">
+            <label for="grupo">Grupo:</label>
+            <input type="text" id="grupo" name="grupo" placeholder="Ex: Suspensão" value="{{ request.args.get('grupo', '') }}">
+        </div>
+        <div class="search-field">
+            <label for="medidas">Medidas:</label>
+            <input type="text" id="medidas" name="medidas" placeholder="Ex: 250mm x 50mm" value="{{ request.args.get('medidas', '') }}">
+        </div>
     </div>
 
     <div class="search-actions" style="width: 100%; display: flex; justify-content: flex-start; align-items: center; gap: 10px; margin-top: 10px;">
         <button type="submit">Buscar</button>
         <button type="button" id="clear-search-btn" class="button" style="background-color: #6c757d;">Limpar Campos</button>
-        {% if current_user.is_authenticated %}
-            <a href="{{ url_for('exportar_csv', **request.args) }}" class="button" style="background-color: #17a2b8;" title="Exportar resultados atuais para CSV">Exportar CSV</a>
+        {% if is_admin %}
+            <a href="{{ url_for('admin.exportar_csv', **request.args) }}" class="button" style="background-color: #17a2b8;" title="Exportar resultados atuais para CSV">Exportar CSV</a>
         {% endif %}
     </div>
 </form>

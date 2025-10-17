@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}Executar Tarefas{% endblock %}
+
+{% block head %}
+<style>
+    .task-container {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    .task-container h3 {
+        margin-top: 0;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 10px;
+    }
+    .status-box {
+        background-color: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 5px;
+        padding: 15px;
+        margin-top: 20px;
+    }
+    .status-box h3 {
+        margin-top: 0;
+    }
+    #task-output {
+        background-color: #212529;
+        color: #f8f9fa;
+        padding: 15px;
+        border-radius: 5px;
+        max-height: 400px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+        font-family: monospace;
+        margin-top: 10px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<header>
+    <h1>Executar Tarefas Administrativas</h1>
+</header>
+
+<div class="task-container">
+    <h3>Importar Produtos via CSV</h3>
+    <p>Faça o upload de um arquivo <code>.csv</code> para adicionar ou atualizar produtos em massa.</p>
+    <form action="{{ url_for('admin.tarefa_importar_csv') }}" method="POST" enctype="multipart/form-data">
+        <input type="file" name="csv_file" accept=".csv" required>
+        <button type="submit">Iniciar Importação</button>
+    </form>
+</div>
+
+<div class="task-container">
+    <h3>Vincular Imagens aos Produtos</h3>
+    <p>Esta tarefa varre a pasta de uploads e vincula as imagens aos produtos cujo código corresponde ao nome do arquivo.</p>
+    <form action="{{ url_for('admin.tarefa_vincular_imagens') }}" method="POST">
+        <button type="submit">Iniciar Vinculação</button>
+    </form>
+</div>
+
+<div class="status-box">
+    <h3>Status da Tarefa em Segundo Plano</h3>
+    <p><strong>Status:</strong> <span id="task-status">{{ task_status.status }}</span></p>
+    <pre id="task-output">{{ task_status.output }}</pre>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    setInterval(function() {
+        fetch("{{ url_for('admin.status_tarefa') }}")
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('task-status').textContent = data.status;
+                document.getElementById('task-output').textContent = data.output;
+            });
+    }, 5000); // Atualiza a cada 5 segundos
+</script>
+{% endblock %}

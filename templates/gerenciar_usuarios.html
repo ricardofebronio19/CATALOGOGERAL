@@ -14,7 +14,7 @@
         <!-- Seção para Adicionar Novo Usuário -->
         <div class="search-section" style="margin-bottom: 30px;">
             <h2>Adicionar Novo Usuário</h2>
-            <form action="{{ url_for('adicionar_usuario') }}" method="POST" style="display: flex; flex-wrap: wrap; gap: 20px;">
+            <form action="{{ url_for('admin.adicionar_usuario') }}" method="POST" style="display: flex; flex-wrap: wrap; gap: 20px;">
                 <div class="search-field">
                     <label for="username">Nome de Usuário:</label>
                     <input type="text" id="username" name="username" required>
@@ -55,14 +55,14 @@
                         <td>{% if user.is_admin %}Sim{% else %}Não{% endif %}</td>
                         <td>
                             <!-- Formulário para Mudar Senha -->
-                            <form action="{{ url_for('mudar_senha_usuario', user_id=user.id) }}" method="POST" style="display: inline-flex; align-items: center; gap: 10px;">
+                            <form action="{{ url_for('admin.mudar_senha_usuario', user_id=user.id) }}" method="POST" style="display: inline-flex; align-items: center; gap: 10px;">
                                 <input type="password" name="new_password" placeholder="Nova Senha" required style="padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
                                 <button type="submit" class="button" style="background-color: #ffc107; font-size: 0.9em; padding: 8px 12px;">Mudar Senha</button>
                             </form>
 
                             <!-- Formulário para Excluir -->
                             {% if user.username != 'admin' %} {# Impede a exclusão do admin principal #}
-                            <form action="{{ url_for('excluir_usuario', user_id=user.id) }}" method="POST" style="display: inline;" onsubmit="return confirm('Tem certeza que deseja excluir o usuário {{ user.username }}?');">
+                            <form action="{{ url_for('admin.excluir_usuario', user_id=user.id) }}" method="POST" style="display: inline;" onsubmit="return confirm('Tem certeza que deseja excluir o usuário {{ user.username }}?');">
                                 <button type="submit" class="button" style="background-color: #dc3545; font-size: 0.9em; padding: 8px 12px;">Excluir</button>
                             </form>
                             {% endif %}

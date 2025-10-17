@@ -3,10 +3,6 @@
 {% block title %}Página Inicial{% endblock %}
 
 {% block content %}
-    <header>
-        <h1>Catálogo de Peças</h1>
-        <p>Encontre peças por código, nome, aplicação e mais.</p>
-    </header>
 
     <div class="main-layout">
         <aside class="sidebar">
@@ -15,13 +11,13 @@
                 {% for montadora, veiculos in montadoras_com_veiculos.items() %}
                     <li class="montadora-item">
                         <div class="montadora-header">
-                            <a href="{{ url_for('buscar', montadora=montadora) }}">{{ montadora }}</a>
+                            <a href="{{ url_for('main.buscar', montadora=montadora) }}">{{ montadora }}</a>
                             {% if veiculos %}<span class="toggle-veiculos">+</span>{% endif %}
                         </div>
                         {% if veiculos %}
                         <ul class="veiculos-list" style="display: none;">
                             {% for veiculo in veiculos|sort %}
-                                <li><a href="{{ url_for('buscar', montadora=montadora, aplicacao=veiculo) }}" class="veiculo-link">{{ veiculo }}</a></li>
+                                <li><a href="{{ url_for('main.buscar', montadora=montadora, aplicacao=veiculo) }}" class="veiculo-link">{{ veiculo }}</a></li>
                             {% endfor %}
                         </ul>
                         {% endif %}
@@ -31,6 +27,10 @@
         </aside>
 
         <div class="main-content">
+            <div class="main-content-header">
+                <h1>Busca de Peças</h1>
+                <p>Encontre peças por código, nome, aplicação e mais.</p>
+            </div>
             {% include 'partials/_search_form.html' ignore missing %}
         </div>
     </div>

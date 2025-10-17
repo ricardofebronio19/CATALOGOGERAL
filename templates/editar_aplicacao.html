@@ -11,7 +11,7 @@
             <h1>Editar Aplicação para: <br> {{ aplicacao.produto.nome }} ({{ aplicacao.produto.codigo }})</h1>
         </header>
 
-        <form action="{{ url_for('editar_aplicacao', id=aplicacao.id) }}" method="POST" class="search-section">
+    <form action="{{ url_for('admin.editar_aplicacao', id=aplicacao.id) }}" method="POST" class="search-section">
             <div class="search-field">
                 <label for="num_original">Nº Original / Similar:</label>
                 <input type="text" id="num_original" name="num_original" value="{{ aplicacao.num_original or '' }}">

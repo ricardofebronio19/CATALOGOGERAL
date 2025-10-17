@@ -1,0 +1,82 @@
+﻿2025-10-16T02:17:17.3273880Z ##[group]Run .\.venv\Scripts\python -m pip install --upgrade pip && .\.venv\Scripts\python -m pip install -r requirements.txt
+2025-10-16T02:17:17.3274704Z [36;1m.\.venv\Scripts\python -m pip install --upgrade pip && .\.venv\Scripts\python -m pip install -r requirements.txt[0m
+2025-10-16T02:17:17.3333583Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2025-10-16T02:17:17.3333893Z env:
+2025-10-16T02:17:17.3334137Z   pythonLocation: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2025-10-16T02:17:17.3334545Z   PKG_CONFIG_PATH: C:\hostedtoolcache\windows\Python\3.12.10\x64/lib/pkgconfig
+2025-10-16T02:17:17.3392077Z   Python_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2025-10-16T02:17:17.3392514Z   Python2_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2025-10-16T02:17:17.3392906Z   Python3_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2025-10-16T02:17:17.3393197Z ##[endgroup]
+2025-10-16T02:17:19.1476950Z Requirement already satisfied: pip in d:\a\catalogogeral\catalogogeral\.venv\lib\site-packages (25.0.1)
+2025-10-16T02:17:19.4324689Z Collecting pip
+2025-10-16T02:17:19.4591498Z   Downloading pip-25.2-py3-none-any.whl.metadata (4.7 kB)
+2025-10-16T02:17:19.5079110Z Downloading pip-25.2-py3-none-any.whl (1.8 MB)
+2025-10-16T02:17:19.6294230Z    ---------------------------------------- 1.8/1.8 MB 15.9 MB/s eta 0:00:00
+2025-10-16T02:17:19.6660419Z Installing collected packages: pip
+2025-10-16T02:17:19.6662281Z   Attempting uninstall: pip
+2025-10-16T02:17:19.6693129Z     Found existing installation: pip 25.0.1
+2025-10-16T02:17:19.7464383Z     Uninstalling pip-25.0.1:
+2025-10-16T02:17:19.7654992Z       Successfully uninstalled pip-25.0.1
+2025-10-16T02:17:20.9930387Z Successfully installed pip-25.2
+2025-10-16T02:17:22.7924280Z Collecting Flask (from -r requirements.txt (line 1))
+2025-10-16T02:17:22.8165800Z   Downloading flask-3.1.2-py3-none-any.whl.metadata (3.2 kB)
+2025-10-16T02:17:22.9737613Z Collecting Flask-SQLAlchemy (from -r requirements.txt (line 2))
+2025-10-16T02:17:22.9798764Z   Downloading flask_sqlalchemy-3.1.1-py3-none-any.whl.metadata (3.4 kB)
+2025-10-16T02:17:23.1202946Z Collecting Flask-Login (from -r requirements.txt (line 3))
+2025-10-16T02:17:23.1405037Z   Downloading Flask_Login-0.6.3-py3-none-any.whl.metadata (5.8 kB)
+2025-10-16T02:17:23.2600978Z Collecting requests (from -r requirements.txt (line 4))
+2025-10-16T02:17:23.2743859Z   Downloading requests-2.32.5-py3-none-any.whl.metadata (4.9 kB)
+2025-10-16T02:17:23.4554854Z Collecting waitress (from -r requirements.txt (line 5))
+2025-10-16T02:17:23.4602031Z   Downloading waitress-3.0.2-py3-none-any.whl.metadata (5.8 kB)
+2025-10-16T02:17:23.5786309Z Collecting blinker>=1.9.0 (from Flask->-r requirements.txt (line 1))
+2025-10-16T02:17:23.5839263Z   Downloading blinker-1.9.0-py3-none-any.whl.metadata (1.6 kB)
+2025-10-16T02:17:23.6849618Z Collecting click>=8.1.3 (from Flask->-r requirements.txt (line 1))
+2025-10-16T02:17:23.6900087Z   Downloading click-8.3.0-py3-none-any.whl.metadata (2.6 kB)
+2025-10-16T02:17:23.8115263Z Collecting itsdangerous>=2.2.0 (from Flask->-r requirements.txt (line 1))
+2025-10-16T02:17:23.8164959Z   Downloading itsdangerous-2.2.0-py3-none-any.whl.metadata (1.9 kB)
+2025-10-16T02:17:23.9244383Z Collecting jinja2>=3.1.2 (from Flask->-r requirements.txt (line 1))
+2025-10-16T02:17:23.9518763Z   Downloading jinja2-3.1.6-py3-none-any.whl.metadata (2.9 kB)
+2025-10-16T02:17:24.1182217Z Collecting markupsafe>=2.1.1 (from Flask->-r requirements.txt (line 1))
+2025-10-16T02:17:24.1486755Z   Downloading markupsafe-3.0.3-cp312-cp312-win_amd64.whl.metadata (2.8 kB)
+2025-10-16T02:17:24.2604221Z Collecting werkzeug>=3.1.0 (from Flask->-r requirements.txt (line 1))
+2025-10-16T02:17:24.2928684Z   Downloading werkzeug-3.1.3-py3-none-any.whl.metadata (3.7 kB)
+2025-10-16T02:17:24.7164921Z Collecting sqlalchemy>=2.0.16 (from Flask-SQLAlchemy->-r requirements.txt (line 2))
+2025-10-16T02:17:25.9036967Z   Downloading sqlalchemy-2.0.44-cp312-cp312-win_amd64.whl.metadata (9.8 kB)
+2025-10-16T02:17:26.1154130Z Collecting charset_normalizer<4,>=2 (from requests->-r requirements.txt (line 4))
+2025-10-16T02:17:26.1225220Z   Downloading charset_normalizer-3.4.4-cp312-cp312-win_amd64.whl.metadata (38 kB)
+2025-10-16T02:17:26.1997239Z Collecting idna<4,>=2.5 (from requests->-r requirements.txt (line 4))
+2025-10-16T02:17:26.2043612Z   Downloading idna-3.11-py3-none-any.whl.metadata (8.4 kB)
+2025-10-16T02:17:26.3111598Z Collecting urllib3<3,>=1.21.1 (from requests->-r requirements.txt (line 4))
+2025-10-16T02:17:26.3163794Z   Downloading urllib3-2.5.0-py3-none-any.whl.metadata (6.5 kB)
+2025-10-16T02:17:26.4756786Z Collecting certifi>=2017.4.17 (from requests->-r requirements.txt (line 4))
+2025-10-16T02:17:26.4830241Z   Downloading certifi-2025.10.5-py3-none-any.whl.metadata (2.5 kB)
+2025-10-16T02:17:26.5927113Z Collecting colorama (from click>=8.1.3->Flask->-r requirements.txt (line 1))
+2025-10-16T02:17:26.5975080Z   Downloading colorama-0.4.6-py2.py3-none-any.whl.metadata (17 kB)
+2025-10-16T02:17:26.8127720Z Collecting greenlet>=1 (from sqlalchemy>=2.0.16->Flask-SQLAlchemy->-r requirements.txt (line 2))
+2025-10-16T02:17:26.8273758Z   Downloading greenlet-3.2.4-cp312-cp312-win_amd64.whl.metadata (4.2 kB)
+2025-10-16T02:17:26.9599486Z Collecting typing-extensions>=4.6.0 (from sqlalchemy>=2.0.16->Flask-SQLAlchemy->-r requirements.txt (line 2))
+2025-10-16T02:17:26.9732265Z   Downloading typing_extensions-4.15.0-py3-none-any.whl.metadata (3.3 kB)
+2025-10-16T02:17:27.0249023Z Downloading flask-3.1.2-py3-none-any.whl (103 kB)
+2025-10-16T02:17:27.0877619Z Downloading flask_sqlalchemy-3.1.1-py3-none-any.whl (25 kB)
+2025-10-16T02:17:27.1786410Z Downloading Flask_Login-0.6.3-py3-none-any.whl (17 kB)
+2025-10-16T02:17:27.2454058Z Downloading requests-2.32.5-py3-none-any.whl (64 kB)
+2025-10-16T02:17:27.3197768Z Downloading charset_normalizer-3.4.4-cp312-cp312-win_amd64.whl (107 kB)
+2025-10-16T02:17:27.3716168Z Downloading idna-3.11-py3-none-any.whl (71 kB)
+2025-10-16T02:17:27.4217920Z Downloading urllib3-2.5.0-py3-none-any.whl (129 kB)
+2025-10-16T02:17:27.5419857Z Downloading waitress-3.0.2-py3-none-any.whl (56 kB)
+2025-10-16T02:17:27.5853250Z Downloading blinker-1.9.0-py3-none-any.whl (8.5 kB)
+2025-10-16T02:17:27.6421038Z Downloading certifi-2025.10.5-py3-none-any.whl (163 kB)
+2025-10-16T02:17:27.6963057Z Downloading click-8.3.0-py3-none-any.whl (107 kB)
+2025-10-16T02:17:27.7694295Z Downloading itsdangerous-2.2.0-py3-none-any.whl (16 kB)
+2025-10-16T02:17:27.8137023Z Downloading jinja2-3.1.6-py3-none-any.whl (134 kB)
+2025-10-16T02:17:27.8646884Z Downloading markupsafe-3.0.3-cp312-cp312-win_amd64.whl (15 kB)
+2025-10-16T02:17:27.9307675Z Downloading sqlalchemy-2.0.44-cp312-cp312-win_amd64.whl (2.1 MB)
+2025-10-16T02:17:28.0040838Z    ---------------------------------------- 2.1/2.1 MB 23.7 MB/s  0:00:00
+2025-10-16T02:17:28.0241252Z Downloading greenlet-3.2.4-cp312-cp312-win_amd64.whl (299 kB)
+2025-10-16T02:17:28.0963781Z Downloading typing_extensions-4.15.0-py3-none-any.whl (44 kB)
+2025-10-16T02:17:28.1259294Z Downloading werkzeug-3.1.3-py3-none-any.whl (224 kB)
+2025-10-16T02:17:28.1628913Z Downloading colorama-0.4.6-py2.py3-none-any.whl (25 kB)
+2025-10-16T02:17:28.2946171Z Installing collected packages: waitress, urllib3, typing-extensions, markupsafe, itsdangerous, idna, greenlet, colorama, charset_normalizer, certifi, blinker, werkzeug, sqlalchemy, requests, jinja2, click, Flask, Flask-SQLAlchemy, Flask-Login
+2025-10-16T02:17:30.9137666Z 
+2025-10-16T02:17:30.9164189Z Successfully installed Flask-3.1.2 Flask-Login-0.6.3 Flask-SQLAlchemy-3.1.1 blinker-1.9.0 certifi-2025.10.5 charset_normalizer-3.4.4 click-8.3.0 colorama-0.4.6 greenlet-3.2.4 idna-3.11 itsdangerous-2.2.0 jinja2-3.1.6 markupsafe-3.0.3 requests-2.32.5 sqlalchemy-2.0.44 typing-extensions-4.15.0 urllib3-2.5.0 waitress-3.0.2 werkzeug-3.1.3

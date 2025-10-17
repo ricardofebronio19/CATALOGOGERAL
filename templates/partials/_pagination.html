@@ -1,0 +1,30 @@
+{% macro render_pagination(pagination, endpoint, search_args) %}
+<div class="pagination">
+    {# Link para a página anterior #}
+    {% if pagination.has_prev %}
+        <a href="{{ url_for(endpoint, page=pagination.prev_num, **search_args) }}" class="pagination-item">Anterior</a>
+    {% else %}
+        <span class="pagination-item disabled">Anterior</span>
+    {% endif %}
+
+    {# Links para as páginas #}
+    {% for page in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+        {% if page %}
+            {% if page == pagination.page %}
+                <span class="pagination-item active">{{ page }}</span>
+            {% else %}
+                <a href="{{ url_for(endpoint, page=page, **search_args) }}" class="pagination-item">{{ page }}</a>
+            {% endif %}
+        {% else %}
+            <span class="pagination-item ellipsis">…</span>
+        {% endif %}
+    {% endfor %}
+
+    {# Link para a próxima página #}
+    {% if pagination.has_next %}
+        <a href="{{ url_for(endpoint, page=pagination.next_num, **search_args) }}" class="pagination-item">Próximo</a>
+    {% else %}
+        <span class="pagination-item disabled">Próximo</span>
+    {% endif %}
+</div>
+{% endmacro %}

@@ -1,19 +1,21 @@
 import os
-from app import app, db, Produto, ImagemProduto, UPLOAD_FOLDER, ALLOWED_EXTENSIONS
+from app import create_app, db, UPLOAD_FOLDER, ALLOWED_EXTENSIONS
+from models import Produto, ImagemProduto
 
-def vincular_imagens_por_codigo():
+def vincular_imagens_por_codigo(app):
     """
     Varre a pasta de uploads e vincula as imagens aos produtos correspondentes.
     O vínculo é feito se o nome do arquivo de imagem (sem a extensão) for igual
     ao código de um produto existente no banco de dados.
+
+    :param app: A instância da aplicação Flask.
     """
     print("Iniciando o processo de vinculação de imagens...")
 
     if not os.path.isdir(UPLOAD_FOLDER):
         print(f"ERRO: A pasta de uploads não foi encontrada em '{UPLOAD_FOLDER}'.")
         return
-
-    # Usar o app_context para acessar o banco de dados
+    
     with app.app_context():
         imagens_vinculadas = 0
         produtos_nao_encontrados = 0
@@ -69,6 +71,10 @@ def vincular_imagens_por_codigo():
             imagens_vinculadas += 1
             print("Vinculado com sucesso!")
 
+            # Commit periódico a cada 500 novas imagens para liberar memória da sessão
+            if imagens_vinculadas % 500 == 0:
+                db.session.commit()
+
         # Faz o commit de todas as novas vinculações no banco de dados
         db.session.commit()
 
@@ -81,4 +87,7 @@ def vincular_imagens_por_codigo():
             print(f"  - Códigos não encontrados: {', '.join(sorted(list(codigos_nao_encontrados))[:10])}{'...' if len(codigos_nao_encontrados) > 10 else ''}")
 
 if __name__ == '__main__':
-    vincular_imagens_por_codigo()
+    app = create_app()
+    # Este script agora deve ser executado através do comando 'link-images' em run.py
+    print("Este script foi movido para um comando CLI.")
+    print("Use: python run.py link-images")

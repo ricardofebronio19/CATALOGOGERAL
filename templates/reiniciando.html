@@ -6,10 +6,10 @@
 <div class="card" style="text-align: center; padding: 40px;">
     <h2>Restauração em Progresso</h2>
     <p>A aplicação está sendo reiniciada para aplicar o backup.</p>
-    <p>Por favor, aguarde alguns segundos e <a href="{{ url_for('index') }}">clique aqui para voltar à página inicial</a> ou atualize a página.</p>
+    <p>Por favor, aguarde alguns segundos e <a href="{{ url_for('main.index') }}">clique aqui para voltar à página inicial</a> ou atualize a página.</p>
     <script>
         setTimeout(function() {
-            window.location.href = "{{ url_for('index') }}";
+            window.location.href = "{{ url_for('main.index') }}";
         }, 5000); // Redireciona após 5 segundos
     </script>
 </div>

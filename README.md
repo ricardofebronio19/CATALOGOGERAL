@@ -44,3 +44,24 @@ set CREATE_INSTALLER=1
 ```
 
 Se quiser que eu faça o push para um repositório remoto no GitHub, me dê o nome do repositório remoto (ex.: `ricardofebronio19/CATALOGOGERAL`) ou me autorize a criar instruções para você executar localmente.
+
+## Criar release e enviar executável (opcional)
+
+Se você quer criar um release no GitHub e anexar o executável gerado em `dist\CatalogoDePecas.exe`, use o script PowerShell `scripts\create_release.ps1`.
+
+Passos:
+
+1. Gere um Personal Access Token (PAT) no GitHub com escopo `repo` e exporte para a variável de ambiente `GITHUB_TOKEN`:
+
+```powershell
+$env:GITHUB_TOKEN = 'seu_token_aqui'
+```
+
+2. Execute o script (ajuste a tag/nome se necessário):
+
+```powershell
+PowerShell -File .\scripts\create_release.ps1 -TagName "v1.5" -ReleaseName "CatalogoDePecas v1.5"
+```
+
+O script criará o release e enviará `dist\CatalogoDePecas.exe` como asset.
+

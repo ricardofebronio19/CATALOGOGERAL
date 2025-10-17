@@ -1,0 +1,444 @@
+﻿2025-10-16T01:41:59.9892786Z Current runner version: '2.328.0'
+2025-10-16T01:41:59.9919925Z ##[group]Runner Image Provisioner
+2025-10-16T01:41:59.9920636Z Hosted Compute Agent
+2025-10-16T01:41:59.9921126Z Version: 20250912.392
+2025-10-16T01:41:59.9921623Z Commit: d921fda672a98b64f4f82364647e2f10b2267d0b
+2025-10-16T01:41:59.9922271Z Build Date: 2025-09-12T15:23:14Z
+2025-10-16T01:41:59.9922768Z ##[endgroup]
+2025-10-16T01:41:59.9923223Z ##[group]Operating System
+2025-10-16T01:41:59.9923757Z Microsoft Windows Server 2025
+2025-10-16T01:41:59.9924244Z 10.0.26100
+2025-10-16T01:41:59.9924700Z Datacenter
+2025-10-16T01:41:59.9925102Z ##[endgroup]
+2025-10-16T01:41:59.9925539Z ##[group]Runner Image
+2025-10-16T01:41:59.9926011Z Image: windows-2025
+2025-10-16T01:41:59.9926460Z Version: 20250929.44.1
+2025-10-16T01:41:59.9927385Z Included Software: https://github.com/actions/runner-images/blob/win25/20250929.44/images/windows/Windows2025-Readme.md
+2025-10-16T01:41:59.9929118Z Image Release: https://github.com/actions/runner-images/releases/tag/win25%2F20250929.44
+2025-10-16T01:41:59.9929994Z ##[endgroup]
+2025-10-16T01:41:59.9931001Z ##[group]GITHUB_TOKEN Permissions
+2025-10-16T01:41:59.9932757Z Contents: write
+2025-10-16T01:41:59.9933281Z Metadata: read
+2025-10-16T01:41:59.9933721Z Packages: write
+2025-10-16T01:41:59.9934173Z ##[endgroup]
+2025-10-16T01:41:59.9936887Z Secret source: Actions
+2025-10-16T01:41:59.9937568Z Prepare workflow directory
+2025-10-16T01:42:00.0384085Z Prepare all required actions
+2025-10-16T01:42:00.0440149Z Getting action download info
+2025-10-16T01:42:00.3858472Z Download action repository 'actions/checkout@v4' (SHA:08eba0b27e820071cde6df949e0beb9ba4906955)
+2025-10-16T01:42:00.5976199Z Download action repository 'actions/setup-python@v4' (SHA:7f4fc3e22c37d6ff65e88745f38bd3157c663f7c)
+2025-10-16T01:42:00.7920077Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2025-10-16T01:42:01.2229211Z Complete job name: Build on Windows and create Release
+2025-10-16T01:42:01.5504708Z ##[group]Run actions/checkout@v4
+2025-10-16T01:42:01.5506426Z with:
+2025-10-16T01:42:01.5507164Z   repository: ricardofebronio19/CATALOGOGERAL
+2025-10-16T01:42:01.5508481Z   token: ***
+2025-10-16T01:42:01.5509138Z   ssh-strict: true
+2025-10-16T01:42:01.5509826Z   ssh-user: git
+2025-10-16T01:42:01.5510523Z   persist-credentials: true
+2025-10-16T01:42:01.5511301Z   clean: true
+2025-10-16T01:42:01.5512397Z   sparse-checkout-cone-mode: true
+2025-10-16T01:42:01.5513268Z   fetch-depth: 1
+2025-10-16T01:42:01.5513957Z   fetch-tags: false
+2025-10-16T01:42:01.5514673Z   show-progress: true
+2025-10-16T01:42:01.5515377Z   lfs: false
+2025-10-16T01:42:01.5516009Z   submodules: false
+2025-10-16T01:42:01.5516715Z   set-safe-directory: true
+2025-10-16T01:42:01.5517779Z ##[endgroup]
+2025-10-16T01:42:01.7573108Z Syncing repository: ricardofebronio19/CATALOGOGERAL
+2025-10-16T01:42:01.7575638Z ##[group]Getting Git version info
+2025-10-16T01:42:01.7576841Z Working directory is 'D:\a\CATALOGOGERAL\CATALOGOGERAL'
+2025-10-16T01:42:01.9293978Z [command]"C:\Program Files\Git\bin\git.exe" version
+2025-10-16T01:42:03.0093409Z git version 2.51.0.windows.2
+2025-10-16T01:42:03.0147114Z ##[endgroup]
+2025-10-16T01:42:03.0168106Z Temporarily overriding HOME='D:\a\_temp\5e3fd47d-8452-498b-a580-65be98c8b776' before making global git config changes
+2025-10-16T01:42:03.0169619Z Adding repository directory to the temporary git global config as a safe directory
+2025-10-16T01:42:03.0179909Z [command]"C:\Program Files\Git\bin\git.exe" config --global --add safe.directory D:\a\CATALOGOGERAL\CATALOGOGERAL
+2025-10-16T01:42:03.1298157Z Deleting the contents of 'D:\a\CATALOGOGERAL\CATALOGOGERAL'
+2025-10-16T01:42:03.1305603Z ##[group]Initializing the repository
+2025-10-16T01:42:03.1316223Z [command]"C:\Program Files\Git\bin\git.exe" init D:\a\CATALOGOGERAL\CATALOGOGERAL
+2025-10-16T01:42:03.4472257Z Initialized empty Git repository in D:/a/CATALOGOGERAL/CATALOGOGERAL/.git/
+2025-10-16T01:42:03.4531102Z [command]"C:\Program Files\Git\bin\git.exe" remote add origin https://github.com/ricardofebronio19/CATALOGOGERAL
+2025-10-16T01:42:03.5599058Z ##[endgroup]
+2025-10-16T01:42:03.5599497Z ##[group]Disabling automatic garbage collection
+2025-10-16T01:42:03.5610276Z [command]"C:\Program Files\Git\bin\git.exe" config --local gc.auto 0
+2025-10-16T01:42:03.5923445Z ##[endgroup]
+2025-10-16T01:42:03.5923849Z ##[group]Setting up auth
+2025-10-16T01:42:03.5939262Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+2025-10-16T01:42:03.6258774Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+2025-10-16T01:42:07.1462014Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-10-16T01:42:07.1807486Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+2025-10-16T01:42:07.7718540Z [command]"C:\Program Files\Git\bin\git.exe" config --local http.https://github.com/.extraheader "AUTHORIZATION: basic ***"
+2025-10-16T01:42:07.8045313Z ##[endgroup]
+2025-10-16T01:42:07.8046136Z ##[group]Fetching the repository
+2025-10-16T01:42:07.8060602Z [command]"C:\Program Files\Git\bin\git.exe" -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +cd2387bd3a321acf8578469b9528b6d4890a1d24:refs/tags/v1.5-rc6
+2025-10-16T01:42:09.2937647Z From https://github.com/ricardofebronio19/CATALOGOGERAL
+2025-10-16T01:42:09.2938542Z  * [new ref]         cd2387bd3a321acf8578469b9528b6d4890a1d24 -> v1.5-rc6
+2025-10-16T01:42:09.3299598Z ##[endgroup]
+2025-10-16T01:42:09.3300168Z ##[group]Determining the checkout info
+2025-10-16T01:42:09.3304641Z ##[endgroup]
+2025-10-16T01:42:09.3318847Z [command]"C:\Program Files\Git\bin\git.exe" sparse-checkout disable
+2025-10-16T01:42:09.4055572Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset-all extensions.worktreeConfig
+2025-10-16T01:42:09.4373979Z ##[group]Checking out the ref
+2025-10-16T01:42:09.4384833Z [command]"C:\Program Files\Git\bin\git.exe" checkout --progress --force refs/tags/v1.5-rc6
+2025-10-16T01:42:09.5437853Z Note: switching to 'refs/tags/v1.5-rc6'.
+2025-10-16T01:42:09.5439063Z 
+2025-10-16T01:42:09.5439664Z You are in 'detached HEAD' state. You can look around, make experimental
+2025-10-16T01:42:09.5441173Z changes and commit them, and you can discard any commits you make in this
+2025-10-16T01:42:09.5441919Z state without impacting any branches by switching back to a branch.
+2025-10-16T01:42:09.5442374Z 
+2025-10-16T01:42:09.5442652Z If you want to create a new branch to retain commits you create, you may
+2025-10-16T01:42:09.5443387Z do so (now or later) by using -c with the switch command. Example:
+2025-10-16T01:42:09.5443852Z 
+2025-10-16T01:42:09.5444022Z   git switch -c <new-branch-name>
+2025-10-16T01:42:09.5444313Z 
+2025-10-16T01:42:09.5444454Z Or undo this operation with:
+2025-10-16T01:42:09.5444704Z 
+2025-10-16T01:42:09.5444827Z   git switch -
+2025-10-16T01:42:09.5445004Z 
+2025-10-16T01:42:09.5445325Z Turn off this advice by setting config variable advice.detachedHead to false
+2025-10-16T01:42:09.5445794Z 
+2025-10-16T01:42:09.5446292Z HEAD is now at cd2387b CI: ensure create_release script path uses GITHUB_WORKSPACE and fail with diagnostics if missing
+2025-10-16T01:42:09.5476120Z ##[endgroup]
+2025-10-16T01:42:09.5916204Z [command]"C:\Program Files\Git\bin\git.exe" log -1 --format=%H
+2025-10-16T01:42:09.6186622Z cd2387bd3a321acf8578469b9528b6d4890a1d24
+2025-10-16T01:42:09.6618152Z ##[group]Run actions/setup-python@v4
+2025-10-16T01:42:09.6618463Z with:
+2025-10-16T01:42:09.6618635Z   python-version: 3.12
+2025-10-16T01:42:09.6618850Z   check-latest: false
+2025-10-16T01:42:09.6619992Z   token: ***
+2025-10-16T01:42:09.6620177Z   update-environment: true
+2025-10-16T01:42:09.6620386Z   allow-prereleases: false
+2025-10-16T01:42:09.6620578Z ##[endgroup]
+2025-10-16T01:42:09.9039286Z ##[group]Installed versions
+2025-10-16T01:42:09.9444512Z Successfully set up CPython (3.12.10)
+2025-10-16T01:42:09.9445270Z ##[endgroup]
+2025-10-16T01:42:09.9740331Z ##[group]Run python -m venv .venv
+2025-10-16T01:42:09.9740709Z [36;1mpython -m venv .venv[0m
+2025-10-16T01:42:10.0783395Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2025-10-16T01:42:10.0783847Z env:
+2025-10-16T01:42:10.0784177Z   pythonLocation: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2025-10-16T01:42:10.0784765Z   PKG_CONFIG_PATH: C:\hostedtoolcache\windows\Python\3.12.10\x64/lib/pkgconfig
+2025-10-16T01:42:10.0785309Z   Python_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2025-10-16T01:42:10.0785802Z   Python2_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2025-10-16T01:42:10.0786306Z   Python3_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2025-10-16T01:42:10.0786684Z ##[endgroup]
+2025-10-16T01:42:26.1003499Z ##[group]Run .\.venv\Scripts\python -m pip install --upgrade pip && .\.venv\Scripts\python -m pip install -r requirements.txt
+2025-10-16T01:42:26.1004341Z [36;1m.\.venv\Scripts\python -m pip install --upgrade pip && .\.venv\Scripts\python -m pip install -r requirements.txt[0m
+2025-10-16T01:42:26.1066010Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2025-10-16T01:42:26.1066331Z env:
+2025-10-16T01:42:26.1066589Z   pythonLocation: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2025-10-16T01:42:26.1067018Z   PKG_CONFIG_PATH: C:\hostedtoolcache\windows\Python\3.12.10\x64/lib/pkgconfig
+2025-10-16T01:42:26.1067432Z   Python_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2025-10-16T01:42:26.1067797Z   Python2_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2025-10-16T01:42:26.1068156Z   Python3_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2025-10-16T01:42:26.1123127Z ##[endgroup]
+2025-10-16T01:42:27.8980931Z Requirement already satisfied: pip in d:\a\catalogogeral\catalogogeral\.venv\lib\site-packages (25.0.1)
+2025-10-16T01:42:28.1293848Z Collecting pip
+2025-10-16T01:42:28.2057208Z   Downloading pip-25.2-py3-none-any.whl.metadata (4.7 kB)
+2025-10-16T01:42:28.2527555Z Downloading pip-25.2-py3-none-any.whl (1.8 MB)
+2025-10-16T01:42:28.3694757Z    ---------------------------------------- 1.8/1.8 MB 24.0 MB/s eta 0:00:00
+2025-10-16T01:42:28.4051635Z Installing collected packages: pip
+2025-10-16T01:42:28.4053719Z   Attempting uninstall: pip
+2025-10-16T01:42:28.4085038Z     Found existing installation: pip 25.0.1
+2025-10-16T01:42:28.4844258Z     Uninstalling pip-25.0.1:
+2025-10-16T01:42:28.5053338Z       Successfully uninstalled pip-25.0.1
+2025-10-16T01:42:29.8637214Z Successfully installed pip-25.2
+2025-10-16T01:42:31.7013193Z Collecting Flask (from -r requirements.txt (line 1))
+2025-10-16T01:42:31.7503925Z   Downloading flask-3.1.2-py3-none-any.whl.metadata (3.2 kB)
+2025-10-16T01:42:31.8596579Z Collecting Flask-SQLAlchemy (from -r requirements.txt (line 2))
+2025-10-16T01:42:31.8797053Z   Downloading flask_sqlalchemy-3.1.1-py3-none-any.whl.metadata (3.4 kB)
+2025-10-16T01:42:31.9863949Z Collecting Flask-Login (from -r requirements.txt (line 3))
+2025-10-16T01:42:32.0051071Z   Downloading Flask_Login-0.6.3-py3-none-any.whl.metadata (5.8 kB)
+2025-10-16T01:42:32.1116015Z Collecting requests (from -r requirements.txt (line 4))
+2025-10-16T01:42:32.1316266Z   Downloading requests-2.32.5-py3-none-any.whl.metadata (4.9 kB)
+2025-10-16T01:42:32.2021317Z Collecting waitress (from -r requirements.txt (line 5))
+2025-10-16T01:42:32.2284235Z   Downloading waitress-3.0.2-py3-none-any.whl.metadata (5.8 kB)
+2025-10-16T01:42:32.3004071Z Collecting blinker>=1.9.0 (from Flask->-r requirements.txt (line 1))
+2025-10-16T01:42:32.3172777Z   Downloading blinker-1.9.0-py3-none-any.whl.metadata (1.6 kB)
+2025-10-16T01:42:32.4180889Z Collecting click>=8.1.3 (from Flask->-r requirements.txt (line 1))
+2025-10-16T01:42:32.4358532Z   Downloading click-8.3.0-py3-none-any.whl.metadata (2.6 kB)
+2025-10-16T01:42:32.5148826Z Collecting itsdangerous>=2.2.0 (from Flask->-r requirements.txt (line 1))
+2025-10-16T01:42:32.5344035Z   Downloading itsdangerous-2.2.0-py3-none-any.whl.metadata (1.9 kB)
+2025-10-16T01:42:32.6443048Z Collecting jinja2>=3.1.2 (from Flask->-r requirements.txt (line 1))
+2025-10-16T01:42:32.6622924Z   Downloading jinja2-3.1.6-py3-none-any.whl.metadata (2.9 kB)
+2025-10-16T01:42:32.8063191Z Collecting markupsafe>=2.1.1 (from Flask->-r requirements.txt (line 1))
+2025-10-16T01:42:32.8264190Z   Downloading markupsafe-3.0.3-cp312-cp312-win_amd64.whl.metadata (2.8 kB)
+2025-10-16T01:42:32.9108088Z Collecting werkzeug>=3.1.0 (from Flask->-r requirements.txt (line 1))
+2025-10-16T01:42:32.9324475Z   Downloading werkzeug-3.1.3-py3-none-any.whl.metadata (3.7 kB)
+2025-10-16T01:42:33.3056312Z Collecting sqlalchemy>=2.0.16 (from Flask-SQLAlchemy->-r requirements.txt (line 2))
+2025-10-16T01:42:33.3241241Z   Downloading sqlalchemy-2.0.44-cp312-cp312-win_amd64.whl.metadata (9.8 kB)
+2025-10-16T01:42:33.5158400Z Collecting charset_normalizer<4,>=2 (from requests->-r requirements.txt (line 4))
+2025-10-16T01:42:33.5497786Z   Downloading charset_normalizer-3.4.4-cp312-cp312-win_amd64.whl.metadata (38 kB)
+2025-10-16T01:42:33.6217813Z Collecting idna<4,>=2.5 (from requests->-r requirements.txt (line 4))
+2025-10-16T01:42:33.6412117Z   Downloading idna-3.11-py3-none-any.whl.metadata (8.4 kB)
+2025-10-16T01:42:33.7830578Z Collecting urllib3<3,>=1.21.1 (from requests->-r requirements.txt (line 4))
+2025-10-16T01:42:33.8072518Z   Downloading urllib3-2.5.0-py3-none-any.whl.metadata (6.5 kB)
+2025-10-16T01:42:33.8774875Z Collecting certifi>=2017.4.17 (from requests->-r requirements.txt (line 4))
+2025-10-16T01:42:33.8970424Z   Downloading certifi-2025.10.5-py3-none-any.whl.metadata (2.5 kB)
+2025-10-16T01:42:33.9846729Z Collecting colorama (from click>=8.1.3->Flask->-r requirements.txt (line 1))
+2025-10-16T01:42:34.0043793Z   Downloading colorama-0.4.6-py2.py3-none-any.whl.metadata (17 kB)
+2025-10-16T01:42:34.2137311Z Collecting greenlet>=1 (from sqlalchemy>=2.0.16->Flask-SQLAlchemy->-r requirements.txt (line 2))
+2025-10-16T01:42:34.2360911Z   Downloading greenlet-3.2.4-cp312-cp312-win_amd64.whl.metadata (4.2 kB)
+2025-10-16T01:42:34.3055887Z Collecting typing-extensions>=4.6.0 (from sqlalchemy>=2.0.16->Flask-SQLAlchemy->-r requirements.txt (line 2))
+2025-10-16T01:42:34.3251204Z   Downloading typing_extensions-4.15.0-py3-none-any.whl.metadata (3.3 kB)
+2025-10-16T01:42:34.3747496Z Downloading flask-3.1.2-py3-none-any.whl (103 kB)
+2025-10-16T01:42:34.4374405Z Downloading flask_sqlalchemy-3.1.1-py3-none-any.whl (25 kB)
+2025-10-16T01:42:34.5007547Z Downloading Flask_Login-0.6.3-py3-none-any.whl (17 kB)
+2025-10-16T01:42:34.5356291Z Downloading requests-2.32.5-py3-none-any.whl (64 kB)
+2025-10-16T01:42:34.5758772Z Downloading charset_normalizer-3.4.4-cp312-cp312-win_amd64.whl (107 kB)
+2025-10-16T01:42:34.6152110Z Downloading idna-3.11-py3-none-any.whl (71 kB)
+2025-10-16T01:42:34.6703923Z Downloading urllib3-2.5.0-py3-none-any.whl (129 kB)
+2025-10-16T01:42:34.7217674Z Downloading waitress-3.0.2-py3-none-any.whl (56 kB)
+2025-10-16T01:42:34.7586993Z Downloading blinker-1.9.0-py3-none-any.whl (8.5 kB)
+2025-10-16T01:42:34.8190100Z Downloading certifi-2025.10.5-py3-none-any.whl (163 kB)
+2025-10-16T01:42:34.8644983Z Downloading click-8.3.0-py3-none-any.whl (107 kB)
+2025-10-16T01:42:34.9105409Z Downloading itsdangerous-2.2.0-py3-none-any.whl (16 kB)
+2025-10-16T01:42:34.9477116Z Downloading jinja2-3.1.6-py3-none-any.whl (134 kB)
+2025-10-16T01:42:34.9875481Z Downloading markupsafe-3.0.3-cp312-cp312-win_amd64.whl (15 kB)
+2025-10-16T01:42:35.0337456Z Downloading sqlalchemy-2.0.44-cp312-cp312-win_amd64.whl (2.1 MB)
+2025-10-16T01:42:35.1103928Z    ---------------------------------------- 2.1/2.1 MB 30.1 MB/s  0:00:00
+2025-10-16T01:42:35.1313603Z Downloading greenlet-3.2.4-cp312-cp312-win_amd64.whl (299 kB)
+2025-10-16T01:42:35.1705189Z Downloading typing_extensions-4.15.0-py3-none-any.whl (44 kB)
+2025-10-16T01:42:35.2305346Z Downloading werkzeug-3.1.3-py3-none-any.whl (224 kB)
+2025-10-16T01:42:35.2656366Z Downloading colorama-0.4.6-py2.py3-none-any.whl (25 kB)
+2025-10-16T01:42:35.3666567Z Installing collected packages: waitress, urllib3, typing-extensions, markupsafe, itsdangerous, idna, greenlet, colorama, charset_normalizer, certifi, blinker, werkzeug, sqlalchemy, requests, jinja2, click, Flask, Flask-SQLAlchemy, Flask-Login
+2025-10-16T01:42:38.0919740Z 
+2025-10-16T01:42:38.0946610Z Successfully installed Flask-3.1.2 Flask-Login-0.6.3 Flask-SQLAlchemy-3.1.1 blinker-1.9.0 certifi-2025.10.5 charset_normalizer-3.4.4 click-8.3.0 colorama-0.4.6 greenlet-3.2.4 idna-3.11 itsdangerous-2.2.0 jinja2-3.1.6 markupsafe-3.0.3 requests-2.32.5 sqlalchemy-2.0.44 typing-extensions-4.15.0 urllib3-2.5.0 waitress-3.0.2 werkzeug-3.1.3
+2025-10-16T01:42:38.3428367Z ##[group]Run .\build.bat
+2025-10-16T01:42:38.3428682Z [36;1m.\build.bat[0m
+2025-10-16T01:42:38.3458201Z shell: C:\Windows\system32\cmd.EXE /D /E:ON /V:OFF /S /C "CALL "{0}""
+2025-10-16T01:42:38.3458508Z env:
+2025-10-16T01:42:38.3458756Z   pythonLocation: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2025-10-16T01:42:38.3459175Z   PKG_CONFIG_PATH: C:\hostedtoolcache\windows\Python\3.12.10\x64/lib/pkgconfig
+2025-10-16T01:42:38.3459593Z   Python_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2025-10-16T01:42:38.3459951Z   Python2_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2025-10-16T01:42:38.3460304Z   Python3_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2025-10-16T01:42:38.3460582Z ##[endgroup]
+2025-10-16T01:42:38.3683182Z 
+2025-10-16T01:42:38.3686591Z [BUILD] Iniciando o processo de build para CatalogoDePecas v1.5...
+2025-10-16T01:42:38.3713964Z 
+2025-10-16T01:42:38.3726145Z [1/4] Limpando diretorios antigos (build, dist, Output)...
+2025-10-16T01:42:38.3739894Z      Limpeza concluida.
+2025-10-16T01:42:38.3767136Z 
+2025-10-16T01:42:38.3771601Z [2/4] Empacotando a aplicacao com PyInstaller (modo --onefile)...
+2025-10-16T01:42:38.3776480Z [2/4] Empacotando a aplicacao com PyInstaller (modo --onefile)...
+2025-10-16T01:42:38.3788000Z [INFO] Usando launcher Python: .venv\Scripts\python.exe
+2025-10-16T01:42:38.6722635Z 
+2025-10-16T01:42:38.6723957Z [AVISO] PyInstaller nao encontrado no ambiente selecionado. Tentando instalar via pip...
+2025-10-16T01:42:40.1846899Z Collecting pyinstaller
+2025-10-16T01:42:40.2361933Z   Downloading pyinstaller-6.16.0-py3-none-win_amd64.whl.metadata (8.5 kB)
+2025-10-16T01:42:40.3176921Z Collecting altgraph (from pyinstaller)
+2025-10-16T01:42:40.3354295Z   Downloading altgraph-0.17.4-py2.py3-none-any.whl.metadata (7.3 kB)
+2025-10-16T01:42:40.4027238Z Collecting packaging>=22.0 (from pyinstaller)
+2025-10-16T01:42:40.4195806Z   Downloading packaging-25.0-py3-none-any.whl.metadata (3.3 kB)
+2025-10-16T01:42:40.4957051Z Collecting pefile!=2024.8.26,>=2022.5.30 (from pyinstaller)
+2025-10-16T01:42:40.5143734Z   Downloading pefile-2023.2.7-py3-none-any.whl.metadata (1.4 kB)
+2025-10-16T01:42:40.6025832Z Collecting pyinstaller-hooks-contrib>=2025.8 (from pyinstaller)
+2025-10-16T01:42:40.6197161Z   Downloading pyinstaller_hooks_contrib-2025.9-py3-none-any.whl.metadata (16 kB)
+2025-10-16T01:42:40.6854896Z Collecting pywin32-ctypes>=0.2.1 (from pyinstaller)
+2025-10-16T01:42:40.7075427Z   Downloading pywin32_ctypes-0.2.3-py3-none-any.whl.metadata (3.9 kB)
+2025-10-16T01:42:40.9154352Z Collecting setuptools>=42.0.0 (from pyinstaller)
+2025-10-16T01:42:40.9372758Z   Downloading setuptools-80.9.0-py3-none-any.whl.metadata (6.6 kB)
+2025-10-16T01:42:40.9920168Z Downloading pyinstaller-6.16.0-py3-none-win_amd64.whl (1.4 MB)
+2025-10-16T01:42:41.0992802Z    ---------------------------------------- 1.4/1.4 MB 14.3 MB/s  0:00:00
+2025-10-16T01:42:41.1255864Z Downloading packaging-25.0-py3-none-any.whl (66 kB)
+2025-10-16T01:42:41.1685375Z Downloading pefile-2023.2.7-py3-none-any.whl (71 kB)
+2025-10-16T01:42:41.2170760Z Downloading pyinstaller_hooks_contrib-2025.9-py3-none-any.whl (444 kB)
+2025-10-16T01:42:41.2624520Z Downloading pywin32_ctypes-0.2.3-py3-none-any.whl (30 kB)
+2025-10-16T01:42:41.3077394Z Downloading setuptools-80.9.0-py3-none-any.whl (1.2 MB)
+2025-10-16T01:42:41.3441595Z    ---------------------------------------- 1.2/1.2 MB 29.4 MB/s  0:00:00
+2025-10-16T01:42:41.3608876Z Downloading altgraph-0.17.4-py2.py3-none-any.whl (21 kB)
+2025-10-16T01:42:41.4683791Z Installing collected packages: altgraph, setuptools, pywin32-ctypes, pefile, packaging, pyinstaller-hooks-contrib, pyinstaller
+2025-10-16T01:42:44.3887113Z 
+2025-10-16T01:42:44.3917911Z Successfully installed altgraph-0.17.4 packaging-25.0 pefile-2023.2.7 pyinstaller-6.16.0 pyinstaller-hooks-contrib-2025.9 pywin32-ctypes-0.2.3 setuptools-80.9.0
+2025-10-16T01:42:44.8409161Z 228 INFO: PyInstaller: 6.16.0, contrib hooks: 2025.9
+2025-10-16T01:42:44.8414296Z 230 INFO: Python: 3.12.10
+2025-10-16T01:42:44.8635495Z 251 INFO: Platform: Windows-2025Server-10.0.26100-SP0
+2025-10-16T01:42:44.8635924Z 251 INFO: Python environment: D:\a\CATALOGOGERAL\CATALOGOGERAL\.venv
+2025-10-16T01:42:44.8640704Z 251 INFO: wrote D:\a\CATALOGOGERAL\CATALOGOGERAL\CatalogoDePecas.spec
+2025-10-16T01:42:44.8672747Z 255 INFO: Module search paths (PYTHONPATH):
+2025-10-16T01:42:44.8673113Z ['D:\\a\\CATALOGOGERAL\\CATALOGOGERAL',
+2025-10-16T01:42:44.8673560Z  'C:\\hostedtoolcache\\windows\\Python\\3.12.10\\x64\\python312.zip',
+2025-10-16T01:42:44.8673982Z  'C:\\hostedtoolcache\\windows\\Python\\3.12.10\\x64\\DLLs',
+2025-10-16T01:42:44.8674338Z  'C:\\hostedtoolcache\\windows\\Python\\3.12.10\\x64\\Lib',
+2025-10-16T01:42:44.8674677Z  'C:\\hostedtoolcache\\windows\\Python\\3.12.10\\x64',
+2025-10-16T01:42:44.8674985Z  'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv',
+2025-10-16T01:42:44.8675323Z  'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages',
+2025-10-16T01:42:44.8675815Z  'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\setuptools\\_vendor',
+2025-10-16T01:42:44.8676229Z  'D:\\a\\CATALOGOGERAL']
+2025-10-16T01:42:45.1537442Z 541 INFO: Appending 'datas' from .spec
+2025-10-16T01:42:45.1548058Z 543 INFO: checking Analysis
+2025-10-16T01:42:45.1549161Z 543 INFO: Building Analysis because Analysis-00.toc is non existent
+2025-10-16T01:42:45.1549561Z 543 INFO: Looking for Python shared library...
+2025-10-16T01:42:45.1550658Z 543 INFO: Using Python shared library: C:\hostedtoolcache\windows\Python\3.12.10\x64\python312.dll
+2025-10-16T01:42:45.1551165Z 543 INFO: Running Analysis Analysis-00.toc
+2025-10-16T01:42:45.1552111Z 543 INFO: Target bytecode optimization level: 0
+2025-10-16T01:42:45.1552594Z 543 INFO: Initializing module dependency graph...
+2025-10-16T01:42:45.1667638Z 555 INFO: Initializing module graph hook caches...
+2025-10-16T01:42:45.1794235Z 567 INFO: Analyzing modules for base_library.zip ...
+2025-10-16T01:42:46.0332841Z 1421 INFO: Processing standard module hook 'hook-heapq.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+2025-10-16T01:42:46.6057280Z 1993 INFO: Processing standard module hook 'hook-encodings.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+2025-10-16T01:42:48.4977596Z 3885 INFO: Processing standard module hook 'hook-pickle.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+2025-10-16T01:42:50.9629155Z 6350 INFO: Caching module dependency graph...
+2025-10-16T01:42:51.0081453Z 6396 INFO: Analyzing D:\a\CATALOGOGERAL\CATALOGOGERAL\run.py
+2025-10-16T01:42:51.0958274Z 6483 INFO: Processing standard module hook 'hook-platform.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+2025-10-16T01:42:51.4641426Z 6851 INFO: Processing standard module hook 'hook-sqlalchemy.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+2025-10-16T01:42:52.4755424Z 7864 INFO: Processing standard module hook 'hook-sysconfig.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+2025-10-16T01:42:52.4842689Z 7872 INFO: Processing pre-safe-import-module hook 'hook-importlib_metadata.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+2025-10-16T01:42:52.4850704Z 7872 INFO: SetuptoolsInfo: initializing cached setuptools info...
+2025-10-16T01:43:01.7007297Z 17088 INFO: Setuptools: 'importlib_metadata' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.importlib_metadata'!
+2025-10-16T01:43:01.7065780Z 17094 INFO: Processing standard module hook 'hook-setuptools.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+2025-10-16T01:43:01.7177378Z 17104 INFO: Processing pre-safe-import-module hook 'hook-distutils.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+2025-10-16T01:43:01.7448003Z 17132 INFO: Processing pre-safe-import-module hook 'hook-jaraco.functools.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+2025-10-16T01:43:01.7450335Z 17132 INFO: Setuptools: 'jaraco.functools' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.jaraco.functools'!
+2025-10-16T01:43:01.7535252Z 17142 INFO: Processing pre-safe-import-module hook 'hook-more_itertools.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+2025-10-16T01:43:01.7537584Z 17142 INFO: Setuptools: 'more_itertools' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.more_itertools'!
+2025-10-16T01:43:02.3792660Z 17767 INFO: Processing pre-safe-import-module hook 'hook-typing_extensions.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+2025-10-16T01:43:06.1951870Z 21583 INFO: Processing standard module hook 'hook-multiprocessing.util.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+2025-10-16T01:43:07.5539781Z 22941 INFO: Processing standard module hook 'hook-xml.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+2025-10-16T01:43:07.8898529Z 23278 INFO: Processing standard module hook 'hook-_ctypes.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+2025-10-16T01:43:08.5380245Z 23926 INFO: Processing pre-safe-import-module hook 'hook-packaging.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+2025-10-16T01:43:08.7455795Z 24133 INFO: Processing pre-safe-import-module hook 'hook-jaraco.text.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+2025-10-16T01:43:08.7457958Z 24133 INFO: Setuptools: 'jaraco.text' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.jaraco.text'!
+2025-10-16T01:43:08.7551987Z 24142 INFO: Processing standard module hook 'hook-setuptools._vendor.jaraco.text.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+2025-10-16T01:43:08.7565262Z 24144 INFO: Processing pre-safe-import-module hook 'hook-importlib_resources.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+2025-10-16T01:43:08.7573943Z 24144 INFO: Processing pre-safe-import-module hook 'hook-jaraco.context.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+2025-10-16T01:43:08.7576204Z 24144 INFO: Setuptools: 'jaraco.context' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.jaraco.context'!
+2025-10-16T01:43:09.0439717Z 24431 INFO: Processing pre-safe-import-module hook 'hook-backports.tarfile.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+2025-10-16T01:43:09.0441767Z 24431 INFO: Setuptools: 'backports.tarfile' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.backports.tarfile'!
+2025-10-16T01:43:09.1281125Z 24516 INFO: Processing standard module hook 'hook-backports.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+2025-10-16T01:43:09.4710679Z 24858 INFO: Processing pre-safe-import-module hook 'hook-tomli.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+2025-10-16T01:43:09.4713076Z 24860 INFO: Setuptools: 'tomli' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.tomli'!
+2025-10-16T01:43:09.9426341Z 25330 INFO: Processing pre-safe-import-module hook 'hook-wheel.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+2025-10-16T01:43:09.9428869Z 25330 INFO: Setuptools: 'wheel' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.wheel'!
+2025-10-16T01:43:10.1484298Z 25536 INFO: Processing standard module hook 'hook-setuptools._vendor.importlib_metadata.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+2025-10-16T01:43:10.1496821Z 25538 INFO: Processing pre-safe-import-module hook 'hook-zipp.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+2025-10-16T01:43:10.1498714Z 25538 INFO: Setuptools: 'zipp' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.zipp'!
+2025-10-16T01:43:13.6012162Z 28989 INFO: Processing standard module hook 'hook-urllib3.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+2025-10-16T01:43:14.1530046Z 29541 INFO: Processing standard module hook 'hook-charset_normalizer.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+2025-10-16T01:43:14.2808989Z 29669 INFO: Processing standard module hook 'hook-certifi.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+2025-10-16T01:43:15.5158954Z 30903 INFO: Processing standard module hook 'hook-difflib.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+2025-10-16T01:43:15.7070177Z 31094 INFO: Processing standard module hook 'hook-jinja2.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+2025-10-16T01:43:16.3870912Z 31775 INFO: Processing standard module hook 'hook-sqlite3.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+2025-10-16T01:43:16.8959516Z 32283 INFO: Processing module hooks (post-graph stage)...
+2025-10-16T01:43:17.2248527Z 32612 INFO: Processing standard module hook 'hook-sqlalchemy.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+2025-10-16T01:43:17.5861210Z 32973 WARNING: Hidden import "pysqlite2" not found!
+2025-10-16T01:43:17.5863837Z 32973 WARNING: Hidden import "MySQLdb" not found!
+2025-10-16T01:43:17.5867309Z 32975 WARNING: Hidden import "psycopg2" not found!
+2025-10-16T01:43:18.6030084Z 33991 INFO: Performing binary vs. data reclassification (33 entries)
+2025-10-16T01:43:18.6069495Z 33994 INFO: Looking for ctypes DLLs
+2025-10-16T01:43:18.6433423Z 34030 INFO: Analyzing run-time hooks ...
+2025-10-16T01:43:18.6478805Z 34036 INFO: Including run-time hook 'pyi_rth_inspect.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+2025-10-16T01:43:18.6504246Z 34038 INFO: Including run-time hook 'pyi_rth_pkgutil.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+2025-10-16T01:43:18.6522945Z 34040 INFO: Including run-time hook 'pyi_rth_multiprocessing.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+2025-10-16T01:43:18.6541644Z 34043 INFO: Including run-time hook 'pyi_rth_setuptools.py' from 'D:\\a\\CATALOGOGERAL\\CATALOGOGERAL\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+2025-10-16T01:43:18.6684787Z 34056 INFO: Creating base_library.zip...
+2025-10-16T01:43:18.6902574Z 34078 INFO: Looking for dynamic libraries
+2025-10-16T01:43:19.5654770Z 34953 INFO: Extra DLL search directories (AddDllDirectory): []
+2025-10-16T01:43:19.5655268Z 34953 INFO: Extra DLL search directories (PATH): []
+2025-10-16T01:43:20.8762108Z 36265 WARNING: Library not found: could not resolve 'api-ms-win-core-path-l1-1-0.dll', dependency of 'C:\\hostedtoolcache\\windows\\Python\\3.12.10\\x64\\python312.dll'.
+2025-10-16T01:43:20.8863818Z 36274 INFO: Warnings written to D:\a\CATALOGOGERAL\CATALOGOGERAL\build\CatalogoDePecas\warn-CatalogoDePecas.txt
+2025-10-16T01:43:20.9808545Z 36368 INFO: Graph cross-reference written to D:\a\CATALOGOGERAL\CATALOGOGERAL\build\CatalogoDePecas\xref-CatalogoDePecas.html
+2025-10-16T01:43:21.0132504Z 36401 INFO: checking PYZ
+2025-10-16T01:43:21.0133003Z 36401 INFO: Building PYZ because PYZ-00.toc is non existent
+2025-10-16T01:43:21.0133731Z 36401 INFO: Building PYZ (ZlibArchive) D:\a\CATALOGOGERAL\CATALOGOGERAL\build\CatalogoDePecas\PYZ-00.pyz
+2025-10-16T01:43:21.9939374Z 37382 INFO: Building PYZ (ZlibArchive) D:\a\CATALOGOGERAL\CATALOGOGERAL\build\CatalogoDePecas\PYZ-00.pyz completed successfully.
+2025-10-16T01:43:22.0324517Z 37420 INFO: checking PKG
+2025-10-16T01:43:22.0325048Z 37420 INFO: Building PKG because PKG-00.toc is non existent
+2025-10-16T01:43:22.0325701Z 37420 INFO: Building PKG (CArchive) CatalogoDePecas.pkg
+2025-10-16T01:43:27.1349425Z 42522 INFO: Building PKG (CArchive) CatalogoDePecas.pkg completed successfully.
+2025-10-16T01:43:27.1387084Z 42526 INFO: Bootloader D:\a\CATALOGOGERAL\CATALOGOGERAL\.venv\Lib\site-packages\PyInstaller\bootloader\Windows-64bit-intel\runw.exe
+2025-10-16T01:43:27.1388471Z 42526 INFO: checking EXE
+2025-10-16T01:43:27.1389044Z 42526 INFO: Building EXE because EXE-00.toc is non existent
+2025-10-16T01:43:27.1389801Z 42526 INFO: Building EXE from EXE-00.toc
+2025-10-16T01:43:27.1390695Z 42526 INFO: Copying bootloader EXE to D:\a\CATALOGOGERAL\CATALOGOGERAL\dist\CatalogoDePecas.exe
+2025-10-16T01:43:27.1414449Z 42530 INFO: Copying icon to EXE
+2025-10-16T01:43:27.1432510Z 42532 INFO: Copying 0 resources to EXE
+2025-10-16T01:43:27.1432932Z 42532 INFO: Embedding manifest in EXE
+2025-10-16T01:43:27.1450044Z 42532 INFO: Appending PKG archive to EXE
+2025-10-16T01:43:27.1548594Z 42542 INFO: Fixing EXE headers
+2025-10-16T01:43:27.2813195Z 42669 INFO: Building EXE from EXE-00.toc completed successfully.
+2025-10-16T01:43:27.2853147Z 42673 INFO: Build complete! The results are available in: D:\a\CATALOGOGERAL\CATALOGOGERAL\dist
+2025-10-16T01:43:27.3895275Z      PyInstaller concluiu com sucesso. O executavel esta em 'dist'.
+2025-10-16T01:43:27.3920372Z 
+2025-10-16T01:43:27.3924728Z [3/4] Criando o instalador com Inno Setup...
+2025-10-16T01:43:27.3931744Z [AVISO] Etapa do Inno Setup pulada. O executavel foi gerado em 'dist' mas o instalador nao sera criado.
+2025-10-16T01:43:27.3958170Z 
+2025-10-16T01:43:27.3961525Z [4/4] SUCESSO! Processo de build concluido.
+2025-10-16T01:43:27.3964927Z       O executavel foi gerado na pasta 'dist'. (Instalador Inno Setup foi pulado
+2025-10-16T01:43:27.3967996Z       O instalador foi gerado na pasta 'Output'.
+2025-10-16T01:43:27.3977494Z Press any key to continue . . . 
+2025-10-16T01:43:27.4162544Z ##[group]Run actions/upload-artifact@v4
+2025-10-16T01:43:27.4162852Z with:
+2025-10-16T01:43:27.4163038Z   name: CatalogoDePecas-exe
+2025-10-16T01:43:27.4163265Z   path: dist\CatalogoDePecas.exe
+2025-10-16T01:43:27.4163492Z   if-no-files-found: warn
+2025-10-16T01:43:27.4163689Z   compression-level: 6
+2025-10-16T01:43:27.4164630Z   overwrite: false
+2025-10-16T01:43:27.4164823Z   include-hidden-files: false
+2025-10-16T01:43:27.4165015Z env:
+2025-10-16T01:43:27.4165596Z   pythonLocation: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2025-10-16T01:43:27.4166025Z   PKG_CONFIG_PATH: C:\hostedtoolcache\windows\Python\3.12.10\x64/lib/pkgconfig
+2025-10-16T01:43:27.4166430Z   Python_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2025-10-16T01:43:27.4166785Z   Python2_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2025-10-16T01:43:27.4167142Z   Python3_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2025-10-16T01:43:27.4167420Z ##[endgroup]
+2025-10-16T01:43:27.7094156Z With the provided path, there will be 1 file uploaded
+2025-10-16T01:43:27.7100413Z Artifact name is valid!
+2025-10-16T01:43:27.7104359Z Root directory input is valid!
+2025-10-16T01:43:27.9030310Z Beginning upload of artifact content to blob storage
+2025-10-16T01:43:28.9576045Z Uploaded bytes 8388608
+2025-10-16T01:43:29.3311377Z Uploaded bytes 16777216
+2025-10-16T01:43:29.4148477Z Uploaded bytes 17435120
+2025-10-16T01:43:29.4649655Z Finished uploading artifact content to blob storage!
+2025-10-16T01:43:29.4653383Z SHA256 digest of uploaded artifact zip is db23201d416ed8bd23e256ecdba7b6330368b458a6b247d5d44e664d6489a659
+2025-10-16T01:43:29.4655998Z Finalizing artifact upload
+2025-10-16T01:43:29.5752677Z Artifact CatalogoDePecas-exe.zip successfully finalized. Artifact ID 4283548780
+2025-10-16T01:43:29.5754400Z Artifact CatalogoDePecas-exe has been successfully uploaded! Final size is 17435120 bytes. Artifact ID is 4283548780
+2025-10-16T01:43:29.5769629Z Artifact download URL: https://github.com/ricardofebronio19/CATALOGOGERAL/actions/runs/18547643147/artifacts/4283548780
+2025-10-16T01:43:29.6076116Z ##[group]Run # Chamamos o script PowerShell que cria a release e faz upload do asset.
+2025-10-16T01:43:29.6076772Z [36;1m# Chamamos o script PowerShell que cria a release e faz upload do asset.[0m
+2025-10-16T01:43:29.6077167Z [36;1m$tag = "v1.5-rc6"[0m
+2025-10-16T01:43:29.6077387Z [36;1m$releaseName = "v1.5-rc6"[0m
+2025-10-16T01:43:29.6077697Z [36;1m$body = "Automated release generated by GitHub Actions."[0m
+2025-10-16T01:43:29.6078022Z [36;1m$assetPath = 'dist\CatalogoDePecas.exe'[0m
+2025-10-16T01:43:29.6078309Z [36;1mif (-not (Test-Path $assetPath)) {[0m
+2025-10-16T01:43:29.6078604Z [36;1m  Write-Error "Asset not found: $assetPath"[0m
+2025-10-16T01:43:29.6078852Z [36;1m  exit 1[0m
+2025-10-16T01:43:29.6079026Z [36;1m}[0m
+2025-10-16T01:43:29.6079321Z [36;1m$scriptPath = Join-Path $env:GITHUB_WORKSPACE 'scripts\create_release.ps1'[0m
+2025-10-16T01:43:29.6079737Z [36;1mWrite-Host "Looking for script at: $scriptPath"[0m
+2025-10-16T01:43:29.6080072Z [36;1mif (-not (Test-Path $scriptPath)) {[0m
+2025-10-16T01:43:29.6080353Z [36;1m  Write-Error "Script not found: $scriptPath"[0m
+2025-10-16T01:43:29.6080693Z [36;1m  Write-Host "Repository root listing (first 200 entries):"[0m
+2025-10-16T01:43:29.6081448Z [36;1m  Get-ChildItem -Path $env:GITHUB_WORKSPACE -Recurse -Force -ErrorAction SilentlyContinue | Select-Object FullName,Length | Select-Object -First 200 | Format-Table -AutoSize[0m
+2025-10-16T01:43:29.6082101Z [36;1m  exit 1[0m
+2025-10-16T01:43:29.6082259Z [36;1m}[0m
+2025-10-16T01:43:29.6082600Z [36;1mWrite-Host "Creating release $tag and uploading asset $assetPath using script $scriptPath"[0m
+2025-10-16T01:43:29.6083293Z [36;1m& "$scriptPath" -TagName $tag -ReleaseName $releaseName -Body $body -AssetPath $assetPath -Repo "ricardofebronio19/CATALOGOGERAL"[0m
+2025-10-16T01:43:29.6145725Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2025-10-16T01:43:29.6146044Z env:
+2025-10-16T01:43:29.6146317Z   pythonLocation: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2025-10-16T01:43:29.6146745Z   PKG_CONFIG_PATH: C:\hostedtoolcache\windows\Python\3.12.10\x64/lib/pkgconfig
+2025-10-16T01:43:29.6147157Z   Python_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2025-10-16T01:43:29.6148859Z   Python2_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2025-10-16T01:43:29.6150206Z   Python3_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2025-10-16T01:43:29.6151348Z   GITHUB_TOKEN: ***
+2025-10-16T01:43:29.6151718Z ##[endgroup]
+2025-10-16T01:43:30.6603390Z Looking for script at: D:\a\CATALOGOGERAL\CATALOGOGERAL\scripts\create_release.ps1
+2025-10-16T01:43:31.5574572Z [31;1mWrite-Error: [31;1mScript not found: D:\a\CATALOGOGERAL\CATALOGOGERAL\scripts\create_release.ps1[0m
+2025-10-16T01:43:31.6113507Z ##[error]Process completed with exit code 1.
+2025-10-16T01:43:31.6330524Z Post job cleanup.
+2025-10-16T01:43:31.8802169Z [command]"C:\Program Files\Git\bin\git.exe" version
+2025-10-16T01:43:31.9077981Z git version 2.51.0.windows.2
+2025-10-16T01:43:31.9157291Z Temporarily overriding HOME='D:\a\_temp\80d60d36-69a5-48d8-b8c6-7377562aafd7' before making global git config changes
+2025-10-16T01:43:31.9158030Z Adding repository directory to the temporary git global config as a safe directory
+2025-10-16T01:43:31.9169460Z [command]"C:\Program Files\Git\bin\git.exe" config --global --add safe.directory D:\a\CATALOGOGERAL\CATALOGOGERAL
+2025-10-16T01:43:31.9498994Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+2025-10-16T01:43:31.9818145Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+2025-10-16T01:43:32.5495192Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-10-16T01:43:32.5775538Z http.https://github.com/.extraheader
+2025-10-16T01:43:32.5827661Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset-all http.https://github.com/.extraheader
+2025-10-16T01:43:32.6181579Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+2025-10-16T01:43:33.2189203Z Cleaning up orphan processes

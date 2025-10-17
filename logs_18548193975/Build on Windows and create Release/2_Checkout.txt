@@ -1,0 +1,73 @@
+﻿2025-10-16T02:16:43.8435991Z ##[group]Run actions/checkout@v4
+2025-10-16T02:16:43.8437366Z with:
+2025-10-16T02:16:43.8438085Z   repository: ricardofebronio19/CATALOGOGERAL
+2025-10-16T02:16:43.8439343Z   token: ***
+2025-10-16T02:16:43.8439954Z   ssh-strict: true
+2025-10-16T02:16:43.8440606Z   ssh-user: git
+2025-10-16T02:16:43.8441269Z   persist-credentials: true
+2025-10-16T02:16:43.8442013Z   clean: true
+2025-10-16T02:16:43.8442665Z   sparse-checkout-cone-mode: true
+2025-10-16T02:16:43.8443473Z   fetch-depth: 1
+2025-10-16T02:16:43.8444102Z   fetch-tags: false
+2025-10-16T02:16:43.8444760Z   show-progress: true
+2025-10-16T02:16:43.8445429Z   lfs: false
+2025-10-16T02:16:43.8446150Z   submodules: false
+2025-10-16T02:16:43.8446946Z   set-safe-directory: true
+2025-10-16T02:16:43.8447933Z ##[endgroup]
+2025-10-16T02:16:44.0570359Z Syncing repository: ricardofebronio19/CATALOGOGERAL
+2025-10-16T02:16:44.0572805Z ##[group]Getting Git version info
+2025-10-16T02:16:44.0573841Z Working directory is 'D:\a\CATALOGOGERAL\CATALOGOGERAL'
+2025-10-16T02:16:44.1510364Z [command]"C:\Program Files\Git\bin\git.exe" version
+2025-10-16T02:16:45.0038455Z git version 2.51.0.windows.2
+2025-10-16T02:16:45.0093902Z ##[endgroup]
+2025-10-16T02:16:45.0114413Z Temporarily overriding HOME='D:\a\_temp\6a5efe96-2959-4286-bdb5-438c38c101bf' before making global git config changes
+2025-10-16T02:16:45.0115669Z Adding repository directory to the temporary git global config as a safe directory
+2025-10-16T02:16:45.0126455Z [command]"C:\Program Files\Git\bin\git.exe" config --global --add safe.directory D:\a\CATALOGOGERAL\CATALOGOGERAL
+2025-10-16T02:16:45.1122808Z Deleting the contents of 'D:\a\CATALOGOGERAL\CATALOGOGERAL'
+2025-10-16T02:16:45.1129475Z ##[group]Initializing the repository
+2025-10-16T02:16:45.1139367Z [command]"C:\Program Files\Git\bin\git.exe" init D:\a\CATALOGOGERAL\CATALOGOGERAL
+2025-10-16T02:16:45.3037827Z Initialized empty Git repository in D:/a/CATALOGOGERAL/CATALOGOGERAL/.git/
+2025-10-16T02:16:45.3089634Z [command]"C:\Program Files\Git\bin\git.exe" remote add origin https://github.com/ricardofebronio19/CATALOGOGERAL
+2025-10-16T02:16:45.4101690Z ##[endgroup]
+2025-10-16T02:16:45.4102343Z ##[group]Disabling automatic garbage collection
+2025-10-16T02:16:45.4111549Z [command]"C:\Program Files\Git\bin\git.exe" config --local gc.auto 0
+2025-10-16T02:16:45.4412823Z ##[endgroup]
+2025-10-16T02:16:45.4413566Z ##[group]Setting up auth
+2025-10-16T02:16:45.4426475Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+2025-10-16T02:16:45.4722174Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+2025-10-16T02:16:48.6361868Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-10-16T02:16:48.6676943Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+2025-10-16T02:16:49.1885033Z [command]"C:\Program Files\Git\bin\git.exe" config --local http.https://github.com/.extraheader "AUTHORIZATION: basic ***"
+2025-10-16T02:16:49.2188514Z ##[endgroup]
+2025-10-16T02:16:49.2189001Z ##[group]Fetching the repository
+2025-10-16T02:16:49.2203063Z [command]"C:\Program Files\Git\bin\git.exe" -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +0b35908786a1e39cf8ccd8bca54106d9c97bad8c:refs/tags/v1.5-rc8
+2025-10-16T02:16:51.4307256Z From https://github.com/ricardofebronio19/CATALOGOGERAL
+2025-10-16T02:16:51.4308151Z  * [new ref]         0b35908786a1e39cf8ccd8bca54106d9c97bad8c -> v1.5-rc8
+2025-10-16T02:16:51.4848066Z ##[endgroup]
+2025-10-16T02:16:51.4848738Z ##[group]Determining the checkout info
+2025-10-16T02:16:51.4852082Z ##[endgroup]
+2025-10-16T02:16:51.4867465Z [command]"C:\Program Files\Git\bin\git.exe" sparse-checkout disable
+2025-10-16T02:16:51.5618030Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset-all extensions.worktreeConfig
+2025-10-16T02:16:51.5910556Z ##[group]Checking out the ref
+2025-10-16T02:16:51.5920793Z [command]"C:\Program Files\Git\bin\git.exe" checkout --progress --force refs/tags/v1.5-rc8
+2025-10-16T02:16:51.7281592Z Note: switching to 'refs/tags/v1.5-rc8'.
+2025-10-16T02:16:51.7282042Z 
+2025-10-16T02:16:51.7282370Z You are in 'detached HEAD' state. You can look around, make experimental
+2025-10-16T02:16:51.7284002Z changes and commit them, and you can discard any commits you make in this
+2025-10-16T02:16:51.7284855Z state without impacting any branches by switching back to a branch.
+2025-10-16T02:16:51.7285331Z 
+2025-10-16T02:16:51.7285603Z If you want to create a new branch to retain commits you create, you may
+2025-10-16T02:16:51.7286228Z do so (now or later) by using -c with the switch command. Example:
+2025-10-16T02:16:51.7286679Z 
+2025-10-16T02:16:51.7286852Z   git switch -c <new-branch-name>
+2025-10-16T02:16:51.7287110Z 
+2025-10-16T02:16:51.7287252Z Or undo this operation with:
+2025-10-16T02:16:51.7287481Z 
+2025-10-16T02:16:51.7287591Z   git switch -
+2025-10-16T02:16:51.7287789Z 
+2025-10-16T02:16:51.7288100Z Turn off this advice by setting config variable advice.detachedHead to false
+2025-10-16T02:16:51.7288573Z 
+2025-10-16T02:16:51.7288919Z HEAD is now at 0b35908 CI: robust upload_url handling and diagnostics for release creation
+2025-10-16T02:16:51.7319263Z ##[endgroup]
+2025-10-16T02:16:51.7885060Z [command]"C:\Program Files\Git\bin\git.exe" log -1 --format=%H
+2025-10-16T02:16:51.8161545Z 0b35908786a1e39cf8ccd8bca54106d9c97bad8c

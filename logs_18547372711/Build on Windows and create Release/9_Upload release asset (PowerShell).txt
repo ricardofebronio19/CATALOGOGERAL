@@ -1,0 +1,30 @@
+﻿2025-10-16T01:25:48.2588289Z ##[group]Run # O output upload_url pode vir no formato '.../assets{?name,label}'. Removemos o template antes de usar.
+2025-10-16T01:25:48.2589254Z [36;1m# O output upload_url pode vir no formato '.../assets{?name,label}'. Removemos o template antes de usar.[0m
+2025-10-16T01:25:48.2589988Z [36;1m$baseUploadUrl = "https://uploads.github.com/repos/ricardofebronio19/CATALOGOGERAL/releases/254862690/assets{?name,label}"[0m
+2025-10-16T01:25:48.2590627Z [36;1m$baseUploadUrl = $baseUploadUrl -replace '\{\?name,label\}', ''[0m
+2025-10-16T01:25:48.2590990Z [36;1m$assetPath = 'dist\CatalogoDePecas.exe'[0m
+2025-10-16T01:25:48.2591277Z [36;1m$assetName = Split-Path $assetPath -Leaf[0m
+2025-10-16T01:25:48.2591583Z [36;1m$uploadUrl = "$baseUploadUrl?name=$assetName"[0m
+2025-10-16T01:25:48.2591873Z [36;1mWrite-Host "Uploading asset to $uploadUrl"[0m
+2025-10-16T01:25:48.2592156Z [36;1mif (-not (Test-Path $assetPath)) {[0m
+2025-10-16T01:25:48.2592429Z [36;1m  Write-Error "Asset not found: $assetPath"[0m
+2025-10-16T01:25:48.2592722Z [36;1m  exit 1[0m
+2025-10-16T01:25:48.2592883Z [36;1m}[0m
+2025-10-16T01:25:48.2593177Z [36;1m# Usamos Invoke-RestMethod para obter resposta JSON do GitHub em caso de erro.[0m
+2025-10-16T01:25:48.2594035Z [36;1mInvoke-RestMethod -Uri $uploadUrl -Method Post -Headers @{ Authorization = "token $env:GITHUB_TOKEN"; 'Accept' = 'application/vnd.github+json' } -InFile $assetPath -ContentType 'application/octet-stream'[0m
+2025-10-16T01:25:48.2654905Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2025-10-16T01:25:48.2655222Z env:
+2025-10-16T01:25:48.2655473Z   pythonLocation: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2025-10-16T01:25:48.2655879Z   PKG_CONFIG_PATH: C:\hostedtoolcache\windows\Python\3.12.10\x64/lib/pkgconfig
+2025-10-16T01:25:48.2656281Z   Python_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2025-10-16T01:25:48.2656642Z   Python2_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2025-10-16T01:25:48.2656999Z   Python3_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2025-10-16T01:25:48.2657710Z   GITHUB_TOKEN: ***
+2025-10-16T01:25:48.2657897Z ##[endgroup]
+2025-10-16T01:25:49.0044418Z Uploading asset to =CatalogoDePecas.exe
+2025-10-16T01:25:49.6767379Z [31;1mInvoke-RestMethod: [0mD:\a\_temp\fe077a74-6e4b-4d80-ad79-c7c83a06261e.ps1:14[0m
+2025-10-16T01:25:49.6768804Z [31;1m[0m[36;1mLine |[0m
+2025-10-16T01:25:49.6769631Z [31;1m[0m[36;1m[36;1m  14 | [0m [36;1mInvoke-RestMethod -Uri $uploadUrl -Method Post -Headers @{ Authorizat[0m …[0m
+2025-10-16T01:25:49.6770419Z [31;1m[0m[36;1m[36;1m[0m[36;1m[0m[36;1m     | [31;1m ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+2025-10-16T01:25:49.6771120Z [31;1m[0m[36;1m[36;1m[0m[36;1m[0m[36;1m[31;1m[31;1m[36;1m     | [31;1mInvalid URI: The hostname could not be parsed.[0m
+2025-10-16T01:25:49.7294763Z ##[error]Process completed with exit code 1.

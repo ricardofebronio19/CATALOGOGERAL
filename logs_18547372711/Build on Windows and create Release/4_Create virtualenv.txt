@@ -1,0 +1,10 @@
+﻿2025-10-16T01:24:43.8443230Z ##[group]Run python -m venv .venv
+2025-10-16T01:24:43.8443584Z [36;1mpython -m venv .venv[0m
+2025-10-16T01:24:43.8570126Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2025-10-16T01:24:43.8570450Z env:
+2025-10-16T01:24:43.8570679Z   pythonLocation: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2025-10-16T01:24:43.8571103Z   PKG_CONFIG_PATH: C:\hostedtoolcache\windows\Python\3.12.10\x64/lib/pkgconfig
+2025-10-16T01:24:43.8571499Z   Python_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2025-10-16T01:24:43.8571883Z   Python2_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2025-10-16T01:24:43.8572717Z   Python3_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2025-10-16T01:24:43.8573021Z ##[endgroup]

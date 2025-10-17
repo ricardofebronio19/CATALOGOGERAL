@@ -4,150 +4,109 @@
 
 {% block head %}
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .sortable-header a {
+            text-decoration: none;
+            color: inherit;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .sortable-header .sort-arrow {
+            opacity: 0.3;
+            font-size: 1.2em;
+        }
+        .sortable-header.active .sort-arrow {
+            opacity: 1;
+            color: #007bff;
+        }
+        .product-image-thumbnail {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        .results-summary {
+            margin-bottom: 1rem;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+    </style>
 {% endblock %}
 
 {% block content %}
-<header>
-    <h1>Resultados da Busca</h1>
-    <p>Exibindo {{ pagination.total }} produto(s) para: <strong>"{{ termo }}"</strong></p>
-</header>
+    <header>
+        <h1>Resultados da Busca</h1>
+    </header>
 
-<div class="search-results-container">
-    <!-- Controles de Ordenação -->
-    <div class="sort-controls">
-        <span>Ordenar por:</span>
-        {# O filtro 'merge' combina os argumentos da busca atual com o novo 'sort_by' #}
-        <a href="{{ url_for('buscar', **(search_args|merge({'sort_by': 'codigo'}))) }}" 
-           class="button sort-button {% if sort_by == 'codigo' %}active{% endif %}">
-           Código
-        </a>
-        <a href="{{ url_for('buscar', **(search_args|merge({'sort_by': 'nome'}))) }}" 
-           class="button sort-button {% if sort_by == 'nome' %}active{% endif %}">
-           Nome
-        </a>
+    <div class="results-summary">
+        <p>
+            Exibindo {{ pagination.items|length }} de <strong>{{ pagination.total }}</strong> resultados encontrados.
+            {% if termo %}
+                Busca por: <mark>{{ termo }}</mark>
+            {% endif %}
+        </p>
     </div>
 
     {% if pagination.items %}
-        <table class="results-table">
+        <table class="application-table">
             <thead>
                 <tr>
-                    <th>Código</th>
-                    <th>Nome</th>
-                    <th>Veículo</th>
-                    <th>Ano</th>
+                    <th>Imagem</th>
+                    {# Macro para criar cabeçalhos ordenáveis #}
+                    {% macro sortable_header(column_key, display_name) %}
+                        {% set next_dir = 'desc' if sort_by == column_key and sort_dir == 'asc' else 'asc' %}
+                        <th class="sortable-header {% if sort_by == column_key %}active{% endif %}">
+                            <a href="{{ url_for('main.buscar', **(search_args|merge({'sort_by': column_key, 'sort_dir': next_dir}))) }}">
+                                {{ display_name }}
+                                <span class="sort-arrow">
+                                    {% if sort_by == column_key %}
+                                        {{ '▲' if sort_dir == 'asc' else '▼' }}
+                                    {% else %}
+                                        &#x2195; {# Seta dupla para indicar que é ordenável #}
+                                    {% endif %}
+                                </span>
+                            </a>
+                        </th>
+                    {% endmacro %}
+
+                    {{ sortable_header('codigo', 'Código') }}
+                    {{ sortable_header('nome', 'Nome') }}
+                    {{ sortable_header('fornecedor', 'Fornecedor') }}
+                    <th>Aplicações</th>
                 </tr>
             </thead>
             <tbody>
-                {% for produto in pagination.items %} {# Adiciona a classe 'product-row' e o data-attribute com a URL da imagem #}
-                <tr class="product-row" {% if produto.imagens %}data-image-url="{{ url_for('uploaded_file', filename=produto.imagens[0].filename) }}"{% endif %}>
+                {% for produto in pagination.items %}
+                <tr>
                     <td>
-                        <a href="{{ url_for('detalhe_peca', id=produto.id) }}" style="font-weight: bold;">
-                            {{ produto.codigo|highlight(termo)|safe }}
+                        <a href="{{ url_for('main.detalhe_peca', id=produto.id) }}">
+                            <img src="{% if produto.imagens %}{{ url_for('uploaded_file', filename=produto.imagens[0].filename) }}{% else %}https://via.placeholder.com/60x60/eee/aaa?text=N/A{% endif %}" alt="Imagem de {{ produto.nome }}" class="product-image-thumbnail">
                         </a>
                     </td>
-                    <td>{{ produto.nome|highlight(termo)|safe }}</td>
-                    {# Acessa a primeira aplicação de forma segura #}
-                    {% set primeira_app = produto.aplicacoes[0] if produto.aplicacoes else none %}
-                    <td>{{ (primeira_app.veiculo if primeira_app else '')|highlight(termo)|safe }}</td>
-                    <td>{{ (primeira_app.ano if primeira_app else '')|highlight(termo)|safe }}</td>
+                    <td>{{ produto.codigo|highlight(termo) }}</td>
+                    <td>
+                        <a href="{{ url_for('main.detalhe_peca', id=produto.id) }}" style="text-decoration: none; color: #0056b3; font-weight: bold;">
+                            {{ produto.nome|highlight(termo) }}
+                        </a>
+                    </td>
+                    <td>{{ produto.fornecedor|highlight(termo) }}</td>
+                    <td>
+                        {% for aplicacao in produto.aplicacoes[:2] %}
+                            <span class="badge badge-manual">{{ aplicacao.montadora or '' }} {{ aplicacao.veiculo or '' }} {{ aplicacao.ano or '' }}</span><br>
+                        {% endfor %}
+                        {% if produto.aplicacoes|length > 2 %}
+                            <span style="font-size: 0.8em; color: #666;">... e mais {{ produto.aplicacoes|length - 2 }}</span>
+                        {% endif %}
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
-
-        <!-- Navegação da Paginação -->
-        <div class="pagination">
-            {# Link para a primeira página #}
-            {% if pagination.has_prev %}
-                <a href="{{ url_for('buscar', page=1, **search_args) }}">&laquo; Primeira</a>
-                <a href="{{ url_for('buscar', page=pagination.prev_num, **search_args) }}">&lsaquo; Anterior</a>
-            {% endif %}
-
-            {# Números das páginas #}
-            {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
-                {% if page_num %}
-                    {% if pagination.page == page_num %}
-                        <a class="active">{{ page_num }}</a>
-                    {% else %}
-                        <a href="{{ url_for('buscar', page=page_num, **search_args) }}">{{ page_num }}</a>
-                    {% endif %}
-                {% else %}
-                    <span class="ellipsis">…</span>
-                {% endif %}
-            {% endfor %}
-
-            {# Link para a próxima página #}
-            {% if pagination.has_next %}
-                <a href="{{ url_for('buscar', page=pagination.next_num, **search_args) }}">Próxima &rsaquo;</a>
-                <a href="{{ url_for('buscar', page=pagination.pages, **search_args) }}">Última &raquo;</a>
-            {% endif %}
-        </div>
-
+    {{ render_pagination(pagination, endpoint or 'main.buscar', search_args) }}
     {% else %}
-        <div class="no-results">
-            <p>Nenhum produto encontrado com os critérios da sua busca.</p>
-            <a href="{{ url_for('index') }}" class="button">Voltar para a busca</a>
-        </div>
+        <p style="text-align: center; padding: 20px;">Nenhum produto encontrado para os critérios de busca.</p>
     {% endif %}
-</div>
-
-<!-- Container para a pré-visualização da imagem (inicialmente oculto) -->
-<div id="image-preview-container">
-    <img id="image-preview" src="" alt="Pré-visualização">
-</div>
-
-<style>
-    .sort-controls { margin-bottom: 20px; }
-    .sort-button.active { background-color: var(--cor-principal); color: white; font-weight: bold; }
-
-    /* Estilos para a pré-visualização da imagem */
-    #image-preview-container {
-        display: none; /* Começa oculto */
-        position: absolute; /* Posição flutuante */
-        padding: 5px;
-        background-color: white;
-        border: 2px solid var(--cor-principal, #ff6600);
-        border-radius: 5px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-        z-index: 100; /* Fica na frente de outros elementos */
-        pointer-events: none; /* Impede que o mouse interaja com a imagem */
-    }
-    #image-preview {
-        width: 200px;
-        height: 200px;
-        object-fit: cover;
-    }
-</style>
-
-{% endblock %}
-
-{% block scripts %}
-    {{ super() }}
-    <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const previewContainer = document.getElementById('image-preview-container');
-        const previewImage = document.getElementById('image-preview');
-        const productRows = document.querySelectorAll('.product-row');
-
-        productRows.forEach(row => {
-            const imageUrl = row.dataset.imageUrl;
-            if (!imageUrl) return; // Pula linhas sem imagem
-
-            row.addEventListener('mousemove', (e) => {
-                previewContainer.style.display = 'block';
-                // Posiciona o container um pouco à direita e abaixo do cursor
-                previewContainer.style.left = (e.pageX + 15) + 'px';
-                previewContainer.style.top = (e.pageY + 15) + 'px';
-            });
-
-            row.addEventListener('mouseenter', () => {
-                previewImage.src = imageUrl;
-            });
-
-            row.addEventListener('mouseleave', () => {
-                previewContainer.style.display = 'none';
-            });
-        });
-    });
-    </script>
 {% endblock %}

@@ -11,7 +11,7 @@
     <!-- Seção de Aparência -->
     <div class="config-section">
         <h2>Aparência</h2>
-        <form action="{{ url_for('configuracoes') }}" method="POST" enctype="multipart/form-data" class="search-section" style="max-width: 600px;">
+        <form action="{{ url_for('admin.configuracoes') }}" method="POST" enctype="multipart/form-data" class="search-section" style="max-width: 600px;">
             <div class="search-field">
                 <label for="cor_principal">Cor Principal:</label>
                 <input type="color" id="cor_principal" name="cor_principal" value="{{ config.cor_principal }}">
@@ -30,7 +30,7 @@
     <!-- Seção de Importação -->
     <div class="config-section">
         <h2>Importar Dados</h2>
-        <form action="{{ url_for('importar_csv_route') }}" method="POST" enctype="multipart/form-data" class="search-section" style="max-width: 600px;">
+    <form action="{{ url_for('admin.tarefa_importar_csv') }}" method="POST" enctype="multipart/form-data">
             <div class="search-field">
                 <label for="csv_file">Importar Produtos de CSV:</label>
                 <input type="file" id="csv_file" name="csv_file" accept=".csv" required>
@@ -45,9 +45,9 @@
         <div style="display: flex; gap: 20px; align-items: center;">
             <div>
                 <p>Crie uma cópia de segurança de todo o catálogo, incluindo produtos, imagens e configurações.</p>
-                <a href="{{ url_for('backup') }}" class="button">Fazer Backup Agora</a>
+                <a href="{{ url_for('admin.backup') }}" class="button">Fazer Backup Agora</a>
             </div>
-            <form action="{{ url_for('restaurar') }}" method="POST" enctype="multipart/form-data" onsubmit="return confirm('ATENÇÃO: A restauração substituirá TODOS os dados atuais. Esta ação não pode ser desfeita. Deseja continuar?');">
+            <form action="{{ url_for('admin.restaurar') }}" method="POST" enctype="multipart/form-data" onsubmit="return confirm('ATENÇÃO: A restauração substituirá TODOS os dados atuais. Esta ação não pode ser desfeita. Deseja continuar?');">
                 <p>Restaure o catálogo a partir de um arquivo de backup (.zip).</p>
                 <input type="file" name="backup_file" accept=".zip" required>
                 <button type="submit" class="button" style="background-color: #dc3545;">Restaurar Backup</button>

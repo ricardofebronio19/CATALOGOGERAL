@@ -30,17 +30,18 @@
 {% endblock %}
 
 {% block content %}
-        {# Passa as URLs necessárias para o JavaScript através de atributos de dados no body #}
-        <body data-product-id="" 
-              data-get-montadora-url="{{ url_for('get_montadora_for_veiculo') }}"
-              data-similar-search-url="{{ url_for('buscar_pecas_similares') }}"
-        >
+<div id="page-root" 
+    data-product-id="" 
+    data-get-montadora-url="{{ url_for('main.get_montadora_for_veiculo') }}"
+    data-similar-search-url="{{ url_for('main.buscar_pecas_similares') }}"
+    data-check-codigo-url="{{ url_for('main.check_codigo') }}"
+>
 
-        <header>
-            <h1>Adicionar Nova Peça</h1>
-        </header>
+    <header>
+        <h1>Adicionar Nova Peça</h1>
+    </header>
 
-        <form action="{{ url_for('adicionar_peca') }}" method="POST" enctype="multipart/form-data" class="search-section" novalidate>
+    <form action="{{ url_for('admin.adicionar_peca') }}" method="POST" enctype="multipart/form-data" class="search-section" novalidate>
 
             <div class="search-field">
                 <label for="nome">Nome da Peça</label>
@@ -94,6 +95,7 @@
                 <label for="similar-search">Buscar Códigos Similares:</label>
                 <div class="similar-search-container">
                     <input type="text" id="similar-search" placeholder="Digite código ou nome para buscar..." autocomplete="off">
+                    <div id="similar-search-loader" class="loader"></div>
                     <div id="similar-results" class="similar-results"></div>
                 </div>
                 <div id="selected-similar-list" class="selected-similar-list"></div>
@@ -123,8 +125,9 @@
             </div>
             
             <input type="submit" value="Adicionar Peça">
-            <a href="{{ url_for('index') }}" class="button" style="background-color: #555; color: white; padding: 12px 20px; text-decoration: none; border-radius: 4px;">Cancelar</a>
+            <a href="{{ url_for('main.index') }}" class="button" style="background-color: #555; color: white; padding: 12px 20px; text-decoration: none; border-radius: 4px;">Cancelar</a>
         </form>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -142,7 +145,6 @@
             novoBloco.dataset.index = index;
             novoBloco.innerHTML = `
                 <h4 style="width: 100%; margin-top: 0;">Nova Aplicação ${index + 1}</h4>
-                <input type="hidden" name="aplicacoes-${index}-id" id="aplicacoes-${index}-id">
                 <div class="search-field"><label for="aplicacoes-${index}-veiculo">Veículo:</label><input type="text" id="aplicacoes-${index}-veiculo" name="aplicacoes-${index}-veiculo"></div>
                 <div class="search-field"><label for="aplicacoes-${index}-ano">Ano:</label><input type="text" id="aplicacoes-${index}-ano" name="aplicacoes-${index}-ano"></div>
                 <div class="search-field"><label for="aplicacoes-${index}-motor">Motor:</label><input type="text" id="aplicacoes-${index}-motor" name="aplicacoes-${index}-motor"></div>
@@ -168,10 +170,15 @@
         codigoInput.addEventListener('input', function() {
             clearTimeout(debounceTimer);
             const codigo = this.value.trim();
-            if (codigo.length < 3) { validationMessage.textContent = ''; return; }
+            if (codigo.length < 3) { 
+                validationMessage.textContent = ''; 
+                validationMessage.className = 'validation-message';
+                return; 
+            }
 
             debounceTimer = setTimeout(() => {
-                fetch(`{{ url_for('check_codigo') }}?codigo=${encodeURIComponent(codigo)}`)
+                const checkUrl = document.getElementById('page-root').dataset.checkCodigoUrl;
+                fetch(`${checkUrl}?codigo=${encodeURIComponent(codigo)}`)
                     .then(response => response.json())
                     .then(data => {
                         if (data.exists) {
@@ -184,7 +191,32 @@
                     });
             }, 500);
         });
+
+        // --- Lógica para autocompletar montadora ---
+        function handleVeiculoBlur(event) {
+            const veiculoInput = event.target;
+            // Garante que o evento só seja acionado para inputs de veículo
+            if (!veiculoInput.name.endsWith('-veiculo')) return;
+
+            const veiculoNome = veiculoInput.value.trim();
+            if (veiculoNome.length < 3) return;
+
+            const aplicacaoBloco = veiculoInput.closest('.aplicacao-bloco');
+            const montadoraInput = aplicacaoBloco.querySelector('input[name$="-montadora"]');
+            const getMontadoraUrl = document.getElementById('page-root').dataset.getMontadoraUrl;
+
+            // Só preenche se o campo montadora estiver vazio
+            if (montadoraInput && !montadoraInput.value && getMontadoraUrl) {
+                fetch(`${getMontadoraUrl}?veiculo=${encodeURIComponent(veiculoNome)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.montadora) { montadoraInput.value = data.montadora; }
+                    });
+            }
+        }
+        document.getElementById('aplicacoes-container').addEventListener('blur', handleVeiculoBlur, true);
     </script>
     {# Inclui os scripts de editar_peca.html que são reutilizáveis #}
     <script src="{{ url_for('static', filename='js/form_helpers.js') }}"></script>
+</div>
 {% endblock %}
