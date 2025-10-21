@@ -728,6 +728,32 @@ mark {
     gap: 20px; /* Espaço entre a busca e os botões */
 }
 
+/* Estilos específicos para o formulário de busca na barra superior */
+.search-form {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+.search-form input[type="search"] {
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    min-width: 260px;
+    max-width: 420px;
+}
+.search-form button {
+    background-color: var(--cor-principal, #ff6600);
+    color: #fff;
+    padding: 9px 14px;
+    border: none;
+    border-radius: 4px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.search-form button:hover {
+    filter: brightness(90%);
+}
+
 .veiculo-link {
     font-weight: normal !important; /* Garante que o texto não seja negrito */
     color: #495057 !important; /* Um cinza mais suave para diferenciar da montadora */
