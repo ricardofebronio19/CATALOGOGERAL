@@ -144,6 +144,13 @@ def reset_database():
 
 def main():
     """Ponto de entrada principal para a interface de linha de comando."""
+    # Compatibilidade: aceitar ser chamado com 'run.py' como primeiro argumento
+    # (ex.: quando usuários chamam o executável passando o nome do script por engano)
+    if len(sys.argv) > 1:
+        first = os.path.basename(sys.argv[1])
+        # Normaliza 'run.py' para o subcomando 'run'
+        if first.lower() == 'run.py':
+            sys.argv[1] = 'run'
     parser = argparse.ArgumentParser(description="Servidor e gerenciador para a aplicação Catálogo de Peças.")
     subparsers = parser.add_subparsers(dest='command', help='Comandos disponíveis')
 
