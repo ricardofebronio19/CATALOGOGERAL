@@ -8,7 +8,7 @@ import sys
 import threading
 import tempfile
 
-from app import create_app, inicializar_banco, APP_DATA_PATH, check_for_updates
+from app import create_app, inicializar_banco, APP_DATA_PATH, check_for_updates, schedule_periodic_update_check
 # Cria a instância da aplicação
 app = create_app()
 
@@ -117,8 +117,8 @@ def iniciar_servidor(host, port, abrir_navegador):
     print("Garantindo que o banco de dados esteja inicializado...")
     inicializar_banco(app)
 
-    # Inicia a verificação de atualizações em uma thread separada após o início do servidor
-    threading.Timer(5.0, check_for_updates, args=[app]).start()
+    # Inicia a verificação de atualizações e agenda verificações periódicas
+    threading.Timer(5.0, schedule_periodic_update_check, args=[app]).start()
 
     url = f"http://{host}:{port}"
     print("\nServidor iniciado. Pronto para receber conexões.")

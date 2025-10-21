@@ -12,13 +12,12 @@ setlocal
 
 :: --- Configurações do Projeto ---
 set APP_NAME=CatalogoDePecas
-:: Determina a versão do app
-set APP_VERSION=%APP_VERSION%
+:: Determina a versão do app (não redefine se já existe)
 if "%APP_VERSION%"=="" (
     for /f "usebackq delims=" %%i in (`git describe --tags --abbrev^=0 2^>nul`) do set APP_VERSION=%%i
 )
 if "%APP_VERSION%"=="" (
-    set APP_VERSION=1.5
+    set APP_VERSION=1.7.0
 )
 set ENTRY_SCRIPT=run.py
 set ICON_FILE=static\favicon.ico

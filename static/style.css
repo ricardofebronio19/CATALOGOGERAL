@@ -317,6 +317,75 @@ button:hover {
     color: #555;
 }
 
+/* Estilo para cabeçalho da montadora/fabricante */
+.application-table .fabricante-header {
+    background: linear-gradient(135deg, var(--cor-principal, #ff6600), #e55a00);
+    color: white;
+    font-weight: bold;
+    position: relative;
+}
+
+.application-table .fabricante-header td {
+    border-bottom: 2px solid #d4470a;
+    padding: 12px 15px;
+    font-size: 1.05em;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+
+.application-table .fabricante-header:before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background-color: #d4470a;
+}
+
+/* Alternância de cores para linhas de aplicações */
+.application-table .application-row:nth-child(even) {
+    background-color: #f8f9fa; /* Cinza muito claro */
+}
+
+.application-table .application-row:nth-child(odd) {
+    background-color: #ffffff; /* Branco */
+}
+
+/* Efeito hover nas linhas de aplicação */
+.application-table .application-row:hover {
+    background-color: #e3f2fd !important; /* Azul claro ao passar o mouse */
+    transform: translateX(2px);
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Estilo para linha ativa (filtrada) */
+.application-table .application-row.active-filter {
+    background-color: #fff3cd !important; /* Amarelo claro para destacar */
+    font-weight: bold;
+    border-left: 4px solid #ffc107;
+}
+
+/* Melhoria visual geral da tabela */
+.application-table tbody tr {
+    transition: all 0.2s ease;
+}
+
+.application-table tbody tr:hover td {
+    color: #333;
+}
+
+/* Estilos específicos para diferentes tipos de linhas */
+.application-table .fabricante-header:hover {
+    background: linear-gradient(135deg, #e55a00, var(--cor-principal, #ff6600));
+    transform: none; /* Remove o efeito de translação para cabeçalhos */
+}
+
+/* Separação visual entre grupos de montadoras */
+.application-table .fabricante-header + .application-row {
+    border-top: 1px solid #dee2e6;
+}
+
 .application-table tbody tr:nth-child(even) {
     background-color: #fcfcfc;
 }
@@ -414,6 +483,21 @@ button:hover {
         max-width: 100%;
         min-width: 0;
     }
+    
+    /* Responsividade específica para tabela de aplicações */
+    .application-table {
+        font-size: 0.8em;
+    }
+    
+    .application-table th, 
+    .application-table td {
+        padding: 8px 10px;
+    }
+    
+    .application-table .fabricante-header td {
+        padding: 10px 12px;
+        font-size: 1em;
+    }
 }
 
 /* --- Layout da Página Inicial com Sidebar --- */
@@ -476,6 +560,15 @@ button:hover {
     color: #333; /* Cor mais escura para o texto */
     font-weight: 500; /* Peso da fonte */
     font-size: 1.05em;
+}
+.montadora-header a {
+    display: flex;
+    align-items: center;
+    gap: 10px; /* Espaço entre o logo e o texto */
+}
+.montadora-logo {
+    height: 20px; /* Altura fixa para os logos */
+    width: auto;  /* Largura automática para manter a proporção */
 }
 
 .toggle-veiculos {
@@ -667,4 +760,119 @@ mark {
 .pagination-item.ellipsis {
     border: none;
     background: none;
+}
+
+/* --- Estilos para Banner de Atualização --- */
+.update-banner {
+    background: linear-gradient(135deg, #4CAF50, #45a049);
+    color: white;
+    padding: 15px 20px;
+    margin: 10px 0;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    animation: slideDown 0.5s ease-out;
+}
+
+.update-content {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.update-icon {
+    font-size: 2em;
+    animation: rotate 2s linear infinite;
+}
+
+.update-info {
+    flex-grow: 1;
+}
+
+.update-info strong {
+    display: block;
+    font-size: 1.1em;
+    margin-bottom: 5px;
+}
+
+.update-info p {
+    margin: 5px 0;
+    opacity: 0.9;
+}
+
+.update-info small {
+    opacity: 0.8;
+    font-size: 0.9em;
+}
+
+.update-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.btn-update {
+    background-color: #fff;
+    color: #4CAF50;
+    border: 2px solid #fff;
+    padding: 10px 20px;
+    border-radius: 5px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-update:hover {
+    background-color: transparent;
+    color: #fff;
+}
+
+.btn-dismiss {
+    background: none;
+    border: 2px solid rgba(255,255,255,0.5);
+    color: #fff;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1.2em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.btn-dismiss:hover {
+    background-color: rgba(255,255,255,0.2);
+    border-color: #fff;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Responsividade para o banner de atualização */
+@media (max-width: 768px) {
+    .update-content {
+        flex-direction: column;
+        text-align: center;
+        gap: 10px;
+    }
+    
+    .update-actions {
+        justify-content: center;
+    }
 }

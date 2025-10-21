@@ -7,6 +7,7 @@ from flask import Flask, send_from_directory, request
 from flask_sqlalchemy import SQLAlchemy
 from markupsafe import Markup
 from flask_login import LoginManager, current_user
+from packaging import version as pkg_version
 import re
 from typing import Optional
 
@@ -212,6 +213,18 @@ def register_jinja_helpers(app):
         """Injeta variáveis globais em todos os templates."""
         config = carregar_config_aparencia()
         update_info = app.config.get('UPDATE_INFO', None)
+        
+        # Se não há info na memória, tenta carregar do arquivo
+        if not update_info:
+            update_info_file = os.path.join(APP_DATA_PATH, 'update_info.json')
+            if os.path.exists(update_info_file):
+                try:
+                    with open(update_info_file, 'r') as f:
+                        update_info = json.load(f)
+                        app.config['UPDATE_INFO'] = update_info
+                except (json.JSONDecodeError, IOError):
+                    pass
+        
         is_admin = current_user.is_authenticated and current_user.is_admin
         # Passa os argumentos da requisição para todos os templates.
         # Isso simplifica a criação de links que mantêm o estado da busca.
@@ -230,18 +243,39 @@ def check_for_updates(app):
     with app.app_context():
         print("Verificando atualizações...")
         try:
-            response = requests.get(UPDATE_CONFIG_URL, timeout=10)
+            response = requests.get(UPDATE_CONFIG_URL, timeout=15)
             response.raise_for_status()
             update_data = response.json()
-            latest_version = update_data.get("version")
+            latest_version = update_data.get("latest_version", update_data.get("version"))
 
-            if latest_version and latest_version > VERSION:
+            # Usa a biblioteca packaging para comparação de versão mais robusta
+            if latest_version and pkg_version.parse(latest_version) > pkg_version.parse(VERSION):
                 print(f"Nova versão encontrada: {latest_version}")
-                app.config['UPDATE_INFO'] = update_data
+                app.config['UPDATE_INFO'] = {
+                    'latest_version': latest_version,
+                    'download_url': update_data.get('download_url'),
+                    'release_notes': update_data.get('release_notes', 'Sem notas de lançamento.'),
+                    'update_found_at': datetime.now().isoformat(),
+                    'update_size': update_data.get('size_mb', 'Desconhecido')
+                }
+                # Salva informação de atualização em arquivo para persistir entre reinicializações
+                update_info_file = os.path.join(APP_DATA_PATH, 'update_info.json')
+                with open(update_info_file, 'w') as f:
+                    json.dump(app.config['UPDATE_INFO'], f, indent=2)
             else:
                 print("Nenhuma nova atualização encontrada.")
+                # Remove arquivo de informação de atualização se não há atualizações
+                update_info_file = os.path.join(APP_DATA_PATH, 'update_info.json')
+                if os.path.exists(update_info_file):
+                    os.remove(update_info_file)
         except (requests.exceptions.RequestException, json.JSONDecodeError) as e:
             print(f"Erro ao verificar atualizações: {e}")
+
+def schedule_periodic_update_check(app):
+    """Agenda verificações periódicas de atualização a cada 6 horas."""
+    check_for_updates(app)
+    # Agenda a próxima verificação em 6 horas (21600 segundos)
+    threading.Timer(21600.0, lambda: schedule_periodic_update_check(app)).start()
 
 # Para criar o banco de dados e inserir dados de exemplo
 def inicializar_banco(app, reset=False):

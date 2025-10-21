@@ -11,7 +11,13 @@
                 {% for montadora, veiculos in montadoras_com_veiculos.items() %}
                     <li class="montadora-item">
                         <div class="montadora-header">
-                            <a href="{{ url_for('main.buscar', montadora=montadora) }}">{{ montadora }}</a>
+                            <a href="{{ url_for('main.buscar', montadora=montadora) }}">
+                                {#- Gera um nome de arquivo seguro para o logo:
+                                    - Converte para minúsculas (ex: "Land Rover" -> "land rover")
+                                    - Substitui espaços e hífens por um único hífen (ex: "land rover", "mercedes-benz" -> "land-rover", "mercedes-benz") -#}
+                                <img src="{{ url_for('static', filename='images/logos/' + montadora.lower().replace(' ', '-').replace('--', '-') + '.png') }}" alt="Logo {{ montadora }}" class="montadora-logo" onerror="this.style.display='none'">
+                                <span>{{ montadora }}</span>
+                            </a>
                             {% if veiculos %}<span class="toggle-veiculos">+</span>{% endif %}
                         </div>
                         {% if veiculos %}

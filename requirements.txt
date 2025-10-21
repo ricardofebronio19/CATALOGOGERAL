@@ -4,3 +4,4 @@ Flask-Login
 requests
 waitress
 tqdm
+packaging

@@ -61,6 +61,28 @@
                 {% endfor %}
             {% endif %}
         {% endwith %}
+        
+        <!-- Banner de Atualização Melhorado -->
+        {% if is_admin and update_info %}
+        <div class="update-banner">
+            <div class="update-content">
+                <div class="update-icon">🔄</div>
+                <div class="update-info">
+                    <strong>Nova versão disponível: {{ update_info.latest_version }}</strong>
+                    <p>{{ update_info.release_notes }}</p>
+                    {% if update_info.update_size != 'Desconhecido' %}
+                        <small>Tamanho: {{ update_info.update_size }} MB</small>
+                    {% endif %}
+                </div>
+                <div class="update-actions">
+                    <form action="{{ url_for('admin.atualizar_aplicacao') }}" method="POST" style="display: inline;">
+                        <button type="submit" class="btn-update">Baixar e Instalar</button>
+                    </form>
+                    <button onclick="this.parentElement.parentElement.parentElement.style.display='none'" class="btn-dismiss">×</button>
+                </div>
+            </div>
+        </div>
+        {% endif %}
     </div>
 
     <main class="container">
@@ -69,13 +91,6 @@
 
     <footer>
         <p>Catálogo de Peças v{{ app_version }} - Desenvolvido com Flask.</p>
-        {% if update_info %}
-            <p class="update-available">
-                <a href="{{ update_info.release_url }}" target="_blank">
-                    Nova versão disponível: {{ update_info.version }}! Clique para baixar.
-                </a>
-            </p>
-        {% endif %}
     </footer>
 
     {% block scripts %}

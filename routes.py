@@ -3,6 +3,8 @@ import json
 import collections
 import threading
 import zipfile
+import shutil
+import requests
 from datetime import datetime
 from flask import (Blueprint, render_template, request, redirect, url_for, flash, jsonify,
                    Response, send_from_directory, current_app)
@@ -888,3 +890,36 @@ def get_montadora_for_veiculo():
 
     aplicacao = Aplicacao.query.filter(Aplicacao.veiculo.ilike(veiculo)).order_by(Aplicacao.id.desc()).first()
     return {"montadora": aplicacao.montadora if aplicacao else None}
+
+# --- Rota de Atualização da Aplicação ---
+
+@admin_bp.route('/atualizar_aplicacao', methods=['POST'])
+def atualizar_aplicacao():
+    """
+    Baixa o pacote de atualização, o salva e cria o gatilho para
+    que o run.py possa instalar a atualização ao reiniciar.
+    """
+    update_info = current_app.config.get('UPDATE_INFO')
+    if not update_info or 'download_url' not in update_info:
+        flash('Nenhuma informação de atualização encontrada.', 'danger')
+        return redirect(url_for('main.index'))
+
+    try:
+        print(f"Baixando atualização de: {update_info['download_url']}")
+        response = requests.get(update_info['download_url'], stream=True, timeout=300)  # Timeout de 5 minutos
+        response.raise_for_status()
+
+        update_package_path = os.path.join(APP_DATA_PATH, "update_package.zip")
+        with open(update_package_path, 'wb') as f:
+            shutil.copyfileobj(response.raw, f)
+
+        # Cria o arquivo "gatilho" para sinalizar que a aplicação deve reiniciar e atualizar
+        restart_trigger_file = os.path.join(APP_DATA_PATH, 'RESTART_FOR_UPDATE')
+        with open(restart_trigger_file, 'w') as f:
+            f.write('restart_for_update')
+
+        return render_template('reiniciando.html', mensagem="Atualização baixada! A aplicação será reiniciada para instalar...")
+
+    except requests.exceptions.RequestException as e:
+        flash(f"Erro ao baixar o pacote de atualização: {e}", "danger")
+        return redirect(url_for('main.index'))

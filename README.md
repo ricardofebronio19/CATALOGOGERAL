@@ -1,14 +1,36 @@
-# Catálogo de Peças
+# Catálogo de Peças v1.7.0
 
-Este repositório contém uma aplicação Flask para gerenciar um catálogo de peças.
+Este repositório contém uma aplicação Flask para gerenciar um catálogo de peças com sistema de atualização automática e interface moderna.
 
-Conteúdo principal:
+## 🚀 Novidades v1.7.0
+
+### ✨ Sistema de Atualização Automática
+- Verificação automática de novas versões a cada 6 horas
+- Banner interativo para administradores
+- Download e instalação automática
+- Interface moderna com animações
+
+### 🎨 Melhorias Visuais
+- Destaque das montadoras com fundo gradiente
+- Alternância de cores nas linhas dos veículos
+- Menu principal modernizado
+- Responsividade aprimorada
+
+### 🔧 Correções de Bugs
+- Corrigido erro de IntegrityError ao adicionar produtos
+- Autopreenchimento da montadora funcionando
+- Melhor validação de formulários
+
+## 📁 Estrutura do Projeto
+
 - `run.py` - entrypoint/CLI
-- `app.py` - factory do Flask
+- `app.py` - factory do Flask com sistema de atualização
 - `models.py` - modelos SQLAlchemy
+- `routes.py` - rotas organizadas em blueprints
 - `importar_pecas.py`, `validar_csv.py` - scripts de importação
 - `vincular_imagens.py` - script para ligar imagens aos produtos
-- `build.bat` - script para empacotar com PyInstaller e criar instalador (Inno Setup)
+- `build.bat` - script para empacotar com PyInstaller e criar instalador
+- `prepare_release.ps1` - script para preparar releases
 
 Como preparar e rodar localmente
 
