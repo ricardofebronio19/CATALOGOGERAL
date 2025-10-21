@@ -93,6 +93,27 @@ button:hover, .button:hover {
     filter: brightness(90%);
 }
 
+/* --- Estilo base unificado para botões --- */
+.btn, .button, button, .add-application-btn, .search-form button, .btn-update {
+    background-color: var(--cor-principal, #ff6600);
+    color: #fff;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: filter 0.15s ease, transform 0.08s ease;
+}
+.btn:hover, .button:hover, button:hover, .add-application-btn:hover, .search-form button:hover, .btn-update:hover {
+    filter: brightness(0.92);
+}
+
+/* Exceções / variações */
+.add-application-btn { background-color: #28a745; }
+.add-application-btn:hover { background-color: #218838; }
+.btn-update { background-color: #fff; color: #4CAF50; border: 2px solid #fff; }
+.btn-dismiss { background: none; border: 2px solid rgba(255,255,255,0.5); color: #fff; }
+
 /* Footer centralizado */
 .site-footer {
     background-color: #f8f9fa;
