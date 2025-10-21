@@ -775,6 +775,20 @@ mark {
     filter: brightness(90%);
 }
 
+/* Equaliza altura dos botoes na area de acoes da busca */
+.search-actions button, .search-actions .button, .search-actions a.button {
+    padding: 10px 16px;
+    height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Em casos onde a cor é definida inline (ex: Limpar Campos, Exportar CSV), removemos margem/linhas diferentes */
+.search-actions .button[style] {
+    margin: 0;
+}
+
 .veiculo-link {
     font-weight: normal !important; /* Garante que o texto não seja negrito */
     color: #495057 !important; /* Um cinza mais suave para diferenciar da montadora */
