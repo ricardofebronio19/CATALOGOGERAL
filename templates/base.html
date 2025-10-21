@@ -30,7 +30,7 @@
                     <div class="nav-center">
                         <form action="{{ url_for('main.buscar') }}" method="GET" class="search-form">
                             <input type="search" name="termo" placeholder="Buscar por código, nome, aplicação..." value="{{ termo or '' }}">
-                            <button type="submit">Buscar</button>
+                            <button type="submit" class="button">Buscar</button>
                         </form>
                     </div>
                 {% endif %}
