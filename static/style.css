@@ -120,7 +120,7 @@ button:hover, .button:hover {
 .site-footer .footer-center {
     max-width: 1200px;
     margin: 0 auto;
-    text-align: center;
+    text-align: center !important;
     color: #555;
     font-size: 0.9em;
     font-weight: 500;
