@@ -3,9 +3,6 @@ body {
     background-color: #f0f2f5;
     margin: 0;
     padding: 0;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
     color: #333;
 }
 
@@ -18,11 +15,9 @@ body {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-/* Faz com que o main (com classe container) cresça para preencher a página
-   e empurre o footer para baixo quando o conteúdo for maior que a janela. */
-main.container {
-    flex: 1 0 auto;
-}
+/* Antes tínhamos transformado o body em flex para suportar footer sticky.
+    Isso causou alterações no fluxo/layout. Revertendo para um fluxo normal
+    e mantendo padding-bottom no main.container para evitar sobreposição. */
 
 header {
     background-color: var(--cor-principal, #ff6600);
