@@ -9,7 +9,7 @@
 ; --- Valores Padrão (para compilação manual/IDE) ---
 ; Se as variáveis não forem passadas pela linha de comando, use estes valores.
 #ifndef MyAppVersion
-  #define MyAppVersion "1.7.0"
+  #define MyAppVersion "1.7.1"
 #endif
 #ifndef MyExeName
   #define MyExeName "CatalogoDePecas.exe"
@@ -21,7 +21,7 @@
 ; Informações básicas da aplicação
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
-AppPublisher=Spec ; Você pode mudar isso
+AppPublisher=Spec
 AppPublisherURL=https://www.seusite.com.br
 AppSupportURL=https://www.seusite.com.br
 AppUpdatesURL=https://www.seusite.com.br

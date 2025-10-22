@@ -91,9 +91,9 @@ MONTADORAS_PREDEFINIDAS = [
 ]
 
 # Determina o caminho base para templates e arquivos estáticos
-# Garante que a pasta de dados exista
-os.makedirs(APP_DATA_PATH, exist_ok=True)
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+# Nota: a criação das pastas de dados foi movida para dentro de create_app()
+# para evitar efeitos colaterais durante a importação do módulo (útil em
+# testes que sobrescrevem APP_DATA_PATH antes de criar a app).
 # --- Funções de Configuração de Aparência ---
 def carregar_config_aparencia():
     """Carrega as configurações de aparência do arquivo JSON de forma segura."""
@@ -148,6 +148,14 @@ def create_app():
         'pool_pre_ping': True
     }
     app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+    # Garante que as pastas de dados existam (cria com o APP_DATA_PATH atual)
+    try:
+        os.makedirs(APP_DATA_PATH, exist_ok=True)
+        os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+    except Exception:
+        # Não falhar na criação de pastas durante import (tests podem manipular paths)
+        pass
 
     # --- Inicialização das Extensões ---
     db.init_app(app)
