@@ -455,6 +455,40 @@
             });
 
             clearFilterBtn.addEventListener('click', clearFilter);
+            
+            // Permite clicar em links de veículo (por exemplo na lista lateral) para filtrar similares
+            const veiculoLinks = document.querySelectorAll('.veiculo-link');
+            veiculoLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const vehicleName = (link.textContent || link.innerText || '').trim();
+                    if (!vehicleName) return;
+                    // Marca/desmarca linhas na tabela de aplicações para mostrar a seleção
+                    tableBody.querySelectorAll('.application-row').forEach(row => {
+                        if ((row.dataset.veiculo || '').trim().toLowerCase() === vehicleName.toLowerCase()) {
+                            row.classList.add('active-filter');
+                        } else {
+                            row.classList.remove('active-filter');
+                        }
+                    });
+
+                    // Filtra os similares para exibir somente os que possuem essa aplicação
+                    let visibleCount = 0;
+                    similarRows.forEach(row => {
+                        const applications = JSON.parse(row.dataset.applications || '[]');
+                        const hasMatch = applications.some(app => (app.veiculo || '').trim().toLowerCase() === vehicleName.toLowerCase());
+                        if (hasMatch) {
+                            row.style.display = '';
+                            visibleCount++;
+                        } else {
+                            row.style.display = 'none';
+                        }
+                    });
+
+                    noResultsRow.style.display = visibleCount === 0 ? '' : 'none';
+                    clearFilterBtn.style.display = 'inline-block';
+                });
+            });
             }
 
             // Inicializa todos os módulos da página
