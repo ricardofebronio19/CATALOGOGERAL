@@ -352,16 +352,21 @@ main.container { padding-bottom: 72px; }
     color: var(--cor-principal, #ff6600); /* Cor laranja para o código */
     text-decoration: underline;
 }
+
 .application-table {
     width: 100%;
     border-collapse: collapse;
     font-size: 0.9em;
+    /* Mostrar linhas de grade entre células */
+    border: 1px solid #e6e6e6;
 }
 
 .application-table th, .application-table td {
-    padding: 10px 15px;
-    border-bottom: 1px solid #eee;
+    padding: 4px 8px; /* ainda mais compacto: 4px vertical / 8px horizontal */
+    border: 1px solid #e9ecef; /* borda entre células */
     text-align: left;
+    vertical-align: middle;
+    font-size: 0.88em; /* mantém fonte levemente menor para economia de espaço */
 }
 
 .application-table th {
@@ -406,17 +411,16 @@ main.container { padding-bottom: 72px; }
 
 /* Efeito hover nas linhas de aplicação */
 .application-table .application-row:hover {
-    background-color: #e3f2fd !important; /* Azul claro ao passar o mouse */
-    transform: translateX(2px);
-    transition: all 0.2s ease;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    background-color: #eaf6ff !important; /* Azul muito claro ao passar o mouse */
+    transition: background-color 0.15s ease;
+    box-shadow: none; /* Remover translação para manter grade alinhada */
 }
 
 /* Estilo para linha ativa (filtrada) */
 .application-table .application-row.active-filter {
     background-color: #fff3cd !important; /* Amarelo claro para destacar */
     font-weight: bold;
-    border-left: 4px solid #ffc107;
+    outline: 3px solid rgba(255,193,7,0.12); /* Evidencia sem desalinho */
 }
 
 /* Melhoria visual geral da tabela */

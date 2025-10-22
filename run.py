@@ -126,7 +126,16 @@ def iniciar_servidor(host, port, abrir_navegador):
     print("Pressione Ctrl+C no terminal para parar o servidor.")
 
     if abrir_navegador:
-        webbrowser.open(url)
+        # Alguns navegadores não aceitam 0.0.0.0 como host para abrir uma aba.
+        # Usar 'localhost' quando o host for 0.0.0.0 ou equivalente garante que
+        # o browser abra corretamente apontando para a máquina local.
+        browser_url = url
+        if host in ('0.0.0.0', '::', '', None):
+            browser_url = f"http://localhost:{port}"
+        try:
+            webbrowser.open(browser_url, new=2)  # new=2 tenta abrir em nova aba
+        except Exception as e:
+            print(f"Não foi possível abrir o navegador automaticamente: {e}")
     
     # Inicia o servidor de produção
     # Use host='0.0.0.0' para permitir acesso de outras máquinas na rede
