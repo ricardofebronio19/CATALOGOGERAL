@@ -1,6 +1,8 @@
 import os
-from app import create_app, db, UPLOAD_FOLDER, ALLOWED_EXTENSIONS
-from models import Produto, ImagemProduto
+
+from app import ALLOWED_EXTENSIONS, UPLOAD_FOLDER, create_app, db
+from models import ImagemProduto, Produto
+
 
 def vincular_imagens_por_codigo(app):
     """
@@ -15,7 +17,7 @@ def vincular_imagens_por_codigo(app):
     if not os.path.isdir(UPLOAD_FOLDER):
         print(f"ERRO: A pasta de uploads não foi encontrada em '{UPLOAD_FOLDER}'.")
         return
-    
+
     with app.app_context():
         imagens_vinculadas = 0
         produtos_nao_encontrados = 0
@@ -39,7 +41,7 @@ def vincular_imagens_por_codigo(app):
         for i, filename in enumerate(nomes_arquivos):
             # Extrai o nome do arquivo e a extensão
             codigo_produto, ext = os.path.splitext(filename)
-            ext = ext.lower().strip('.')
+            ext = ext.lower().strip(".")
 
             # Imprime o progresso
             print(f"Processando [{i+1}/{total_arquivos}]: {filename} ... ", end="")
@@ -58,7 +60,7 @@ def vincular_imagens_por_codigo(app):
                 produtos_nao_encontrados += 1
                 codigos_nao_encontrados.add(codigo_produto)
                 continue
-            
+
             # Verifica se a imagem já está vinculada (em qualquer produto)
             if filename in imagens_existentes:
                 print("Ignorado (já vinculado).")
@@ -82,11 +84,17 @@ def vincular_imagens_por_codigo(app):
         print(f"Imagens vinculadas com sucesso: {imagens_vinculadas}")
         print(f"Imagens que já estavam vinculadas: {imagens_ja_existentes}")
         print(f"Arquivos ignorados (extensão inválida): {arquivos_ignorados}")
-        print(f"Produtos não encontrados (códigos sem correspondência): {produtos_nao_encontrados}")
+        print(
+            "Produtos não encontrados (códigos sem correspondência): "
+            + str(produtos_nao_encontrados)
+        )
         if codigos_nao_encontrados:
-            print(f"  - Códigos não encontrados: {', '.join(sorted(list(codigos_nao_encontrados))[:10])}{'...' if len(codigos_nao_encontrados) > 10 else ''}")
+            sample = ", ".join(sorted(list(codigos_nao_encontrados))[:10])
+            more = "..." if len(codigos_nao_encontrados) > 10 else ""
+            print(f"  - Códigos não encontrados: {sample}{more}")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     app = create_app()
     # Este script agora deve ser executado através do comando 'link-images' em run.py
     print("Este script foi movido para um comando CLI.")

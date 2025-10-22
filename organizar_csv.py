@@ -2,6 +2,7 @@ import csv
 import os
 import re
 
+
 def limpar_valor(valor: str) -> str:
     """
     Remove aspas extras, espaços em excesso e caracteres problemáticos.
@@ -13,23 +14,25 @@ def limpar_valor(valor: str) -> str:
     valor = valor.replace('""', '"')
     return valor.strip()
 
+
 def extrair_ano(texto_aplicacao: str) -> tuple[str, str]:
     """
     Encontra um padrão de ano como [1983/ 1989) e o formata para 1983/1989.
     Retorna o texto da aplicação sem o ano e o ano formatado.
     """
-    match = re.search(r'\[(.*?)\]', texto_aplicacao)
+    match = re.search(r"\[(.*?)\]", texto_aplicacao)
     if match:
         # Pega o conteúdo de dentro dos colchetes
         ano_bruto = match.group(1)
         # Remove o padrão de ano da string original
-        texto_limpo = texto_aplicacao.replace(match.group(0), '').strip()
-        
+        texto_limpo = texto_aplicacao.replace(match.group(0), "").strip()
+
         # Formata a string de ano: '1983/ 1989)' -> '1983/1989'
-        ano_formatado = ano_bruto.replace(')', '').replace(' ', '').strip()
+        ano_formatado = ano_bruto.replace(")", "").replace(" ", "").strip()
         return texto_limpo, ano_formatado
-    
+
     return texto_aplicacao.strip(), ""
+
 
 def organizar_csv(arquivo_entrada: str, arquivo_saida: str):
     """
@@ -51,11 +54,20 @@ def organizar_csv(arquivo_entrada: str, arquivo_saida: str):
     csv_pattern = re.compile(r'""([^"]*)""|([^,]+)')
 
     try:
-        with open(arquivo_entrada, 'r', encoding='latin-1', errors='ignore') as f_entrada, \
-             open(arquivo_saida, 'w', encoding='utf-8', newline='') as f_saida:
+        with open(
+            arquivo_entrada, "r", encoding="latin-1", errors="ignore"
+        ) as f_entrada, open(
+            arquivo_saida, "w", encoding="utf-8", newline=""
+        ) as f_saida:
 
             # Define o cabeçalho do novo arquivo de saída
-            cabecalho_saida = ['codigo', 'nome', 'fornecedor', 'grupo', 'aplicacoes_completas']
+            cabecalho_saida = [
+                "codigo",
+                "nome",
+                "fornecedor",
+                "grupo",
+                "aplicacoes_completas",
+            ]
             writer = csv.writer(f_saida)
             writer.writerow(cabecalho_saida)
 
@@ -65,10 +77,14 @@ def organizar_csv(arquivo_entrada: str, arquivo_saida: str):
             for i, linha_bruta in enumerate(f_entrada, 2):
                 # Remove aspas do início/fim da linha e espaços em branco
                 linha_limpa = linha_bruta.strip().strip('"')
-                if not linha_limpa: continue
+                if not linha_limpa:
+                    continue
 
                 # Usa a regex para extrair os campos da linha
-                linha = [(m.group(1) or m.group(2) or '') for m in csv_pattern.finditer(linha_limpa)]
+                linha = [
+                    (m.group(1) or m.group(2) or "")
+                    for m in csv_pattern.finditer(linha_limpa)
+                ]
 
                 linhas_processadas += 1
                 if len(linha) < 6:
@@ -89,33 +105,40 @@ def organizar_csv(arquivo_entrada: str, arquivo_saida: str):
 
                 # Monta a string de 'aplicacoes_completas'
                 aplicacoes_finais = []
-                for app_str in aplicacoes_brutas.split('|'):
+                for app_str in aplicacoes_brutas.split("|"):
                     app_str = app_str.strip()
-                    if not app_str or app_str == '/':
+                    if not app_str or app_str == "/":
                         continue
-                    
+
                     veiculo, ano = extrair_ano(app_str)
-                    
+
                     # Constrói a aplicação final no formato "MONTADORA-VEICULO ANO"
-                    montadora = montadora_geral if montadora_geral else "FIAT" # Padrão para FIAT se vazio
-                    
+                    montadora = (
+                        montadora_geral if montadora_geral else "FIAT"
+                    )  # Padrão para FIAT se vazio
+
                     aplicacao_final = f"{montadora}-{veiculo} {ano}".strip()
                     aplicacoes_finais.append(aplicacao_final)
 
                 # Junta todas as aplicações com '|'
-                texto_aplicacoes_completas = ' | '.join(aplicacoes_finais)
+                texto_aplicacoes_completas = " | ".join(aplicacoes_finais)
 
                 # Escreve a linha limpa no novo arquivo
-                writer.writerow([codigo, nome, fornecedor, grupo, texto_aplicacoes_completas])
+                writer.writerow(
+                    [codigo, nome, fornecedor, grupo, texto_aplicacoes_completas]
+                )
                 linhas_gravadas += 1
 
         print("\n--- ✅ Processo Concluído ---")
         print(f"Total de linhas lidas: {linhas_processadas}")
         print(f"Total de produtos gravados: {linhas_gravadas}")
-        print(f"Arquivo '{arquivo_saida}' foi gerado com sucesso e está pronto para importação!")
+        print(
+            f"Arquivo '{arquivo_saida}' foi gerado com sucesso e está pronto para importação!"
+        )
 
     except Exception as e:
         print(f"❌ ERRO FATAL durante o processamento: {e}")
 
-if __name__ == '__main__':
-    organizar_csv('export_pecas.csv', 'pecas_para_importar.csv')
+
+if __name__ == "__main__":
+    organizar_csv("export_pecas.csv", "pecas_para_importar.csv")
