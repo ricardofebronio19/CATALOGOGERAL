@@ -160,6 +160,19 @@ def main():
         # Normaliza 'run.py' para o subcomando 'run'
         if first.lower() == 'run.py':
             sys.argv[1] = 'run'
+    # Normaliza o argv buscando um subcomando conhecido em qualquer posição
+    # Isso ajuda quando empacotadores ou atalhos injetam argumentos em posições
+    # diferentes (ex: alguns wrappers podem colocar o comando após opções).
+    known_cmds = {'run', 'reset-db', 'link-images', 'import-csv'}
+    if len(sys.argv) > 1:
+        for i, a in enumerate(sys.argv[1:], start=1):
+            if a in known_cmds:
+                if i != 1:
+                    # Move o comando para a posição 1, preservando a ordem dos demais
+                    rest = sys.argv[1:i] + sys.argv[i+1:]
+                    sys.argv = [sys.argv[0], a] + rest
+                break
+
     parser = argparse.ArgumentParser(description="Servidor e gerenciador para a aplicação Catálogo de Peças.")
     subparsers = parser.add_subparsers(dest='command', help='Comandos disponíveis')
 
