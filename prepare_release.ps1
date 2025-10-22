@@ -7,7 +7,7 @@ param(
     [switch]$SkipBuild
 )
 
-Write-Host "=== Preparando Release v1.7.0 ===" -ForegroundColor Green
+Write-Host "=== Preparando Release v1.7.2 ===" -ForegroundColor Green
 
 # 1. Verificar se estamos no diretório correto
 if (!(Test-Path "build.bat")) {
@@ -49,7 +49,7 @@ if ($BuildOnly) {
 }
 
 # 4. Verificar se o instalador foi criado
-$installerPath = "Output\instalador_CatalogoDePecas_v1.7.0.exe"
+$installerPath = "Output\instalador_CatalogoDePecas_v1.7.2.exe"
 if (!(Test-Path $installerPath)) {
     Write-Error "Instalador não encontrado em: $installerPath"
     exit 1
@@ -58,10 +58,10 @@ if (!(Test-Path $installerPath)) {
 Write-Host "Instalador criado: $installerPath" -ForegroundColor Green
 
 # 5. Preparar informações do release
-$tagName = "v1.7.0"
-$releaseName = "CatalogoDePecas v1.7.0"
+$tagName = "v1.7.2"
+$releaseName = "CatalogoDePecas v1.7.2"
 $releaseNotes = @"
-# 🚀 Catálogo de Peças v1.7.0
+# 🚀 Catálogo de Peças v1.7.2
 
 ## Principais Novidades
 
@@ -96,7 +96,7 @@ $releaseNotes = @"
 
 ## 📋 Arquivos de Release
 
-- **instalador_CatalogoDePecas_v1.7.0.exe** - Instalador completo (~35MB)
+- **instalador_CatalogoDePecas_v1.7.2.exe** - Instalador completo (~35MB)
 
 ---
 **Compatibilidade:** Windows 10/11
@@ -127,8 +127,8 @@ if ($CreateRelease) {
         Write-Host "Atualizando configuração de atualização..." -ForegroundColor Yellow
         
         $updateConfig = @{
-            latest_version = "1.7.0"
-            download_url = "https://github.com/ricardofebronio19/CATALOGOGERAL/releases/download/v1.7.0/instalador_CatalogoDePecas_v1.7.0.exe"
+            latest_version = "1.7.2"
+            download_url = "https://github.com/ricardofebronio19/CATALOGOGERAL/releases/download/v1.7.2/instalador_CatalogoDePecas_v1.7.2.exe"
             release_notes = "🚀 Sistema de Atualização Automática`n✨ Interface visual melhorada`n🎨 Destaque das montadoras e alternância de cores`n🔧 Correções de bugs e melhorias de performance"
             size_mb = "35"
         } | ConvertTo-Json -Depth 10
@@ -147,7 +147,7 @@ if ($CreateRelease) {
 
 Write-Host "`n=== Preparação Concluída ===" -ForegroundColor Green
 Write-Host "Instalador: $installerPath" -ForegroundColor White
-Write-Host "Notas de release: RELEASE_NOTES_v1.7.0.md" -ForegroundColor White
+Write-Host "Notas de release: RELEASE_NOTES_v1.7.2.md" -ForegroundColor White
 Write-Host "Config de atualização: update_config.json" -ForegroundColor White
 
 if (!$CreateRelease) {
