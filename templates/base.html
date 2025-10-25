@@ -9,6 +9,38 @@
         :root {
             --cor-principal: {{ config_aparencia.cor_principal|default('#ff6600') }};
         }
+        /* Estilos para o menu dropdown */
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            right: 0;
+            background-color: #f9f9f9;
+            min-width: 160px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            z-index: 100;
+            border-radius: 5px;
+            overflow: hidden; /* Garante que os cantos arredondados se apliquem aos itens */
+        }
+        .dropdown-content a {
+            color: black;
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+            text-align: left;
+            background-color: #f9f9f9; /* Garante que o fundo não seja transparente */
+            border: none; /* Remove bordas do estilo .button */
+            width: 100%;
+        }
+        .dropdown-content a:hover {
+            background-color: #f1f1f1;
+        }
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
     </style>
     {% block head %}{% endblock %}
 </head>
@@ -37,14 +69,24 @@
     
                 <div class="nav-right">
                     <a href="{{ url_for('main.index') }}" class="button">Nova Busca</a>
+                    {% if is_admin %}
+                        <div class="dropdown">
+                            <button class="button">Admin &#9662;</button>
+                            <div class="dropdown-content">
+                                <a href="{{ url_for('admin.adicionar_peca') }}">Adicionar Peça</a>
+                                <a href="{{ url_for('admin.gerenciar_usuarios') }}">Usuários</a>
+                                <a href="{{ url_for('admin.pagina_tarefas') }}">Tarefas</a>
+                                <a href="{{ url_for('admin.configuracoes') }}">Configurações</a>
+                            </div>
+                        </div>
+                    {% endif %}
                     {% if current_user.is_authenticated %}
-                        {% if is_admin %}
-                            <a href="{{ url_for('admin.adicionar_peca') }}" class="button">Adicionar Peça</a>
-                            <a href="{{ url_for('admin.gerenciar_usuarios') }}" class="button">Usuários</a>
-                            <a href="{{ url_for('admin.pagina_tarefas') }}" class="button">Tarefas</a>
-                            <a href="{{ url_for('admin.configuracoes') }}" class="button">Config.</a>
-                        {% endif %}
-                        <a href="{{ url_for('auth.logout') }}" class="button">Sair</a>
+                        <div class="dropdown">
+                            <button class="button">{{ current_user.username }} &#9662;</button>
+                            <div class="dropdown-content">
+                                <a href="{{ url_for('auth.logout') }}">Sair</a>
+                            </div>
+                        </div>
                     {% else %}
                         <a href="{{ url_for('auth.login') }}" class="button">Login</a>
                     {% endif %}
@@ -102,6 +144,20 @@
                 message.addEventListener('click', function() {
                     this.style.opacity = '0';
                     setTimeout(() => this.remove(), 300);
+                });
+            });
+
+            // Lógica para fechar dropdowns ao clicar fora
+            window.addEventListener('click', function(e) {
+                document.querySelectorAll('.dropdown').forEach(function(dropdown) {
+                    if (!dropdown.contains(e.target)) {
+                        // Esconde o conteúdo se o clique foi fora do dropdown
+                        let content = dropdown.querySelector('.dropdown-content');
+                        if (content) {
+                           // A lógica de hover já controla isso, mas pode ser útil para mobile
+                           // content.style.display = 'none';
+                        }
+                    }
                 });
             });
         });

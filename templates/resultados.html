@@ -4,41 +4,16 @@
 
 {% block head %}
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <style>
-        .sortable-header a {
-            text-decoration: none;
-            color: inherit;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-        .sortable-header .sort-arrow {
-            opacity: 0.3;
-            font-size: 1.2em;
-        }
-        .sortable-header.active .sort-arrow {
-            opacity: 1;
-            color: #007bff;
-        }
-        .product-image-thumbnail {
-            width: 60px;
-            height: 60px;
-            object-fit: cover;
-            border-radius: 4px;
-            border: 1px solid #ddd;
-        }
-        .results-summary {
-            margin-bottom: 1rem;
-            padding: 10px;
-            background-color: #f8f9fa;
-            border-radius: 5px;
-        }
-    </style>
 {% endblock %}
 
 {% block content %}
     <header>
-        <h1>Resultados da Busca</h1>
+        <div class="results-header">
+            <h1>Resultados da Busca</h1>
+            {% if is_admin %}
+                <a class="button" href="{{ url_for('admin.exportar_csv', **search_args) }}" target="_blank">Exportar resultados para CSV</a>
+            {% endif %}
+        </div>
     </header>
 
     <div class="results-summary">

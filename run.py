@@ -17,6 +17,27 @@ from app import (
 )
 
 # Cria a instância da aplicação
+try:
+    # Força UTF-8 para stdout/stderr e uso em I/O no Windows, evitando
+    # UnicodeEncodeError ao imprimir caracteres (ex.: emojis) em consoles
+    # configurados com cp1252. Também define PYTHONIOENCODING para o
+    # processo e reconfigura os streams quando possível.
+    os.environ.setdefault("PYTHONIOENCODING", "utf-8")
+    if hasattr(sys.stdout, "reconfigure"):
+        try:
+            sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
+    if hasattr(sys.stderr, "reconfigure"):
+        try:
+            sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
+except Exception:
+    # Não devemos falhar na inicialização do app por conta desta tentativa.
+    pass
+
+# Cria a instância da aplicação
 app = create_app()
 
 
@@ -175,13 +196,35 @@ def reset_database():
 
 def main():
     """Ponto de entrada principal para a interface de linha de comando."""
+    # --- INÍCIO DO CÓDIGO DE DIAGNÓSTICO ---
+    try:
+        import datetime
+        log_path = os.path.join(tempfile.gettempdir(), "catalogo_diag_args.txt")
+        with open(log_path, "w", encoding="utf-8") as f:
+            f.write(f"Timestamp: {datetime.datetime.now()}\n")
+            f.write(f"CWD: {os.getcwd()}\n")
+            f.write(f"sys.executable: {sys.executable}\n")
+            f.write("sys.argv:\n")
+            for i, arg in enumerate(sys.argv):
+                f.write(f"  [{i}]: {arg}\n")
+        # Para o diagnóstico, podemos sair aqui para não executar o resto do app.
+        # Comente a linha abaixo para permitir que o app continue normalmente.
+        # sys.exit(0) 
+    except Exception as e:
+        # Se o logging falhar, não impede a execução normal
+        pass
+    # --- FIM DO CÓDIGO DE DIAGNÓSTICO ---
+
     # Compatibilidade: aceitar ser chamado com 'run.py' como primeiro argumento
     # (ex.: quando usuários chamam o executável passando o nome do script por engano)
     if len(sys.argv) > 1:
         first = os.path.basename(sys.argv[1])
-        # Normaliza 'run.py' para o subcomando 'run'
+        # Alguns wrappers/atalhos injetam o nome do script ('run.py') como
+        # primeiro argumento. Em vez de substituir por 'run' (o que causa
+        # confusão quando o comando real vem em seguida), removemos essa
+        # entrada para que o subcomando esperado ocupe a posição correta.
         if first.lower() == "run.py":
-            sys.argv[1] = "run"
+            del sys.argv[1]
     # Normaliza o argv buscando um subcomando conhecido em qualquer posição
     # Isso ajuda quando empacotadores ou atalhos injetam argumentos em posições
     # diferentes (ex: alguns wrappers podem colocar o comando após opções).

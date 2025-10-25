@@ -1,6 +1,6 @@
 {
-  "latest_version": "1.7.2",
-  "download_url": "https://github.com/ricardofebronio19/CATALOGOGERAL/releases/download/v1.7.2/instalador_CatalogoDePecas_v1.7.2.exe",
-  "release_notes": "🚀 Sistema de Atualização Automática\n✨ Interface visual melhorada\n🎨 Destaque das montadoras e alternância de cores\n🔧 Correções de bugs e melhorias de performance\n📦 Melhorias técnicas e documentação atualizada",
-  "size_mb": "35"
+  "latest_version": "1.7.4",
+  "download_url": "https://github.com/ricardofebronio19/CATALOGOGERAL/releases/download/v1.7.4/instalador_CatalogoDePecas_v1.7.4.exe",
+  "release_notes": "v1.7.4 — Correções e melhorias\n\n- Corrigido comportamento do executável empacotado para aceitar subcomandos (import-csv, link-images) em vários cenários de instalação.\n- Tratamento robusto de encoding para evitar falhas ao imprimir caracteres Unicode/emoji no Windows.\n- UI: carrossel na home com os 4 últimos itens, remoção e persistência de sugestões de similares, melhorias na página de detalhes e ajustes de layout.\n- Pequenas correções de CSS e comportamento JS, além de melhorias internas na lógica de importação/vinculação e scripts de build.",
+  "size_mb": "36"
 }

@@ -79,3 +79,19 @@ class User(UserMixin, db.Model):
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+
+
+class SugestaoIgnorada(db.Model):
+    """Guarda sugestões ignoradas pelo usuário/administrador por produto.
+
+    Cada linha representa que, para o produto principal `produto_id`, a sugestão
+    `sugestao_id` foi marcada como ignorada — assim não será mostrada novamente
+    nas sugestões automáticas.
+    """
+    id = db.Column(db.Integer, primary_key=True)
+    produto_id = db.Column(db.Integer, db.ForeignKey("produto.id"), nullable=False)
+    sugestao_id = db.Column(db.Integer, db.ForeignKey("produto.id"), nullable=False)
+
+    __table_args__ = (
+        db.UniqueConstraint("produto_id", "sugestao_id", name="uq_ignorar_sugestao"),
+    )

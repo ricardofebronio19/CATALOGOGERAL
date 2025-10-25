@@ -140,6 +140,7 @@
                         <th>Código</th>
                         <th>Fornecedor</th>
                         <th>Tipo</th>
+                        <th style="width:90px;">Ações</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -167,6 +168,13 @@
                             <td>{{ similar.codigo }}</td>
                             <td>{{ similar.fornecedor or 'N/A' }}</td>
                             <td><span class="badge badge-manual">Manual</span></td>
+                            <td>
+                                {% if is_admin %}
+                                <form action="{{ url_for('admin.remover_similar', produto_id=produto.id, similar_id=similar.id) }}" method="POST" style="display:inline;" class="remove-similar-form" data-url="{{ url_for('admin.remover_similar', produto_id=produto.id, similar_id=similar.id) }}">
+                                    <button type="button" class="button remove-similar-action" style="background-color: #dc3545; padding:6px 8px; font-size:0.85em;">Remover</button>
+                                </form>
+                                {% endif %}
+                            </td>
                         </tr>
                     {% endfor %}
 
@@ -193,6 +201,14 @@
                             <td>{{ sugestao.codigo }}</td>
                             <td>{{ sugestao.fornecedor or 'N/A' }}</td>
                             <td><span class="badge badge-auto">Sugestão</span></td>
+                            <td>
+                                {% if is_admin %}
+                                <!-- Para sugestões podemos persistir a remoção -> chama endpoint -->
+                                <form class="remove-similar-form" method="POST" data-suggestion="1" data-url="{{ url_for('admin.ignorar_sugestao', produto_id=produto.id, sugestao_id=sugestao.id) }}" style="display:inline;">
+                                    <button type="button" class="button remove-similar-action" style="background-color: #dc3545; padding:6px 8px; font-size:0.85em;">Remover</button>
+                                </form>
+                                {% endif %}
+                            </td>
                         </tr>
                     {% endfor %}
                 </tbody>
@@ -495,6 +511,170 @@
             setupImageModal();
             setupInteractiveConversions();
             setupSimilarFiltering();
+
+            // --- Remoção de similar via AJAX ---
+            document.addEventListener('click', function(e) {
+                const btn = e.target.closest('.remove-similar-action');
+                if (!btn) return;
+                e.preventDefault();
+
+                // Encontra o form pai que carrega a URL
+                const form = btn.closest('.remove-similar-form');
+                if (!form) return;
+
+                if (!confirm('Confirma remoção deste produto similar? Esta ação é irreversível.')) return;
+
+                // Se for uma sugestão, persistimos a ignorância no servidor via POST
+                if (form.dataset.suggestion === '1') {
+                    const url = form.dataset.url;
+                    if (!url) {
+                        // fallback: remove apenas frontend
+                        const row = form.closest('tr');
+                        if (row) row.remove();
+                        return;
+                    }
+
+                    // Guarda a linha para possível desfazer
+                    const row = form.closest('tr');
+                    const rowHTML = row ? row.outerHTML : null;
+                    const nextSibling = row ? row.nextElementSibling : null;
+
+                    fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json'
+                        },
+                        credentials: 'same-origin'
+                    }).then(resp => {
+                        if (!resp.ok) throw resp;
+                        return resp.json();
+                    }).then(data => {
+                        // Remove a linha da UI
+                        if (row) row.remove();
+
+                        const remaining = document.querySelectorAll('.similar-row');
+                        const noResultsRow = document.getElementById('no-similar-results-row');
+                        if (remaining.length === 0 && noResultsRow) {
+                            noResultsRow.style.display = '';
+                        }
+
+                        // Cria notificação com botão Desfazer
+                        const note = document.createElement('div');
+                        note.style.position = 'fixed';
+                        note.style.bottom = '20px';
+                        note.style.left = '50%';
+                        note.style.transform = 'translateX(-50%)';
+                        note.style.backgroundColor = '#28a745';
+                        note.style.color = 'white';
+                        note.style.padding = '10px 20px';
+                        note.style.borderRadius = '5px';
+                        note.style.display = 'flex';
+                        note.style.gap = '10px';
+
+                        const msg = document.createElement('span');
+                        msg.innerText = data && data.message ? data.message : 'Sugestão ignorada.';
+                        note.appendChild(msg);
+
+                        const undoBtn = document.createElement('button');
+                        undoBtn.innerText = 'Desfazer';
+                        undoBtn.style.background = 'transparent';
+                        undoBtn.style.color = 'white';
+                        undoBtn.style.border = '1px solid rgba(255,255,255,0.4)';
+                        undoBtn.style.padding = '4px 8px';
+                        undoBtn.style.cursor = 'pointer';
+                        note.appendChild(undoBtn);
+
+                        document.body.appendChild(note);
+
+                        // Tempo para desfazer (6s)
+                        const undoTimeout = setTimeout(() => {
+                            if (note.parentNode) note.parentNode.removeChild(note);
+                        }, 6000);
+
+                        undoBtn.addEventListener('click', function() {
+                            clearTimeout(undoTimeout);
+                            // chama DELETE para desfazer a ignorância
+                            fetch(url, { method: 'DELETE', credentials: 'same-origin' })
+                                .then(r => {
+                                    if (!r.ok) throw r;
+                                    return r.json();
+                                })
+                                .then(d => {
+                                    // Reinsere a linha no mesmo lugar
+                                    const tableBody = document.querySelector('.application-table tbody');
+                                    if (rowHTML && tableBody) {
+                                        if (nextSibling && nextSibling.parentNode === tableBody) {
+                                            nextSibling.insertAdjacentHTML('beforebegin', rowHTML);
+                                        } else {
+                                            tableBody.insertAdjacentHTML('beforeend', rowHTML);
+                                        }
+                                    }
+                                    if (note.parentNode) note.parentNode.removeChild(note);
+                                }).catch(() => {
+                                    alert('Não foi possível desfazer a remoção.');
+                                });
+                        });
+
+                    }).catch(async err => {
+                        let msg = 'Erro ao ignorar sugestão.';
+                        try {
+                            const j = await err.json();
+                            if (j && j.message) msg = j.message;
+                        } catch (e) {}
+                        alert(msg);
+                    });
+
+                    return;
+                }
+
+                const url = form.dataset.url;
+                // Chama endpoint DELETE
+                fetch(url, {
+                    method: 'DELETE',
+                    headers: {
+                        'Accept': 'application/json'
+                    },
+                    credentials: 'same-origin'
+                }).then(resp => {
+                    if (!resp.ok) throw resp;
+                    return resp.json();
+                }).then(data => {
+                    // Remove a linha correspondente
+                    const row = form.closest('tr');
+                    if (row) row.remove();
+
+                    // Se não houver mais similares visíveis, exibe a linha de 'nenhum resultado'
+                    const remaining = document.querySelectorAll('.similar-row');
+                    const noResultsRow = document.getElementById('no-similar-results-row');
+                    if (remaining.length === 0 && noResultsRow) {
+                        noResultsRow.style.display = '';
+                    }
+
+                    // Notificação temporária
+                    const note = document.createElement('div');
+                    note.innerText = data && data.message ? data.message : 'Similar removido.';
+                    note.style.position = 'fixed';
+                    note.style.bottom = '20px';
+                    note.style.left = '50%';
+                    note.style.transform = 'translateX(-50%)';
+                    note.style.backgroundColor = '#28a745';
+                    note.style.color = 'white';
+                    note.style.padding = '10px 20px';
+                    note.style.borderRadius = '5px';
+                    document.body.appendChild(note);
+                    setTimeout(() => { document.body.removeChild(note); }, 2500);
+                }).catch(async err => {
+                    let msg = 'Erro ao remover similar.';
+                    try {
+                        const j = await err.json();
+                        if (j && j.message) msg = j.message;
+                    } catch (e) {
+                        // fallback
+                    }
+                    alert(msg);
+                });
+            });
         });
     </script>
     {% endraw %}

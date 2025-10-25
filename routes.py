@@ -38,7 +38,7 @@ from core_utils import (
     allowed_file,
 )
 from image_utils import download_image_from_url
-from models import Aplicacao, ImagemProduto, Produto, User
+from models import Aplicacao, ImagemProduto, Produto, User, SugestaoIgnorada
 
 TASK_STATUS = {"status": "Ocioso", "output": ""}
 
@@ -67,10 +67,60 @@ def index():
     for montadora, veiculo in aplicacoes:
         montadoras_com_veiculos[montadora.strip().title()].append(veiculo)
 
+    # Prioriza os 4 últimos produtos adicionados que possuam imagens.
+    # Cada item terá: url, type ('image'|'video'), filename, produto_id e alt (nome do produto).
+    carousel_media = []
+    try:
+        latest_produtos = (
+            Produto.query.filter(Produto.imagens.any())
+            .order_by(Produto.id.desc())
+            .limit(4)
+            .options(selectinload(Produto.imagens))
+            .all()
+        )
+        for produto in latest_produtos:
+            if not produto.imagens:
+                continue
+            imagem = produto.imagens[0]
+            fname = imagem.filename
+            _, ext = os.path.splitext(fname)
+            ext = ext.lower().lstrip(".")
+            media_type = "image" if ext in {"png", "jpg", "jpeg", "gif"} else "video"
+            media_url = url_for("uploaded_file", filename=fname)
+            carousel_media.append(
+                {
+                    "url": media_url,
+                    "type": media_type,
+                    "filename": fname,
+                    "produto_id": produto.id,
+                    "alt": produto.nome,
+                }
+            )
+
+        # Se não houver produtos com imagens, pode-se manter compatibilidade com uma
+        # pasta estática 'uploads/carousel' (fallback) — tentamos só se carousel_media vazia.
+        if not carousel_media:
+            carousel_dir = os.path.join(APP_DATA_PATH, "uploads", "carousel")
+            if os.path.exists(carousel_dir):
+                allowed = {"png", "jpg", "jpeg", "gif", "mp4", "webm"}
+                for fname in sorted(os.listdir(carousel_dir)):
+                    if not fname or fname.startswith("."):
+                        continue
+                    _, ext = os.path.splitext(fname)
+                    ext = ext.lower().lstrip(".")
+                    if ext in allowed:
+                        media_type = "image" if ext in {"png", "jpg", "jpeg", "gif"} else "video"
+                        media_url = url_for("uploaded_file", filename=f"carousel/{fname}")
+                        carousel_media.append({"url": media_url, "type": media_type, "filename": fname})
+    except Exception:
+        # Falha ao consultar o banco / listar diretório não deve quebrar a página inicial
+        carousel_media = []
+
     return render_template(
         "index.html",
         montadoras_com_veiculos=dict(sorted(montadoras_com_veiculos.items())),
         show_top_search=False,
+        carousel_media=carousel_media,
     )
 
 
@@ -186,6 +236,14 @@ def detalhe_peca(id):
         | {produto.id}
     )
 
+    # Carrega sugestões ignoradas para este produto e evita listá-las
+    ignored_rows = (
+        db.session.query(SugestaoIgnorada.sugestao_id)
+        .filter(SugestaoIgnorada.produto_id == produto.id)
+        .all()
+    )
+    ignored_ids = {r[0] for r in ignored_rows} if ignored_rows else set()
+
     codigos_conversao = [
         c.strip() for c in (produto.conversoes or "").split(",") if c.strip()
     ]
@@ -194,6 +252,7 @@ def detalhe_peca(id):
             Produto.query.filter(
                 Produto.id.notin_(ids_ja_relacionados),
                 Produto.codigo.in_(codigos_conversao),
+                Produto.id.notin_(ignored_ids) if ignored_ids else True,
             )
             .options(selectinload(Produto.aplicacoes), selectinload(Produto.imagens))
             .all()
@@ -205,6 +264,7 @@ def detalhe_peca(id):
         Produto.query.filter(
             Produto.id.notin_(ids_ja_relacionados),
             Produto.conversoes.ilike(f"%{produto.codigo}%"),
+            Produto.id.notin_(ignored_ids) if ignored_ids else True,
         )
         .options(selectinload(Produto.aplicacoes), selectinload(Produto.imagens))
         .all()
@@ -227,6 +287,7 @@ def detalhe_peca(id):
                     ),
                     Produto.grupo == produto.grupo,
                     Produto.aplicacoes.any(Aplicacao.veiculo == app_principal.veiculo),
+                    Produto.id.notin_(ignored_ids) if ignored_ids else True,
                 )
                 .options(
                     selectinload(Produto.aplicacoes), selectinload(Produto.imagens)
@@ -651,6 +712,45 @@ def excluir_peca(id):
 
     flash("Produto excluído com sucesso.", "success")
     return redirect(url_for("main.index"))
+
+
+@admin_bp.route("/peca/<int:produto_id>/similar/<int:similar_id>/remover", methods=["POST", "DELETE"])
+def remover_similar(produto_id, similar_id):
+    """Remove a relação de similaridade entre dois produtos de forma simétrica.
+
+    Suporta POST (form) e DELETE (AJAX). Retorna JSON em caso de DELETE, ou
+    faz redirect de volta para a página de detalhe em caso de POST.
+    """
+    produto = db.session.get(Produto, produto_id)
+    similar = db.session.get(Produto, similar_id)
+
+    if not produto or not similar:
+        if request.method == "DELETE":
+            return {"success": False, "message": "Produto não encontrado."}, 404
+        flash("Produto não encontrado.", "danger")
+        return redirect(request.referrer or url_for("main.index"))
+
+    try:
+        # Remove a relação simétrica se existir
+        if similar in produto.similares:
+            produto.similares.remove(similar)
+        if produto in similar.similares:
+            similar.similares.remove(produto)
+
+        db.session.commit()
+
+        if request.method == "DELETE":
+            return {"success": True, "message": "Similar removido com sucesso."}
+
+        flash("Similar removido com sucesso.", "success")
+        return redirect(url_for("main.detalhe_peca", id=produto.id))
+
+    except Exception as e:
+        db.session.rollback()
+        if request.method == "DELETE":
+            return {"success": False, "message": f"Erro no servidor: {e}"}, 500
+        flash(f"Erro ao remover similar: {e}", "danger")
+        return redirect(request.referrer or url_for("main.detalhe_peca", id=produto.id))
 
 
 @admin_bp.route("/imagem/<int:id>/excluir", methods=["POST", "DELETE"])
@@ -1237,3 +1337,53 @@ def atualizar_aplicacao():
     except requests.exceptions.RequestException as e:
         flash(f"Erro ao baixar o pacote de atualização: {e}", "danger")
         return redirect(url_for("main.index"))
+
+
+@admin_bp.route("/peca/<int:produto_id>/sugestao/<int:sugestao_id>/ignorar", methods=["POST", "DELETE"])
+def ignorar_sugestao(produto_id, sugestao_id):
+    """Marca uma sugestão como ignorada (POST) ou remove a marcação (DELETE).
+
+    POST: cria registro em SugestaoIgnorada para persistir que a sugestão não deve
+    mais ser exibida para o produto.
+
+    DELETE: remove o registro, permitindo que a sugestão volte a aparecer.
+    Retorna JSON para uso por AJAX e faz redirect/flash quando chamada por POST em formulários.
+    """
+    produto = db.session.get(Produto, produto_id)
+    sugestao = db.session.get(Produto, sugestao_id)
+
+    if not produto or not sugestao:
+        if request.method == "DELETE":
+            return {"success": False, "message": "Produto ou sugestão não encontrado."}, 404
+        flash("Produto ou sugestão não encontrado.", "danger")
+        return redirect(request.referrer or url_for("main.index"))
+
+    try:
+        existing = (
+            db.session.query(SugestaoIgnorada)
+            .filter_by(produto_id=produto.id, sugestao_id=sugestao.id)
+            .one_or_none()
+        )
+
+        if request.method == "POST":
+            if not existing:
+                novo = SugestaoIgnorada(produto_id=produto.id, sugestao_id=sugestao.id)
+                db.session.add(novo)
+                db.session.commit()
+            if request.is_json or request.method == "POST":
+                return {"success": True, "message": "Sugestão ignorada."}
+            flash("Sugestão ignorada.", "success")
+            return redirect(url_for("main.detalhe_peca", id=produto.id))
+
+        # DELETE
+        if existing:
+            db.session.delete(existing)
+            db.session.commit()
+        return {"success": True, "message": "Ignorar removido."}
+
+    except Exception as e:
+        db.session.rollback()
+        if request.method == "DELETE":
+            return {"success": False, "message": f"Erro: {e}"}, 500
+        flash(f"Erro ao processar a solicitação: {e}", "danger")
+        return redirect(request.referrer or url_for("main.detalhe_peca", id=produto.id))

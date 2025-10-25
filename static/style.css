@@ -114,19 +114,13 @@ button:hover, .button:hover {
 .btn-update { background-color: #fff; color: #4CAF50; border: 2px solid #fff; }
 .btn-dismiss { background: none; border: 2px solid rgba(255,255,255,0.5); color: #fff; }
 
-/* Footer centralizado */
 .site-footer {
+    /* Rodapé não fixo: ocupa fluxo normal da página */
     background-color: #f8f9fa;
     border-top: 1px solid #e9ecef;
     padding: 12px 0;
-    /* margin-top só vale quando não é fixed */
     margin-top: 30px;
     width: 100%;
-    left: 0;
-    bottom: 0;
-    z-index: 1000;
-    /* Por padrão deixamos fixo; media queries abaixo desabilitam em telas pequenas */
-    position: fixed;
 }
 .site-footer {
     display: flex;
@@ -145,8 +139,8 @@ button:hover, .button:hover {
     width: 100%;
 }
 
-/* Evita que o conteúdo fique oculto atrás do footer fixo */
-main.container { padding-bottom: 72px; }
+/* Espaçamento inferior para evitar que o conteúdo encoste no footer */
+main.container { padding-bottom: 30px; }
 
 /* Em telas pequenas, não fixar o footer (pode atrapalhar leitura) */
 @media (max-width: 768px) {
@@ -336,14 +330,15 @@ main.container { padding-bottom: 72px; }
 .info-section pre, .info-section ul, .info-section-lateral pre {
     padding: 15px;
     white-space: pre-wrap; /* Garante a quebra de linha */
-    word-wrap: break-word; /* Quebra palavras longas se necessário */
+    word-wrap: break-word; /* Quebra palavras longas se necessário */    
+    line-height: 1.2; /* Reduz o espaçamento entre as linhas */
+    margin: 0;
 }
 
 /* Estilos para a seção de conversões interativa */
 .conversion-brand {
     font-weight: bold;
     color: #0056b3; /* Cor de destaque para a marca */
-    margin-top: 10px;
     display: block;
 }
 
@@ -385,9 +380,11 @@ main.container { padding-bottom: 72px; }
 
 .application-table .fabricante-header td {
     border-bottom: 2px solid #d4470a;
-    padding: 12px 15px;
-    font-size: 1.05em;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    /* Reduz a altura da linha da montadora: menos padding vertical e fonte levemente menor */
+    padding: 6px 10px;
+    font-size: 1.00em;
+    line-height: 1.1;
+    text-shadow: 0 1px 1px rgba(0,0,0,0.12);
 }
 
 .application-table .fabricante-header:before {
@@ -973,3 +970,161 @@ mark {
         justify-content: center;
     }
 }
+
+/* --- Estilos do Carrossel da Página Inicial --- */
+.homepage-carousel {
+    position: relative;
+    margin: 18px 0 12px 0;
+    border-radius: 8px;
+    overflow: hidden;
+    background: linear-gradient(180deg, #fff, #fafafa);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+}
+.homepage-carousel .carousel-slides {
+    position: relative;
+    width: 100%;
+    height: 360px; /* altura padrão, responsiva abaixo */
+}
+.carousel-slide {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transition: opacity 0.6s ease-in-out;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.carousel-slide.active {
+    opacity: 1;
+    z-index: 2;
+}
+.carousel-media {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #000; /* ajuda a esconder áreas vazias quando as proporções divergem */
+}
+.carousel-slide img,
+.carousel-slide video {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain; /* preserva proporção sem cortar */
+    display: block;
+}
+.carousel-slide video { background-color: #000; }
+.carousel-prev, .carousel-next {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(0,0,0,0.45);
+    color: #fff;
+    border: none;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 10;
+}
+.carousel-prev { left: 12px; }
+.carousel-next { right: 12px; }
+.carousel-prev:hover, .carousel-next:hover { filter: brightness(1.1); }
+.carousel-indicators {
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 8px;
+    z-index: 11;
+}
+.carousel-indicator {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.75);
+    border: 2px solid rgba(0,0,0,0.08);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+    cursor: pointer;
+}
+.carousel-indicator.active { background: var(--cor-principal, #ff6600); border-color: rgba(0,0,0,0.12); }
+
+/* Legenda sobreposta */
+.carousel-caption {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 12px 18px;
+    color: #fff;
+    font-weight: 700;
+    background: linear-gradient(180deg, rgba(0,0,0,0.0), rgba(0,0,0,0.45));
+    z-index: 3;
+    font-size: 1.02em;
+}
+
+@media (max-width: 768px) {
+    .homepage-carousel .carousel-slides { height: 200px; }
+    .carousel-slide img, .carousel-slide video { max-height: 200px; }
+    .carousel-prev, .carousel-next { width: 36px; height: 36px; }
+    .carousel-indicator { width: 12px; height: 12px; }
+}
+
+/* ===== Estilos movidos de templates/resultados.html ===== */
+.results-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+.results-header .button {
+    margin-left: 12px;
+    background-color: #007bff; /* azul bootstrap-like */
+    color: #fff !important;
+    border-color: #007bff;
+    box-shadow: 0 2px 6px rgba(0,123,255,0.18);
+}
+.results-header .button:hover {
+    background-color: #0069d9;
+    border-color: #0062cc;
+    filter: none;
+}
+.sortable-header a {
+    text-decoration: none;
+    color: inherit;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+.sortable-header .sort-arrow {
+    opacity: 0.3;
+    font-size: 1.2em;
+}
+.sortable-header.active .sort-arrow {
+    opacity: 1;
+    color: #007bff;
+}
+.product-image-thumbnail {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+}
+.results-summary {
+    margin-bottom: 1rem;
+    padding: 10px;
+    background-color: #f8f9fa;
+    border-radius: 5px;
+}
+
+/* ===== fim dos estilos movidos ===== */

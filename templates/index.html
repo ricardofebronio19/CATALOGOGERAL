@@ -38,6 +38,34 @@
                 <p>Encontre peças por código, nome, aplicação e mais.</p>
             </div>
             {% include 'partials/_search_form.html' ignore missing %}
+            <!-- Carrossel: exibe as imagens dos 4 últimos itens adicionados -->
+            {% if carousel_media %}
+            <div class="homepage-carousel" aria-label="Carrossel de lançamentos">
+                <div class="carousel-slides">
+                    {% for m in carousel_media %}
+                        <a href="{% if m.produto_id %}{{ url_for('main.detalhe_peca', id=m.produto_id) }}{% else %}#{% endif %}" class="carousel-slide{% if loop.index0 == 0 %} active{% endif %}" aria-hidden="{% if loop.index0 == 0 %}false{% else %}true{% endif %}">
+                            <div class="carousel-media">
+                            {% if m.type == 'image' %}
+                                <img src="{{ m.url }}" alt="{{ m.alt | e }}" loading="lazy">
+                            {% else %}
+                                <video src="{{ m.url }}" playsinline muted loop preload="metadata"></video>
+                            {% endif %}
+                            </div>
+                            {% if m.alt %}
+                                <div class="carousel-caption">{{ m.alt }}</div>
+                            {% endif %}
+                        </a>
+                    {% endfor %}
+                </div>
+                <button class="carousel-prev" aria-label="Anterior">‹</button>
+                <button class="carousel-next" aria-label="Próximo">›</button>
+                <div class="carousel-indicators">
+                    {% for m in carousel_media %}
+                        <button class="carousel-indicator{% if loop.index0 == 0 %} active{% endif %}" data-index="{{ loop.index0 }}" aria-label="Ir para slide {{ loop.index }}"></button>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
         </div>
     </div>
 {% endblock %}
@@ -68,6 +96,52 @@
                     if (toggle) toggle.textContent = '+';
                 }
             });
+            // Carrossel: comportamento de troca automática e controles
+            (function() {
+                const carousel = document.querySelector('.homepage-carousel');
+                if (!carousel) return;
+                const slides = Array.from(carousel.querySelectorAll('.carousel-slide'));
+                const prevBtn = carousel.querySelector('.carousel-prev');
+                const nextBtn = carousel.querySelector('.carousel-next');
+                const indicators = Array.from(carousel.querySelectorAll('.carousel-indicator'));
+                let current = slides.findIndex(s => s.classList.contains('active')) || 0;
+                let interval = null;
+                const delay = 5000;
+
+                function show(index) {
+                    if (index < 0) index = slides.length - 1;
+                    if (index >= slides.length) index = 0;
+                    slides.forEach((s, i) => {
+                        s.classList.toggle('active', i === index);
+                        s.setAttribute('aria-hidden', i === index ? 'false' : 'true');
+                        if (indicators[i]) indicators[i].classList.toggle('active', i === index);
+                        // pause/play videos
+                        const vid = s.querySelector('video');
+                        if (vid) {
+                            if (i === index) { try { vid.play(); } catch(e){} } else { try { vid.pause(); vid.currentTime = 0; } catch(e){} }
+                        }
+                    });
+                    current = index;
+                }
+
+                function next() { show(current + 1); }
+                function prev() { show(current - 1); }
+
+                if (nextBtn) nextBtn.addEventListener('click', () => { next(); resetInterval(); });
+                if (prevBtn) prevBtn.addEventListener('click', () => { prev(); resetInterval(); });
+
+                indicators.forEach(btn => btn.addEventListener('click', (e) => { const idx = parseInt(btn.dataset.index || '0', 10); show(idx); resetInterval(); }));
+
+                function startInterval() { interval = setInterval(next, delay); }
+                function resetInterval() { if (interval) clearInterval(interval); startInterval(); }
+
+                carousel.addEventListener('mouseenter', () => { if (interval) clearInterval(interval); });
+                carousel.addEventListener('mouseleave', () => { resetInterval(); });
+
+                // Inicializa
+                show(current || 0);
+                startInterval();
+            })();
         });
     </script>
 {% endblock %}
