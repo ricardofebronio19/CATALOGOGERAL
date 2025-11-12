@@ -1,6 +1,6 @@
 {
-  "latest_version": "1.8.1",
-  "download_url": "https://github.com/ricardofebronio19/CATALOGOGERAL/releases/download/v1.8.1/instalador_CatalogoDePecas_v1.8.1.exe",
-  "release_notes": "v1.8.1 — Melhorias visuais e ajustes de interface.\n\n- UI: Alinhamento corrigido das colunas Ano e Motor na tela de detalhes do produto.\n- UI: Padronização completa de todos os botões de formulário (10 botões ajustados).\n- UI: Largura otimizada das colunas de imagem nas tabelas (Resultados e Similares).\n- CSS: Estilos consolidados e organizados (vertical-list, tooltips movidos para CSS global).\n- UX: Melhor aproveitamento de espaço e consistência visual em toda aplicação.",
+  "latest_version": "1.8.2",
+  "download_url": "https://github.com/ricardofebronio19/CATALOGOGERAL/releases/download/v1.8.2/instalador_CatalogoDePecas_v1.8.2.exe",
+  "release_notes": "v1.8.2 — Correção crítica do sistema de backup.\n\n- CORREÇÃO: Sistema de backup agora salva na pasta Downloads (estava salvando em TEMP)\n- CORREÇÃO: Adicionado decorador @login_required na rota de backup\n- MELHORIA: Interface de backup reformulada em 2 colunas com ícones\n- MELHORIA: Feedback visual detalhado durante criação de backup\n- MELHORIA: Logs completos para debug do processo de backup\n- MELHORIA: Mensagem clara mostrando onde o arquivo foi salvo\n- MELHORIA: Contador de arquivos incluídos no backup",
   "size_mb": "28"
 }

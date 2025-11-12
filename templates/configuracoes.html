@@ -75,18 +75,55 @@
     <!-- Seção de Backup e Restauração -->
     <div class="config-section">
         <h2>Backup e Restauração</h2>
-        <div style="display: flex; gap: 20px; align-items: center;">
-            <div>
+        <div style="display: flex; gap: 20px; align-items: flex-start;">
+            <div style="flex: 1;">
+                <h3 style="margin-top: 0;">Criar Backup</h3>
                 <p>Crie uma cópia de segurança de todo o catálogo, incluindo produtos, imagens e configurações.</p>
-                <a href="{{ url_for('admin.backup') }}" class="button">Fazer Backup Agora</a>
+                <p style="font-size: 0.9em; color: #666; margin-bottom: 15px;">
+                    📁 O arquivo será salvo na sua pasta <strong>Downloads</strong>
+                </p>
+                <a href="{{ url_for('admin.backup') }}" class="button" id="btn-backup" onclick="showBackupLoading(event)">
+                    💾 Fazer Backup Agora
+                </a>
+                <div id="backup-loading" style="display: none; margin-top: 10px;">
+                    <span style="color: #007bff; font-weight: bold;">⏳ Criando backup, aguarde...</span>
+                    <br>
+                    <span style="color: #666; font-size: 0.9em;">Isso pode levar alguns segundos dependendo do tamanho do catálogo.</span>
+                </div>
             </div>
-            <form action="{{ url_for('admin.restaurar') }}" method="POST" enctype="multipart/form-data" onsubmit="return confirm('ATENÇÃO: A restauração substituirá TODOS os dados atuais. Esta ação não pode ser desfeita. Deseja continuar?');">
-                <p>Restaure o catálogo a partir de um arquivo de backup (.zip).</p>
-                <input type="file" name="backup_file" accept=".zip" required>
-                <button type="submit" class="button" style="background-color: #dc3545;">Restaurar Backup</button>
-            </form>
+            <div style="flex: 1; border-left: 2px solid #ddd; padding-left: 20px;">
+                <h3 style="margin-top: 0;">Restaurar Backup</h3>
+                <form action="{{ url_for('admin.restaurar') }}" method="POST" enctype="multipart/form-data" onsubmit="return confirm('ATENÇÃO: A restauração substituirá TODOS os dados atuais. Esta ação não pode ser desfeita. Deseja continuar?');">
+                    <p>Restaure o catálogo a partir de um arquivo de backup (.zip).</p>
+                    <input type="file" name="backup_file" accept=".zip" required style="margin-bottom: 10px;">
+                    <button type="submit" class="button" style="background-color: #dc3545;">🔄 Restaurar Backup</button>
+                </form>
+            </div>
         </div>
     </div>
+
+<script>
+function showBackupLoading(event) {
+    const btn = document.getElementById('btn-backup');
+    const loading = document.getElementById('backup-loading');
+    
+    // Mostra indicador de loading
+    btn.style.opacity = '0.6';
+    btn.style.pointerEvents = 'none';
+    btn.textContent = '⏳ Criando backup...';
+    loading.style.display = 'block';
+    
+    // Permite que o link funcione normalmente
+    // O download vai iniciar e depois esconder o loading
+    setTimeout(() => {
+        btn.style.opacity = '1';
+        btn.style.pointerEvents = 'auto';
+        btn.textContent = '💾 Fazer Backup Agora';
+        loading.style.display = 'none';
+    }, 5000);
+}
+</script>
+
 </div>
 
 <style>

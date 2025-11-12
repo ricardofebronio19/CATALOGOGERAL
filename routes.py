@@ -1144,16 +1144,26 @@ def tarefa_vincular_imagens():
 
 
 @admin_bp.route("/backup")
+@login_required
 def backup():
+    """Cria um backup completo do banco de dados e arquivos da aplicação."""
+    print("[BACKUP] Iniciando processo de backup...")
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    backup_filename = f"backup_catalogo_{timestamp}"
-    temp_dir = os.getenv("TEMP", "/tmp")
-    backup_zip_path = os.path.join(temp_dir, f"{backup_filename}.zip")
+    backup_filename = f"backup_catalogo_{timestamp}.zip"
+    
+    # Usa a pasta Downloads do usuário
+    downloads_path = os.path.join(os.path.expanduser("~"), "Downloads")
+    backup_zip_path = os.path.join(downloads_path, backup_filename)
     source_db_path = os.path.join(APP_DATA_PATH, "catalogo.db")
+
+    print(f"[BACKUP] Caminho do backup: {backup_zip_path}")
+    print(f"[BACKUP] Caminho do DB: {source_db_path}")
 
     try:
         with zipfile.ZipFile(backup_zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
+            # Backup do banco de dados como SQL dump
             if os.path.exists(source_db_path):
+                print("[BACKUP] Fazendo dump do banco de dados...")
                 import sqlite3
 
                 bck_conn = sqlite3.connect(":memory:")
@@ -1163,7 +1173,12 @@ def backup():
                 zf.writestr("catalogo.db.sql", db_dump.encode("utf-8"))
                 src_conn.close()
                 bck_conn.close()
+                print("[BACKUP] ✓ Dump do banco concluído")
+            else:
+                print(f"[BACKUP] ⚠ Banco de dados não encontrado em: {source_db_path}")
 
+            # Adiciona todos os outros arquivos (uploads, configs, etc)
+            file_count = 0
             for root, _, files in os.walk(APP_DATA_PATH):
                 for file in files:
                     if file.startswith("catalogo.db"):
@@ -1171,14 +1186,23 @@ def backup():
                     file_path = os.path.join(root, file)
                     arcname = os.path.relpath(file_path, APP_DATA_PATH)
                     zf.write(file_path, arcname)
+                    file_count += 1
+            
+            print(f"[BACKUP] ✓ {file_count} arquivos adicionados ao backup")
 
+        print(f"[BACKUP] ✓ Backup criado com sucesso: {backup_zip_path}")
+        
+        # Envia o arquivo para download
+        flash(f"Backup criado com sucesso! Arquivo salvo em: {backup_zip_path}", "success")
         return send_from_directory(
-            temp_dir, f"{backup_filename}.zip", as_attachment=True
+            downloads_path, backup_filename, as_attachment=True
         )
 
     except Exception as e:
+        print(f"[BACKUP] ✗ ERRO: {e}")
+        import traceback
+        traceback.print_exc()
         flash(f"Erro ao criar o backup: {e}", "danger")
-        print(f"Erro detalhado no backup: {e}")
         return redirect(url_for("admin.configuracoes"))
 
 
