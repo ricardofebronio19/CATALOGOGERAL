@@ -110,7 +110,7 @@
         
         <!-- Banner de Atualização Melhorado -->
         {% if is_admin and update_info %}
-        <div class="update-banner">
+        <div class="update-banner" id="updateBanner">
             <div class="update-content">
                 <div class="update-icon">🔄</div>
                 <div class="update-info">
@@ -124,10 +124,30 @@
                     <form action="{{ url_for('admin.atualizar_aplicacao') }}" method="POST" style="display: inline;">
                         <button type="submit" class="btn-update">Baixar e Instalar</button>
                     </form>
-                    <button onclick="this.parentElement.parentElement.parentElement.style.display='none'" class="btn-dismiss">×</button>
+                    <button onclick="ignoreUpdate()" class="btn-ignore" title="Ignorar até reiniciar">Ignorar</button>
+                    <button onclick="closeUpdate()" class="btn-dismiss" title="Fechar">×</button>
                 </div>
             </div>
         </div>
+        <script>
+            function closeUpdate() {
+                document.getElementById('updateBanner').style.display = 'none';
+            }
+            
+            function ignoreUpdate() {
+                // Salva no sessionStorage para ignorar até reiniciar
+                sessionStorage.setItem('ignoreUpdate_{{ update_info.latest_version }}', 'true');
+                closeUpdate();
+            }
+            
+            // Verifica se usuário já ignorou esta versão nesta sessão
+            (function() {
+                var banner = document.getElementById('updateBanner');
+                if (banner && sessionStorage.getItem('ignoreUpdate_{{ update_info.latest_version }}') === 'true') {
+                    banner.style.display = 'none';
+                }
+            })();
+        </script>
         {% endif %}
     </div>
 

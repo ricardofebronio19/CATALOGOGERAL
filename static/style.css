@@ -1057,6 +1057,22 @@ mark {
     color: #fff;
 }
 
+.btn-ignore {
+    background-color: transparent;
+    color: #fff;
+    border: 2px solid rgba(255,255,255,0.7);
+    padding: 10px 20px;
+    border-radius: 5px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-ignore:hover {
+    background-color: rgba(255,255,255,0.1);
+    border-color: #fff;
+}
+
 .btn-dismiss {
     background: none;
     border: 2px solid rgba(255,255,255,0.5);
