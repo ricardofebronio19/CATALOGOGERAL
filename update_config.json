@@ -1,6 +1,6 @@
 {
-  "latest_version": "1.7.4",
-  "download_url": "https://github.com/ricardofebronio19/CATALOGOGERAL/releases/download/v1.7.4/instalador_CatalogoDePecas_v1.7.4.exe",
-  "release_notes": "v1.7.4 — Correções e melhorias\n\n- Corrigido comportamento do executável empacotado para aceitar subcomandos (import-csv, link-images) em vários cenários de instalação.\n- Tratamento robusto de encoding para evitar falhas ao imprimir caracteres Unicode/emoji no Windows.\n- UI: carrossel na home com os 4 últimos itens, remoção e persistência de sugestões de similares, melhorias na página de detalhes e ajustes de layout.\n- Pequenas correções de CSS e comportamento JS, além de melhorias internas na lógica de importação/vinculação e scripts de build.",
-  "size_mb": "36"
+  "latest_version": "1.8.1",
+  "download_url": "https://github.com/ricardofebronio19/CATALOGOGERAL/releases/download/v1.8.1/instalador_CatalogoDePecas_v1.8.1.exe",
+  "release_notes": "v1.8.1 — Melhorias visuais e ajustes de interface.\n\n- UI: Alinhamento corrigido das colunas Ano e Motor na tela de detalhes do produto.\n- UI: Padronização completa de todos os botões de formulário (10 botões ajustados).\n- UI: Largura otimizada das colunas de imagem nas tabelas (Resultados e Similares).\n- CSS: Estilos consolidados e organizados (vertical-list, tooltips movidos para CSS global).\n- UX: Melhor aproveitamento de espaço e consistência visual em toda aplicação.",
+  "size_mb": "28"
 }

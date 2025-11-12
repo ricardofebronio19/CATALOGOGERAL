@@ -23,7 +23,7 @@ Parâmetros:
 #>
 
 param(
-    [string]$InstallerPath = ".\Output\instalador_CatalogoDePecas_v1.7.2.exe",
+    [string]$InstallerPath = ".\Output\instalador_CatalogoDePecas_v1.7.4.exe",
     [Parameter(Mandatory=$true)] [string[]]$Targets,
     [System.Management.Automation.PSCredential]$Credential,
     [switch]$UseCopy,

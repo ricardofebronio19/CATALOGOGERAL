@@ -364,6 +364,28 @@ main.container { padding-bottom: 30px; }
     font-size: 0.88em; /* mantém fonte levemente menor para economia de espaço */
 }
 
+/* Definir larguras específicas para colunas da tabela de aplicações */
+.application-table th:nth-child(1),
+.application-table td:nth-child(1) {
+    width: 35%; /* Veículo */
+}
+
+.application-table th:nth-child(2),
+.application-table td:nth-child(2) {
+    width: 15%; /* Ano */
+    text-align: center;
+}
+
+.application-table th:nth-child(3),
+.application-table td:nth-child(3) {
+    width: 20%; /* Motor */
+}
+
+.application-table th:nth-child(4),
+.application-table td:nth-child(4) {
+    width: 30%; /* Configuração */
+}
+
 .application-table th {
     background-color: #f9f9f9;
     font-weight: bold;
@@ -448,6 +470,34 @@ main.container { padding-bottom: 30px; }
     background-color: #f0f8ff; /* Leve destaque ao passar o mouse */
 }
 
+/* Larguras específicas para tabela de resultados (página de busca) */
+.results-table th:nth-child(1),
+.results-table td:nth-child(1) {
+    width: 68px !important; /* Imagem (60px + padding) */
+    padding: 4px !important;
+    text-align: center;
+}
+
+.results-table th:nth-child(2),
+.results-table td:nth-child(2) {
+    width: 12% !important; /* Código */
+}
+
+.results-table th:nth-child(3),
+.results-table td:nth-child(3) {
+    width: auto !important; /* Nome - usa espaço disponível */
+}
+
+.results-table th:nth-child(4),
+.results-table td:nth-child(4) {
+    width: 15% !important; /* Fornecedor */
+}
+
+.results-table th:nth-child(5),
+.results-table td:nth-child(5) {
+    width: 25% !important; /* Aplicações */
+}
+
 .add-application-btn {
     display: inline-block;
     background-color: #28a745; /* Verde para adicionar */
@@ -465,6 +515,91 @@ main.container { padding-bottom: 30px; }
 /* Estilo para a seção de similares */
 .similar-section {
     margin-top: 20px;
+}
+
+/* Lista vertical compacta para Veículo / Ano / Motor nas colunas de similares */
+.vertical-list { 
+    display: flex; 
+    flex-direction: column; 
+    gap: 2px; 
+    position: relative; 
+}
+
+.vertical-list div { 
+    line-height: 1.25; 
+    font-size: 0.95em; 
+}
+
+/* Tooltip customizado (multi-line) usando elemento .custom-tooltip dentro de .vertical-list */
+.vertical-list .custom-tooltip {
+    position: absolute;
+    left: 0;
+    top: calc(100% + 8px);
+    z-index: 3000;
+    display: none;
+    background: rgba(30,30,30,0.95);
+    color: #fff;
+    padding: 8px 10px;
+    border-radius: 6px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.35);
+    font-size: 0.9em;
+    line-height: 1.2em;
+    max-width: 360px;
+    word-wrap: break-word;
+    white-space: normal;
+}
+
+.vertical-list:hover .custom-tooltip { 
+    display: block; 
+}
+
+.vertical-list .custom-tooltip div { 
+    padding: 2px 0; 
+}
+
+.more-apps { 
+    font-style: italic; 
+    color: #888; 
+    font-size: 0.9em; 
+}
+
+/* Larguras específicas para tabela de similares (7 colunas) */
+.similar-section .application-table th:nth-child(1),
+.similar-section .application-table td:nth-child(1) {
+    width: 68px; /* Imagem (60px + padding) */
+    padding: 4px;
+}
+
+.similar-section .application-table th:nth-child(2),
+.similar-section .application-table td:nth-child(2) {
+    width: 20%; /* Nome */
+}
+
+.similar-section .application-table th:nth-child(3),
+.similar-section .application-table td:nth-child(3) {
+    width: 12%; /* Código */
+}
+
+.similar-section .application-table th:nth-child(4),
+.similar-section .application-table td:nth-child(4) {
+    width: 18%; /* Veículo */
+}
+
+.similar-section .application-table th:nth-child(5),
+.similar-section .application-table td:nth-child(5) {
+    width: 12%; /* Ano */
+    text-align: center;
+}
+
+.similar-section .application-table th:nth-child(6),
+.similar-section .application-table td:nth-child(6) {
+    width: 15%; /* Motor */
+}
+
+.similar-section .application-table th:nth-child(7),
+.similar-section .application-table td:nth-child(7) {
+    width: 120px; /* Ações */
+    text-align: center;
 }
 
 /* --- Estilos para o Modal da Imagem --- */

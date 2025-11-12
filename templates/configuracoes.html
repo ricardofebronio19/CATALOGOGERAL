@@ -23,7 +23,7 @@
                 <p style="margin-top: 10px;">Logo atual: <img src="{{ url_for('uploaded_file', filename=config.logo_path) }}" alt="Logo Atual" style="max-height: 40px; vertical-align: middle; background: #f0f0f0; padding: 5px;"></p>
                 {% endif %}
             </div>
-            <button type="submit">Salvar Aparência</button>
+            <button type="submit" class="button">Salvar Aparência</button>
         </form>
     </div>
 
@@ -35,7 +35,40 @@
                 <label for="csv_file">Importar Produtos de CSV:</label>
                 <input type="file" id="csv_file" name="csv_file" accept=".csv" required>
             </div>
-            <button type="submit">Importar CSV</button>
+            <button type="submit" class="button">Importar CSV</button>
+        </form>
+    </div>
+
+    <!-- Seção de Ícones das Montadoras (compacta com dropdown) -->
+    <div class="config-section">
+        <h2>Ícones das Montadoras</h2>
+        <form id="montadora-icon-form" action="{{ url_for('admin.configuracoes') }}" method="POST" enctype="multipart/form-data" class="search-section" style="max-width: 600px; gap: 16px;">
+            <p>Selecione uma montadora e envie um ícone personalizado (PNG/JPG/WebP). Se não houver ícone, será usado o padrão em <code>static/images/logos/</code>.</p>
+
+            <div class="search-field" style="width:100%;">
+                <label for="montadora-select">Montadora:</label>
+                <select id="montadora-select" style="min-width: 260px;">
+                    {% for m in montadoras %}
+                        <option value="{{ m }}">{{ m }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="search-field" style="display:flex; align-items:center; gap:16px;">
+                <div>
+                    <div style="font-weight:600; margin-bottom:6px;">Ícone atual</div>
+                    <img id="montadora-icon-preview" src="" alt="Prévia do ícone" style="height:36px; background:#f0f0f0; padding:6px; border-radius:6px; max-width: 200px; object-fit: contain;">
+                </div>
+                <div style="flex:1;">
+                    <div style="font-weight:600; margin-bottom:6px;">Novo arquivo</div>
+                    <input type="file" id="montadora-icon-file" name="" accept="image/*">
+                    <small style="display:block; color:#666;">O arquivo será salvo como <code>icon_&lt;slug&gt;.&lt;ext&gt;</code> em uploads.</small>
+                </div>
+            </div>
+
+            <div>
+                <button type="submit" class="button">Salvar Ícone</button>
+            </div>
         </form>
     </div>
 
@@ -97,5 +130,43 @@
 {% block scripts %}
 {{ super() }}
 <script>
+    (function(){
+        // Dados vindos do backend
+        const iconsMap = {{ (config.montadora_icons or {}) | tojson | safe }};
+        const montadoras = {{ (montadoras or []) | tojson | safe }};
+
+        // Bases para montar URLs
+        const uploadsBase = "{{ url_for('uploaded_file', filename='DUMMY') }}".replace('DUMMY','');
+        const staticBase = "{{ url_for('static', filename='images/logos/') }}";
+
+        function toSlug(name){
+            if(!name) return '';
+            return name.toLowerCase().replace(/\s+/g,'-').replace(/--+/g,'-');
+        }
+
+        function updatePreviewAndInput(){
+            const select = document.getElementById('montadora-select');
+            const fileInput = document.getElementById('montadora-icon-file');
+            const img = document.getElementById('montadora-icon-preview');
+            if(!select || !fileInput || !img) return;
+            const nome = select.value || '';
+            const slug = toSlug(nome);
+            // Atualiza o name do input de arquivo conforme o backend espera
+            fileInput.setAttribute('name', 'icon_' + slug);
+            // Determina a URL da prévia: customizada se existir, senão padrão
+            const custom = iconsMap && iconsMap[slug];
+            const src = custom ? (uploadsBase + custom) : (staticBase + slug + '.png');
+            img.src = src;
+            img.onerror = function(){ this.style.display='none'; };
+            img.onload = function(){ this.style.display='inline-block'; };
+        }
+
+        document.addEventListener('DOMContentLoaded', function(){
+            if ((montadoras || []).length === 0) return;
+            const select = document.getElementById('montadora-select');
+            updatePreviewAndInput();
+            if (select) select.addEventListener('change', updatePreviewAndInput);
+        });
+    })();
 </script>
 {% endblock %}

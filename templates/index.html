@@ -12,10 +12,14 @@
                     <li class="montadora-item">
                         <div class="montadora-header">
                             <a href="{{ url_for('main.buscar', montadora=montadora) }}">
-                                {#- Gera um nome de arquivo seguro para o logo:
-                                    - Converte para minúsculas (ex: "Land Rover" -> "land rover")
-                                    - Substitui espaços e hífens por um único hífen (ex: "land rover", "mercedes-benz" -> "land-rover", "mercedes-benz") -#}
-                                <img src="{{ url_for('static', filename='images/logos/' + montadora.lower().replace(' ', '-').replace('--', '-') + '.png') }}" alt="Logo {{ montadora }}" class="montadora-logo" onerror="this.style.display='none'">
+                                {# Determina o slug e verifica ícone customizado no config #}
+                                {% set slug = montadora.lower().replace(' ', '-').replace('--', '-') %}
+                                {% set custom_icon = (config_aparencia.montadora_icons.get(slug) if config_aparencia and config_aparencia.montadora_icons else None) %}
+                                {% if custom_icon %}
+                                    <img src="{{ url_for('uploaded_file', filename=custom_icon) }}" alt="Logo {{ montadora }}" class="montadora-logo">
+                                {% else %}
+                                    <img src="{{ url_for('static', filename='images/logos/' + slug + '.png') }}" alt="Logo {{ montadora }}" class="montadora-logo" onerror="this.style.display='none'">
+                                {% endif %}
                                 <span>{{ montadora }}</span>
                             </a>
                             {% if veiculos %}<span class="toggle-veiculos">+</span>{% endif %}
@@ -142,6 +146,17 @@
                 show(current || 0);
                 startInterval();
             })();
+
+            // Garante que clicks em links de veículo sempre naveguem (evita interferência de outros handlers)
+            document.querySelectorAll('.veiculo-link').forEach(a => {
+                a.addEventListener('click', function(e) {
+                    // Respeita abertura em nova aba/janela pelo usuário
+                    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
+                    e.stopPropagation();
+                    e.preventDefault();
+                    window.location.href = this.href;
+                });
+            });
         });
     </script>
 {% endblock %}

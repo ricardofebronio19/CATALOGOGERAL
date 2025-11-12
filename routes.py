@@ -36,8 +36,9 @@ from core_utils import (
     _parse_year_range,
     _ranges_overlap,
     allowed_file,
+    _normalize_for_search,
 )
-from image_utils import download_image_from_url
+from utils.image_utils import download_image_from_url
 from models import Aplicacao, ImagemProduto, Produto, User, SugestaoIgnorada
 
 TASK_STATUS = {"status": "Ocioso", "output": ""}
@@ -167,15 +168,19 @@ def buscar():
 
         for produto in produtos_paginados:
             # Filtra as aplicações do produto para mostrar apenas as que batem com a busca
-            aplicacoes_relevantes = [
-                app
-                for app in produto.aplicacoes
-                if (not montadora or montadora.lower() in app.montadora.lower())
-                and (
-                    not aplicacao_termo
-                    or aplicacao_termo.lower() in (app.veiculo or "").lower()
-                )
-            ]
+            aplicacoes_relevantes = []
+            for app in produto.aplicacoes:
+                # Normaliza comparações para ignorar acentos e diferenças de caixa
+                monta_ok = True
+                if montadora:
+                    monta_ok = _normalize_for_search(montadora) in _normalize_for_search(app.montadora or "")
+
+                aplic_ok = True
+                if aplicacao_termo:
+                    aplic_ok = _normalize_for_search(aplicacao_termo) in _normalize_for_search(app.veiculo or "") or _normalize_for_search(aplicacao_termo) in _normalize_for_search(app.motor or "")
+
+                if monta_ok and aplic_ok:
+                    aplicacoes_relevantes.append(app)
             for aplicacao in aplicacoes_relevantes:
                 chave_agrupamento = f"{aplicacao.montadora} {aplicacao.veiculo} {aplicacao.ano or ''}".strip()
                 if produto not in resultados_agrupados[chave_agrupamento]:
@@ -187,6 +192,20 @@ def buscar():
             page=page, per_page=PER_PAGE, error_out=False
         )
 
+    # Prepare search_args for template
+    search_args = {
+        'termo': termo,
+        'codigo_produto': codigo_produto,
+        'montadora': montadora,
+        'aplicacao': aplicacao_termo,
+        'grupo': grupo,
+        'medidas': medidas,
+        'sort_by': sort_by,
+        'sort_dir': sort_dir
+    }
+    # Remove empty parameters
+    search_args = {k: v for k, v in search_args.items() if v}
+
     return render_template(
         "resultados.html",
         pagination=pagination,
@@ -194,6 +213,8 @@ def buscar():
         sort_by=sort_by,
         sort_dir=sort_dir,
         resultados_agrupados=resultados_agrupados,
+        search_args=search_args,
+        is_admin=current_user.is_authenticated and hasattr(current_user, 'eh_admin') and current_user.eh_admin,
         endpoint=request.endpoint,  # Passa o endpoint atual para o template
     )
 
@@ -272,38 +293,41 @@ def detalhe_peca(id):
     for p in sugestoes_por_codigo_produto:
         sugestoes_similares_dict[p.id] = p
 
+    # Otimização: Em vez de fazer uma query por aplicação, fazemos uma única query
+    # para todos os veículos relevantes e depois filtramos em Python.
     if produto.grupo and produto.aplicacoes:
-        for app_principal in produto.aplicacoes:
-            if not app_principal.veiculo:
-                continue
-            range_principal = _parse_year_range(app_principal.ano)
-            if range_principal == (-1, -1):
-                continue
+        # 1. Coleta todos os veículos e seus intervalos de ano do produto principal
+        veiculos_principais = {
+            app.veiculo: _parse_year_range(app.ano)
+            for app in produto.aplicacoes
+            if app.veiculo and _parse_year_range(app.ano) != (-1, -1)
+        }
 
-            candidatos = (
-                Produto.query.filter(
-                    Produto.id.notin_(
-                        ids_ja_relacionados | set(sugestoes_similares_dict.keys())
-                    ),
+        if veiculos_principais:
+            # 2. Busca todos os candidatos de uma só vez
+            candidatos_gerais = (
+                Produto.query
+                .filter(
+                    Produto.id.notin_(ids_ja_relacionados | set(sugestoes_similares_dict.keys())),
                     Produto.grupo == produto.grupo,
-                    Produto.aplicacoes.any(Aplicacao.veiculo == app_principal.veiculo),
-                    Produto.id.notin_(ignored_ids) if ignored_ids else True,
-                )
-                .options(
-                    selectinload(Produto.aplicacoes), selectinload(Produto.imagens)
-                )
-                .all()
+                    Produto.aplicacoes.any(Aplicacao.veiculo.in_(veiculos_principais.keys())),
+                    Produto.id.notin_(ignored_ids) if ignored_ids else True
+                ).options(
+                    selectinload(Produto.aplicacoes),
+                    selectinload(Produto.imagens)
+                ).all()
             )
 
-            for candidato in candidatos:
+            # 3. Processa os candidatos em memória para verificar a sobreposição de anos
+            for candidato in candidatos_gerais:
                 for app_candidata in candidato.aplicacoes:
-                    if app_candidata.veiculo == app_principal.veiculo:
+                    # Verifica se o veículo do candidato está na lista de veículos do produto principal
+                    if app_candidata.veiculo in veiculos_principais:
+                        range_principal = veiculos_principais[app_candidata.veiculo]
                         range_candidato = _parse_year_range(app_candidata.ano)
-                        if range_candidato != (-1, -1) and _ranges_overlap(
-                            range_principal, range_candidato
-                        ):
+                        if range_candidato != (-1, -1) and _ranges_overlap(range_principal, range_candidato):
                             sugestoes_similares_dict[candidato.id] = candidato
-                            break
+                            break  # Adiciona o candidato uma vez e vai para o próximo
 
     sugestoes_similares = list(sugestoes_similares_dict.values())
 
@@ -962,8 +986,10 @@ def configuracoes():
     config = carregar_config_aparencia()
 
     if request.method == "POST":
+        # Cor principal
         config["cor_principal"] = request.form.get("cor_principal", "#ff6600")
 
+        # Logo principal do sistema
         if "logo" in request.files:
             file = request.files["logo"]
             if file and file.filename != "" and allowed_file(file.filename):
@@ -971,11 +997,39 @@ def configuracoes():
                 file.save(os.path.join(APP_DATA_PATH, "uploads", logo_filename))
                 config["logo_path"] = logo_filename
 
+        # Upload de ícones por montadora (inputs com nome: icon_<slug>)
+        # Slug padrão: montadora em minúsculas, espaços -> '-', remover duplos '--'
+        updated_icons = config.get("montadora_icons", {})
+        for field_name, storage in request.files.items():
+            if not field_name.startswith("icon_"):
+                continue
+            file = storage
+            if not file or file.filename == "" or not allowed_file(file.filename):
+                continue
+            slug = field_name[len("icon_"):].strip().lower()
+            # Garante um nome de arquivo consistente: icon_<slug>.<ext>
+            _, ext = os.path.splitext(file.filename)
+            safe_name = f"icon_{slug}{ext.lower()}"
+            file.save(os.path.join(APP_DATA_PATH, "uploads", safe_name))
+            updated_icons[slug] = safe_name
+
+        config["montadora_icons"] = updated_icons
+
         salvar_config_aparencia(config)
-        flash("Configurações de aparência salvas com sucesso!", "success")
+        flash("Configurações salvas com sucesso!", "success")
         return redirect(url_for("admin.configuracoes"))
 
-    return render_template("configuracoes.html", config=config)
+    # Montadoras distintas do banco para exibir na UI
+    montadoras = (
+        db.session.query(Aplicacao.montadora)
+        .distinct()
+        .filter(Aplicacao.montadora.isnot(None), Aplicacao.montadora != "")
+        .order_by(Aplicacao.montadora)
+        .all()
+    )
+    montadoras = [m[0] for m in montadoras]
+
+    return render_template("configuracoes.html", config=config, montadoras=montadoras)
 
 
 @admin_bp.route("/tarefas", methods=["GET"])

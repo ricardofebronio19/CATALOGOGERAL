@@ -23,18 +23,46 @@ def _normalize_for_search(text: str) -> str:
 def _apply_db_normalization(column):
     """Aplica funções SQL para normalizar uma coluna para busca (case, acentos, pontuação)."""
     normalized_column = func.lower(column)
+    # Mapa ampliado de caracteres acentuados para suportar vários idiomas
     accent_map = {
+        # a
         "á": "a",
-        "é": "e",
-        "í": "i",
-        "ó": "o",
-        "ú": "u",
-        "â": "a",
-        "ê": "e",
-        "ô": "o",
         "à": "a",
-        "ü": "u",
+        "â": "a",
+        "ã": "a",
+        "ä": "a",
+        "å": "a",
+        "æ": "ae",
+        # c
         "ç": "c",
+        # e
+        "é": "e",
+        "è": "e",
+        "ê": "e",
+        "ë": "e",
+        # i
+        "í": "i",
+        "ì": "i",
+        "î": "i",
+        "ï": "i",
+        # o
+        "ó": "o",
+        "ò": "o",
+        "ô": "o",
+        "õ": "o",
+        "ö": "o",
+        "ø": "o",
+        "œ": "oe",
+        # u
+        "ú": "u",
+        "ù": "u",
+        "û": "u",
+        "ü": "u",
+        # n
+        "ñ": "n",
+        # y
+        "ý": "y",
+        "ÿ": "y",
     }
     for accented, unaccented in accent_map.items():
         normalized_column = func.replace(normalized_column, accented, unaccented)
@@ -58,51 +86,45 @@ def _build_search_query(
             Aplicacao, Produto.id == Aplicacao.produto_id, isouter=True
         ).distinct()
         for palavra in termo.strip().split():
-            palavra_normalizada = _normalize_for_search(palavra)
-            if not palavra_normalizada:
-                continue
+            # Usa busca simples com ilike para evitar SQL muito complexo
             query = query.filter(
                 db.or_(
-                    _apply_db_normalization(Produto.nome).contains(palavra_normalizada),
-                    _apply_db_normalization(Produto.codigo).contains(
-                        palavra_normalizada
-                    ),
-                    _apply_db_normalization(Produto.fornecedor).contains(
-                        palavra_normalizada
-                    ),
-                    _apply_db_normalization(Aplicacao.veiculo).contains(
-                        palavra_normalizada
-                    ),
-                    _apply_db_normalization(Aplicacao.motor).contains(
-                        palavra_normalizada
-                    ),
-                    _apply_db_normalization(Produto.conversoes).contains(
-                        palavra_normalizada
-                    ),
+                    Produto.nome.ilike(f"%{palavra}%"),
+                    Produto.codigo.ilike(f"%{palavra}%"),
+                    Produto.fornecedor.ilike(f"%{palavra}%"),
+                    Aplicacao.veiculo.ilike(f"%{palavra}%"),
+                    Aplicacao.motor.ilike(f"%{palavra}%"),
+                    Produto.conversoes.ilike(f"%{palavra}%"),
                 )
             )
 
     if codigo_produto:
-        codigo_normalizado = _normalize_for_search(codigo_produto)
-        query = query.filter(
-            _apply_db_normalization(Produto.codigo).contains(codigo_normalizado)
-        )
+        query = query.filter(Produto.codigo.ilike(f"%{codigo_produto}%"))
 
     if grupo:
         query = query.filter(Produto.grupo.ilike(f"%{grupo}%"))
 
     if medidas:
-        medidas_normalizadas = _normalize_for_search(medidas)
-        query = query.filter(
-            _apply_db_normalization(Produto.medidas).contains(medidas_normalizadas)
-        )
+        query = query.filter(Produto.medidas.ilike(f"%{medidas}%"))
 
     needs_join = not termo and (montadora or aplicacao_termo)
     if needs_join:
         query = query.join(Aplicacao, Produto.id == Aplicacao.produto_id)
 
     if montadora:
-        query = query.filter(Aplicacao.montadora.ilike(f"%{montadora}%"))
+        # Se o usuário passou também uma aplicação (veículo), preferimos
+        # filtrar por aplicação no SQL e aplicar a filtragem por montadora no
+        # nível da aplicação (Python). Isso contorna limitações de LIKE/NOCASE
+        # do SQLite com caracteres Unicode/diacríticos.
+        if aplicacao_termo:
+            # Não aplicar filtro de montadora no SQL, deixamos para o
+            # pós-processamento em `routes.buscar` onde faremos uma
+            # comparação normalizada (sem acentos).
+            pass
+        else:
+            # A busca com `ilike` é geralmente suficiente para a maioria dos casos
+            # e funciona bem com a normalização de caracteres do SQLite.
+            query = query.filter(Aplicacao.montadora.ilike(f"%{montadora}%"))
 
     if aplicacao_termo:
         aplicacao_like = f"%{aplicacao_termo}%"

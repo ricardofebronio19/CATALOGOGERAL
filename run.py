@@ -244,17 +244,20 @@ def main():
     subparsers = parser.add_subparsers(dest="command", help="Comandos disponíveis")
 
     # Comando 'run' (padrão)
-    parser.set_defaults(host="0.0.0.0", port=8000, no_browser=False)
     run_parser = subparsers.add_parser(
         "run", help="Inicia o servidor da aplicação (comando padrão)."
     )
     run_parser.add_argument(
         "--host",
         type=str,
+        default="0.0.0.0",
         help="O host a ser usado pelo servidor (ex: 0.0.0.0 para acesso na rede).",
     )
     run_parser.add_argument(
-        "--port", type=int, help="A porta a ser usada pelo servidor."
+        "--port", 
+        type=int, 
+        default=8000,
+        help="A porta a ser usada pelo servidor."
     )
     run_parser.add_argument(
         "--no-browser",
@@ -285,7 +288,7 @@ def main():
     if args.command == "reset-db":
         reset_database()
     elif args.command == "link-images":
-        from vincular_imagens import vincular_imagens_por_codigo
+        from utils.image_utils import vincular_imagens_por_codigo
 
         print("Iniciando a vinculação de imagens...")
         vincular_imagens_por_codigo(app)
@@ -297,13 +300,18 @@ def main():
         importar_pecas_de_csv(app, args.filepath)
         print("Processo de importação de CSV concluído.")
     else:  # 'run' é o comando padrão
+        # Define valores padrão se não foram especificados
+        host = getattr(args, 'host', None) or "0.0.0.0"
+        port = getattr(args, 'port', None) or 8000
+        no_browser = getattr(args, 'no_browser', False)
+        
         # Executa a restauração e atualização apenas quando o servidor está sendo iniciado.
         # Isso evita que um 'reset-db' seja precedido por uma restauração.
         executar_restauracao_de_backup()
         executar_atualizacao()
 
         # Inicia o servidor
-        iniciar_servidor(args.host, args.port, not args.no_browser)
+        iniciar_servidor(host, port, not no_browser)
 
 
 if __name__ == "__main__":

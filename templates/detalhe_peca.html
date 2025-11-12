@@ -64,16 +64,36 @@
 
             <!-- Seção de Aplicações (Centro) -->
             <div class="application-section">
-                <h3>
+                <h3 style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
                     <span>Aplicações</span>
-                    <button id="clear-filter-btn" class="button" style="display: none; background-color: #6c757d; font-size: 0.8em; padding: 5px 10px;">Limpar Filtro</button>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        {% if aplicacoes_agrupadas %}
+                            <!-- Campo de busca compacto -->
+                            <div style="display: flex; align-items: center; gap: 5px;">
+                                <svg width="14" height="14" style="color: #6c757d;" fill="currentColor" viewBox="0 0 16 16">
+                                    <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+                                </svg>
+                                <input type="text" 
+                                       id="applicationSearchInput" 
+                                       placeholder="Filtrar aplicações..." 
+                                       style="width: 200px; padding: 4px 8px; border: 1px solid #ced4da; border-radius: 3px; font-size: 12px; transition: all 0.15s ease;"
+                                       onfocus="this.style.borderColor='#80bdff'; this.style.boxShadow='0 0 0 1px rgba(0,123,255,.25)'"
+                                       onblur="this.style.borderColor='#ced4da'; this.style.boxShadow='none'">
+                            </div>
+                        {% endif %}
+                        <button id="clear-filter-btn" class="button" style="display: none; background-color: #6c757d; font-size: 0.8em; padding: 5px 10px;">Limpar Filtro</button>
+                    </div>
                 </h3>
                 <div class="filter-help-text">
                     <img src="{{ url_for('static', filename='info-icon.svg') }}" alt="Info">
                     <span>Clique em uma aplicação para filtrar os produtos similares.</span>
                 </div>
+                <div id="applicationSearchCount" style="margin-bottom: 10px; font-size: 11px; color: #6c757d; font-style: italic; text-align: right;">
+                    <!-- Contador será preenchido via JavaScript -->
+                </div>
 
                 {% if aplicacoes_agrupadas %}
+                    
                     <table class="application-table">
                         <thead>
                             <tr>
@@ -135,12 +155,13 @@
             <table class="application-table">
                 <thead>
                     <tr>
-                        <th style="width: 80px;">Imagem</th>
+                        <th>Imagem</th>
                         <th>Nome</th>
                         <th>Código</th>
-                        <th>Fornecedor</th>
-                        <th>Tipo</th>
-                        <th style="width:90px;">Ações</th>
+                        <th>Veículo</th>
+                        <th>Ano</th>
+                        <th>Motor</th>
+                        <th>Ações</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -156,6 +177,8 @@
                         {% endfor %}
                         {% set app_json = app_data|tojson %}
 
+                        {% set apps_sorted = similar.aplicacoes|sort(attribute='veiculo') %}
+
                         <tr class="similar-row" data-applications="{{ app_json }}">
                             <td>
                                 <img src="{% if similar.imagens %}{{ url_for('uploaded_file', filename=similar.imagens[0].filename) }}{% else %}https://via.placeholder.com/60x60/eee/aaa?text=Sem+Imagem{% endif %}" alt="Miniatura de {{ similar.nome }}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px;">
@@ -166,9 +189,65 @@
                                 </a>
                             </td>
                             <td>{{ similar.codigo }}</td>
-                            <td>{{ similar.fornecedor or 'N/A' }}</td>
-                            <td><span class="badge badge-manual">Manual</span></td>
+                            {% set veic_titles = [] %}
+                            {% set anos_titles = [] %}
+                            {% set motores_titles = [] %}
+                            {% for app in apps_sorted %}
+                                {% if app.veiculo %}{% do veic_titles.append(app.veiculo) %}{% endif %}
+                                {% if app.ano %}{% do anos_titles.append(app.ano) %}{% endif %}
+                                {% if app.motor %}{% do motores_titles.append(app.motor) %}{% endif %}
+                            {% endfor %}
+
                             <td>
+                                {% if apps_sorted %}
+                                    <div class="vertical-list">
+                                        {% for app in apps_sorted[:4] %}
+                                            <div>{{ app.veiculo or '' }}</div>
+                                        {% endfor %}
+                                        {% if apps_sorted|length > 4 %}
+                                            <div class="more-apps">... e mais</div>
+                                        {% endif %}
+                                        <div class="custom-tooltip">
+                                            {% for t in veic_titles %}
+                                                <div>{{ t }}</div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                {% else %}-{% endif %}
+                            </td>
+                            <td>
+                                {% if apps_sorted %}
+                                    <div class="vertical-list">
+                                        {% for app in apps_sorted[:4] %}
+                                            <div>{{ app.ano or '' }}</div>
+                                        {% endfor %}
+                                        <div class="custom-tooltip">
+                                            {% for t in anos_titles %}
+                                                <div>{{ t }}</div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                {% else %}-{% endif %}
+                            </td>
+                            <td>
+                                {% if apps_sorted %}
+                                    <div class="vertical-list">
+                                        {% for app in apps_sorted[:4] %}
+                                            <div>{{ app.motor or '' }}</div>
+                                        {% endfor %}
+                                        {% if apps_sorted|length > 4 %}
+                                            <div class="more-apps">... e mais</div>
+                                        {% endif %}
+                                        <div class="custom-tooltip">
+                                            {% for t in motores_titles %}
+                                                <div>{{ t }}</div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                {% else %}-{% endif %}
+                            </td>
+                            <td>
+                                <span class="badge badge-manual" style="margin-right:6px;">Manual</span>
                                 {% if is_admin %}
                                 <form action="{{ url_for('admin.remover_similar', produto_id=produto.id, similar_id=similar.id) }}" method="POST" style="display:inline;" class="remove-similar-form" data-url="{{ url_for('admin.remover_similar', produto_id=produto.id, similar_id=similar.id) }}">
                                     <button type="button" class="button remove-similar-action" style="background-color: #dc3545; padding:6px 8px; font-size:0.85em;">Remover</button>
@@ -189,6 +268,9 @@
                             }) %}
                         {% endfor %}
                         {% set app_json = app_data|tojson %}
+
+                        {% set apps_sorted_s = sugestao.aplicacoes|sort(attribute='veiculo') %}
+
                         <tr class="similar-row" data-applications="{{ app_json }}">
                             <td>
                                 <img src="{% if sugestao.imagens %}{{ url_for('uploaded_file', filename=sugestao.imagens[0].filename) }}{% else %}https://via.placeholder.com/60x60/eee/aaa?text=Sem+Imagem{% endif %}" alt="Miniatura de {{ sugestao.nome }}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px;">
@@ -199,9 +281,65 @@
                                 </a>
                             </td>
                             <td>{{ sugestao.codigo }}</td>
-                            <td>{{ sugestao.fornecedor or 'N/A' }}</td>
-                            <td><span class="badge badge-auto">Sugestão</span></td>
+                            {% set veic_titles_s = [] %}
+                            {% set anos_titles_s = [] %}
+                            {% set motores_titles_s = [] %}
+                            {% for app in apps_sorted_s %}
+                                {% if app.veiculo %}{% do veic_titles_s.append(app.veiculo) %}{% endif %}
+                                {% if app.ano %}{% do anos_titles_s.append(app.ano) %}{% endif %}
+                                {% if app.motor %}{% do motores_titles_s.append(app.motor) %}{% endif %}
+                            {% endfor %}
+
                             <td>
+                                {% if apps_sorted_s %}
+                                    <div class="vertical-list">
+                                        {% for app in apps_sorted_s[:4] %}
+                                            <div>{{ app.veiculo or '' }}</div>
+                                        {% endfor %}
+                                        {% if apps_sorted_s|length > 4 %}
+                                            <div class="more-apps">... e mais</div>
+                                        {% endif %}
+                                        <div class="custom-tooltip">
+                                            {% for t in veic_titles_s %}
+                                                <div>{{ t }}</div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                {% else %}-{% endif %}
+                            </td>
+                            <td>
+                                {% if apps_sorted_s %}
+                                    <div class="vertical-list">
+                                        {% for app in apps_sorted_s[:4] %}
+                                            <div>{{ app.ano or '' }}</div>
+                                        {% endfor %}
+                                        <div class="custom-tooltip">
+                                            {% for t in anos_titles_s %}
+                                                <div>{{ t }}</div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                {% else %}-{% endif %}
+                            </td>
+                            <td>
+                                {% if apps_sorted_s %}
+                                    <div class="vertical-list">
+                                        {% for app in apps_sorted_s[:4] %}
+                                            <div>{{ app.motor or '' }}</div>
+                                        {% endfor %}
+                                        {% if apps_sorted_s|length > 4 %}
+                                            <div class="more-apps">... e mais</div>
+                                        {% endif %}
+                                        <div class="custom-tooltip">
+                                            {% for t in motores_titles_s %}
+                                                <div>{{ t }}</div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                {% else %}-{% endif %}
+                            </td>
+                            <td>
+                                <span class="badge badge-auto" style="margin-right:6px;">Sugestão</span>
                                 {% if is_admin %}
                                 <!-- Para sugestões podemos persistir a remoção -> chama endpoint -->
                                 <form class="remove-similar-form" method="POST" data-suggestion="1" data-url="{{ url_for('admin.ignorar_sugestao', produto_id=produto.id, sugestao_id=sugestao.id) }}" style="display:inline;">
@@ -212,7 +350,7 @@
                         </tr>
                     {% endfor %}
                 </tbody>
-                <tbody id="no-similar-results-row" style="display: none;"><tr class="no-results-row"><td colspan="5">Nenhum produto similar encontrado para a aplicação selecionada.</td></tr></tbody>
+                <tbody id="no-similar-results-row" style="display: none;"><tr class="no-results-row"><td colspan="7">Nenhum produto similar encontrado para a aplicação selecionada.</td></tr></tbody>
             </table>
         </div>
         {% endif %}
@@ -256,6 +394,55 @@
                 color: #555;
             }
             .filter-help-text img { width: 16px; height: 16px; }
+            .similar-applications {
+                font-size: 0.9em;
+                max-height: 80px;
+                overflow-y: auto;
+                padding-right: 5px;
+            }
+            .similar-applications div {
+                display: flex;
+                justify-content: space-between;
+                gap: 10px;
+                white-space: nowrap;
+            }
+            .similar-applications small {
+                color: #555;
+                font-style: italic;
+            }
+
+        </style>
+
+        <style>
+            /* Estilos do modal de imagem (centralizado fullscreen) */
+            .image-modal {
+                position: fixed;
+                inset: 0;
+                display: none;
+                justify-content: center;
+                align-items: center;
+                background: rgba(0,0,0,0.75);
+                z-index: 2000;
+            }
+            .image-modal .modal-close {
+                position: absolute;
+                top: 18px;
+                right: 18px;
+                font-size: 28px;
+                color: white;
+                cursor: pointer;
+                background: rgba(0,0,0,0.3);
+                padding: 6px 10px;
+                border-radius: 6px;
+            }
+            .image-modal .modal-content {
+                max-width: 90%;
+                max-height: 90%;
+                box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+                border-radius: 4px;
+                transition: transform 0.15s ease-out;
+                cursor: zoom-in;
+            }
         </style>
 
 {% endblock %}
@@ -290,6 +477,125 @@
             });
         }
 
+        // Função para busca em aplicações
+        function setupApplicationSearch() {
+            const searchInput = document.getElementById('applicationSearchInput');
+            const applicationTableBody = document.getElementById('application-table-body');
+            const searchCountDiv = document.getElementById('applicationSearchCount');
+            
+            if (!searchInput || !applicationTableBody) return;
+
+            // Armazenar todas as linhas originais
+            const allRows = Array.from(applicationTableBody.querySelectorAll('tr'));
+            const applicationRows = allRows.filter(row => row.classList.contains('application-row'));
+            const fabricanteHeaders = allRows.filter(row => row.classList.contains('fabricante-header'));
+            
+            // Função para atualizar contador
+            function updateCounter(visibleCount, totalCount) {
+                if (searchCountDiv) {
+                    if (visibleCount === totalCount) {
+                        searchCountDiv.textContent = `${totalCount} aplicações`;
+                    } else {
+                        searchCountDiv.textContent = `${visibleCount} de ${totalCount} aplicações`;
+                        searchCountDiv.style.cursor = 'pointer';
+                        searchCountDiv.title = 'Clique para limpar filtro';
+                    }
+                }
+            }
+            
+            // Função para limpar busca
+            function clearSearch() {
+                searchInput.value = '';
+                filterApplications();
+                searchCountDiv.style.cursor = 'default';
+                searchCountDiv.title = '';
+            }
+            
+            // Inicializar contador
+            updateCounter(applicationRows.length, applicationRows.length);
+
+            // Função de filtro
+            function filterApplications() {
+                const searchTerm = searchInput.value.toLowerCase().trim();
+                
+                if (!searchTerm) {
+                    // Mostrar todas as linhas
+                    allRows.forEach(row => row.style.display = '');
+                    updateCounter(applicationRows.length, applicationRows.length);
+                    return;
+                }
+
+                let visibleCount = 0;
+                const visibleFabricantes = new Set();
+
+                // Filtrar aplicações
+                applicationRows.forEach(row => {
+                    const veiculo = (row.getAttribute('data-veiculo') || '').toLowerCase();
+                    const ano = (row.getAttribute('data-ano') || '').toLowerCase();
+                    const motor = (row.getAttribute('data-motor') || '').toLowerCase();
+                    const cells = Array.from(row.cells);
+                    const configuracao = cells.length > 3 ? (cells[3].textContent || '').toLowerCase() : '';
+
+                    const matches = veiculo.includes(searchTerm) || 
+                                   ano.includes(searchTerm) || 
+                                   motor.includes(searchTerm) || 
+                                   configuracao.includes(searchTerm);
+
+                    if (matches) {
+                        row.style.display = '';
+                        visibleCount++;
+                        // Identificar fabricante desta aplicação
+                        const fabricanteRow = row.previousElementSibling;
+                        if (fabricanteRow && fabricanteRow.classList.contains('fabricante-header')) {
+                            visibleFabricantes.add(fabricanteRow);
+                        } else {
+                            // Procurar para trás até encontrar o cabeçalho do fabricante
+                            let current = row.previousElementSibling;
+                            while (current) {
+                                if (current.classList.contains('fabricante-header')) {
+                                    visibleFabricantes.add(current);
+                                    break;
+                                }
+                                current = current.previousElementSibling;
+                            }
+                        }
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+
+                // Mostrar/ocultar cabeçalhos de fabricante
+                fabricanteHeaders.forEach(header => {
+                    if (visibleFabricantes.has(header)) {
+                        header.style.display = '';
+                    } else {
+                        header.style.display = 'none';
+                    }
+                });
+
+                updateCounter(visibleCount, applicationRows.length);
+            }
+
+            // Event listener para busca em tempo real
+            searchInput.addEventListener('input', filterApplications);
+            
+            // Event listener para Enter
+            searchInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    filterApplications();
+                }
+            });
+            
+            // Event listener para limpar busca clicando no contador
+            if (searchCountDiv) {
+                searchCountDiv.addEventListener('click', function() {
+                    if (searchInput.value.trim()) {
+                        clearSearch();
+                    }
+                });
+            }
+        }
+
         // --- Lógica Principal da Página ---
         document.addEventListener('DOMContentLoaded', function() {
 
@@ -317,6 +623,36 @@
                 closeSpan.addEventListener('click', closeModal);
                 modal.addEventListener('click', (e) => {
                     if (e.target === modal) closeModal(); // Fecha se clicar fora da imagem
+                });
+
+                // Zoom ao passar o mouse: ao entrar aplicamos escala, ao mover ajustamos transform-origin
+                // para simular pan conforme o cursor. Ao sair, retornamos ao estado normal.
+                let zoomScale = 2.0;
+                let isZoomed = false;
+
+                modalImg.style.transition = 'transform 0.15s ease-out';
+
+                modalImg.addEventListener('mouseenter', (e) => {
+                    // Só ativa zoom se o modal estiver visível
+                    if (modal.style.display !== 'flex') return;
+                    isZoomed = true;
+                    modalImg.style.transform = `scale(${zoomScale})`;
+                    modalImg.style.cursor = 'zoom-out';
+                });
+
+                modalImg.addEventListener('mouseleave', (e) => {
+                    isZoomed = false;
+                    modalImg.style.transform = 'scale(1)';
+                    modalImg.style.transformOrigin = 'center center';
+                    modalImg.style.cursor = 'zoom-in';
+                });
+
+                modalImg.addEventListener('mousemove', (e) => {
+                    if (!isZoomed) return;
+                    const rect = modalImg.getBoundingClientRect();
+                    const x = ((e.clientX - rect.left) / rect.width) * 100;
+                    const y = ((e.clientY - rect.top) / rect.height) * 100;
+                    modalImg.style.transformOrigin = `${x}% ${y}%`;
                 });
 
                 // Listener de 'keydown' para fechar o modal com a tecla 'Escape'
@@ -373,34 +709,47 @@
              */
             function parseYearRange(yearStr) {
                 if (!yearStr || !yearStr.trim()) {
-                    return { start: -Infinity, end: Infinity }; // Corresponde a qualquer ano se vazio
+                    const result = { start: -Infinity, end: Infinity };
+                    console.log(`parseYearRange('${yearStr}') = vazio →`, result);
+                    return result; // Corresponde a qualquer ano se vazio
                 }
                 yearStr = yearStr.trim();
+                console.log(`parseYearRange('${yearStr}') processando...`);
 
                 // Formato: 2018/... ou 2018/
                 if (yearStr.endsWith('/...') || yearStr.endsWith('/')) {
                     const startYear = parseInt(yearStr, 10); // Especifica o radix 10
-                    return { start: startYear, end: Infinity };
+                    const result = { start: startYear, end: Infinity };
+                    console.log(`parseYearRange('${yearStr}') = início aberto →`, result);
+                    return result;
                 }
                 // Formato: .../2015 ou /2015
                 if (yearStr.startsWith('.../') || yearStr.startsWith('/')) {
                     const endYear = parseInt(yearStr.substring(yearStr.indexOf('/') + 1), 10);
-                    return { start: -Infinity, end: endYear };
+                    const result = { start: -Infinity, end: endYear };
+                    console.log(`parseYearRange('${yearStr}') = fim aberto →`, result);
+                    return result;
                 }
                 // Formato: 2010/2015
                 if (yearStr.includes('/')) {
                     const parts = yearStr.split('/');
                     const start = parseInt(parts[0], 10);
                     const end = parseInt(parts[1], 10);
-                    return { start: Math.min(start, end), end: Math.max(start, end) };
+                    const result = { start: Math.min(start, end), end: Math.max(start, end) };
+                    console.log(`parseYearRange('${yearStr}') = intervalo →`, result);
+                    return result;
                 }
                 // Formato: 2010
                 const singleYear = parseInt(yearStr, 10);
                 if (!isNaN(singleYear)) {
-                    return { start: singleYear, end: singleYear };
+                    const result = { start: singleYear, end: singleYear };
+                    console.log(`parseYearRange('${yearStr}') = ano único →`, result);
+                    return result;
                 }
 
-                return { start: -Infinity, end: Infinity }; // Fallback
+                const fallback = { start: -Infinity, end: Infinity };
+                console.log(`parseYearRange('${yearStr}') = fallback →`, fallback);
+                return fallback; // Fallback
             }
 
             /**
@@ -411,7 +760,9 @@
              */
             function rangesOverlap(range1, range2) {
                 // A sobreposição existe se o início de um intervalo for menor ou igual ao fim do outro, e vice-versa.
-                return range1.start <= range2.end && range2.start <= range1.end;
+                const overlap = range1.start <= range2.end && range2.start <= range1.end;
+                console.log(`rangesOverlap(`, range1, `,`, range2, `) = ${overlap}`);
+                return overlap;
             }
 
             function filterSimilars(clickedRow) {
@@ -422,13 +773,18 @@
                     motor: clickedRow.dataset.motor.trim().toLowerCase()
                 };
                 let visibleCount = 0;
+                
+                console.log('Filtro aplicado:', filtro);
+                console.log('Processando', similarRows.length, 'produtos similares');
 
                 // Limpa o filtro ativo anterior
                 tableBody.querySelectorAll('.application-row.active-filter').forEach(row => row.classList.remove('active-filter'));
                 clickedRow.classList.add('active-filter');
 
-                similarRows.forEach(row => {
+                similarRows.forEach((row, index) => {
                     const applications = JSON.parse(row.dataset.applications || '[]');
+                    
+                    console.log(`Similar ${index + 1}:`, applications);
                     
                     // Verifica se alguma aplicação do produto similar corresponde aos critérios do filtro.
                     // A verificação do ano agora usa a sobreposição de intervalos.
@@ -438,16 +794,21 @@
                         // O motor é opcional: se o filtro ou a aplicação não tiverem motor, ignora a verificação do motor.
                         const motorMatch = !filtro.motor || !app.motor || app.motor.toLowerCase() === filtro.motor;
 
-                        return app.veiculo.toLowerCase() === filtro.veiculo &&
-                               rangesOverlap(appAnoRange, filtro.anoRange) &&
-                               motorMatch;
+                        const veiculoMatch = app.veiculo.toLowerCase() === filtro.veiculo;
+                        const anoMatch = rangesOverlap(appAnoRange, filtro.anoRange);
+                        
+                        console.log(`  App: ${app.veiculo} | Veiculo: ${veiculoMatch} | Ano: ${anoMatch} | Motor: ${motorMatch}`);
+                        
+                        return veiculoMatch && anoMatch && motorMatch;
                     });
 
                     if (hasMatch) {
                         row.style.display = '';
                         visibleCount++;
+                        console.log(`  → Similar ${index + 1} MOSTRADO`);
                     } else {
                         row.style.display = 'none';
+                        console.log(`  → Similar ${index + 1} OCULTO`);
                     }
                 });
 
@@ -466,6 +827,12 @@
             tableBody.addEventListener('click', (event) => {
                 const clickedRow = event.target.closest('.application-row');
                 if (clickedRow) {
+                    console.log('Aplicação clicada:', {
+                        veiculo: clickedRow.dataset.veiculo,
+                        ano: clickedRow.dataset.ano,
+                        motor: clickedRow.dataset.motor
+                    });
+                    console.log('Similar rows encontradas:', similarRows.length);
                     filterSimilars(clickedRow);
                 }
             });
@@ -511,6 +878,7 @@
             setupImageModal();
             setupInteractiveConversions();
             setupSimilarFiltering();
+            setupApplicationSearch();
 
             // --- Remoção de similar via AJAX ---
             document.addEventListener('click', function(e) {

@@ -49,7 +49,7 @@
     <p>Faça o upload de um arquivo <code>.csv</code> para adicionar ou atualizar produtos em massa.</p>
     <form action="{{ url_for('admin.tarefa_importar_csv') }}" method="POST" enctype="multipart/form-data">
         <input type="file" name="csv_file" accept=".csv" required>
-        <button type="submit">Iniciar Importação</button>
+        <button type="submit" class="button">Iniciar Importação</button>
     </form>
 </div>
 
@@ -57,7 +57,7 @@
     <h3>Vincular Imagens aos Produtos</h3>
     <p>Esta tarefa varre a pasta de uploads e vincula as imagens aos produtos cujo código corresponde ao nome do arquivo.</p>
     <form action="{{ url_for('admin.tarefa_vincular_imagens') }}" method="POST">
-        <button type="submit">Iniciar Vinculação</button>
+        <button type="submit" class="button">Iniciar Vinculação</button>
     </form>
 </div>
 

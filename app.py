@@ -110,10 +110,13 @@ def carregar_config_aparencia():
             # Garante que as chaves essenciais existam
             config.setdefault("cor_principal", "#ff6600")
             config.setdefault("logo_path", None)
+            # Mapeamento opcional de ícones por montadora (slug -> filename em uploads)
+            # Ex.: { "chevrolet": "chevrolet_custom.png" }
+            config.setdefault("montadora_icons", {})
             return config
     except (FileNotFoundError, json.JSONDecodeError):
         # Retorna um dicionário padrão se o arquivo não existir ou for inválido
-        return {"cor_principal": "#ff6600", "logo_path": None}
+        return {"cor_principal": "#ff6600", "logo_path": None, "montadora_icons": {}}
 
 
 def salvar_config_aparencia(config):
@@ -275,42 +278,83 @@ def check_for_updates(app):
     """Verifica se há uma nova versão da aplicação disponível."""
     with app.app_context():
         print("Verificando atualizações...")
+        meta_path = os.path.join(APP_DATA_PATH, "update_config_meta.json")
+        update_info_file = os.path.join(APP_DATA_PATH, "update_info.json")
+        headers = {"User-Agent": f"CatalogoDePecas/{VERSION}"}
+
+        # Se houver metadados anteriores, use ETag / If-Modified-Since para economizar requests
         try:
-            response = requests.get(UPDATE_CONFIG_URL, timeout=15)
+            if os.path.exists(meta_path):
+                with open(meta_path, "r", encoding="utf-8") as mf:
+                    meta = json.load(mf)
+                etag = meta.get("etag")
+                last_modified = meta.get("last_modified")
+                if etag:
+                    headers["If-None-Match"] = etag
+                if last_modified:
+                    headers["If-Modified-Since"] = last_modified
+
+            response = requests.get(UPDATE_CONFIG_URL, headers=headers, timeout=15)
+
+            # Tratar 304 Not Modified: nada novo
+            if response.status_code == 304:
+                print("Update config não alterado (304).")
+                return
+
+            # Tratar 429 explicitamente para respeitar limites
+            if response.status_code == 429:
+                retry_after = response.headers.get("Retry-After")
+                print(f"Recebido 429 (Too Many Requests). Retry-After={retry_after}")
+                # Não lançar: apenas retornamos e tentaremos novamente na próxima verificação agendada
+                return
+
             response.raise_for_status()
+
             update_data = response.json()
-            latest_version = update_data.get(
-                "latest_version", update_data.get("version")
-            )
+            # Salva novo ETag / Last-Modified se presente
+            new_meta = {
+                "etag": response.headers.get("ETag"),
+                "last_modified": response.headers.get("Last-Modified"),
+                "fetched_at": datetime.now().isoformat(),
+            }
+            try:
+                with open(meta_path, "w", encoding="utf-8") as mf:
+                    json.dump(new_meta, mf, indent=2)
+            except Exception:
+                pass
+
+            latest_version = update_data.get("latest_version", update_data.get("version"))
 
             # Usa a biblioteca packaging para comparação de versão mais robusta
-            if (
-                latest_version
-                and pkg_version.parse(latest_version)
-                > pkg_version.parse(VERSION)
-            ):
+            if latest_version and pkg_version.parse(latest_version) > pkg_version.parse(VERSION):
                 print(f"Nova versão encontrada: {latest_version}")
                 app.config["UPDATE_INFO"] = {
                     "latest_version": latest_version,
                     "download_url": update_data.get("download_url"),
-                    "release_notes": update_data.get(
-                        "release_notes", "Sem notas de lançamento."
-                    ),
+                    "release_notes": update_data.get("release_notes", "Sem notas de lançamento."),
                     "update_found_at": datetime.now().isoformat(),
                     "update_size": update_data.get("size_mb", "Desconhecido"),
                 }
                 # Salva informação de atualização em arquivo para persistir entre reinicializações
-                update_info_file = os.path.join(APP_DATA_PATH, "update_info.json")
-                with open(update_info_file, "w") as f:
-                    json.dump(app.config["UPDATE_INFO"], f, indent=2)
+                try:
+                    with open(update_info_file, "w", encoding="utf-8") as f:
+                        json.dump(app.config["UPDATE_INFO"], f, indent=2)
+                except Exception:
+                    pass
             else:
                 print("Nenhuma nova atualização encontrada.")
                 # Remove arquivo de informação de atualização se não há atualizações
-                update_info_file = os.path.join(APP_DATA_PATH, "update_info.json")
                 if os.path.exists(update_info_file):
-                    os.remove(update_info_file)
-        except (requests.exceptions.RequestException, json.JSONDecodeError) as e:
+                    try:
+                        os.remove(update_info_file)
+                    except Exception:
+                        pass
+
+        except requests.exceptions.RequestException as e:
+            # Se for um erro HTTP com código 429 já tratamos acima; aqui tratamos demais erros de rede/timeout
             print(f"Erro ao verificar atualizações: {e}")
+        except json.JSONDecodeError as e:
+            print(f"Erro ao decodificar JSON de update_config: {e}")
 
 
 def schedule_periodic_update_check(app):

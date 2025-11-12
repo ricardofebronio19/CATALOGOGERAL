@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Catálogo de Peças{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    
+    <!-- Enhancements para versão desktop -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='gui_enhancements.css') }}">
+    
     <style>
         :root {
             --cor-principal: {{ config_aparencia.cor_principal|default('#ff6600') }};
@@ -162,6 +166,10 @@
             });
         });
     </script>
+    
+    <!-- Enhancements JavaScript para versão desktop -->
+    <script src="{{ url_for('static', filename='gui_enhancements.js') }}"></script>
+    
     {% endblock %}
 </body>
 </html>
