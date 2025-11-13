@@ -1,6 +1,6 @@
 {
-  "latest_version": "1.8.3",
-  "download_url": "https://github.com/ricardofebronio19/CATALOGOGERAL/releases/download/v1.8.3/instalador_CatalogoDePecas_v1.8.3.exe",
+  "latest_version": "1.8.4",
+  "download_url": "https://github.com/ricardofebronio19/CATALOGOGERAL/releases/download/v1.8.4/instalador_CatalogoDePecas_v1.8.8.exe",
   "release_notes": "v1.8.3 — Correção de build e melhorias de estabilidade.\n\n- CORREÇÃO: Problemas de empacotamento PyInstaller resolvidos\n- CORREÇÃO: Módulos asyncio (_overlapped, _asyncio) incluídos corretamente\n- MUDANÇA: Versão navegador (run.py) em vez de desktop para maior estabilidade\n- MELHORIA: Build mais estável e confiável\n- INCLUI: Todas as correções da v1.8.2 (backup em Downloads, @login_required, interface melhorada)",
   "size_mb": "28"
 }
