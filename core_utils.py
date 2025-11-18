@@ -76,7 +76,9 @@ def _apply_db_normalization(column):
 
 
 def _build_search_query(
-    termo, codigo_produto, montadora, aplicacao_termo, grupo, medidas
+    termo, codigo_produto, montadora, aplicacao_termo, grupo, medidas,
+    largura=None, altura=None, comprimento=None, diametro_externo=None, 
+    diametro_interno=None, elo=None, estrias_internas=None, estrias_externas=None
 ):
     """Constrói a query de busca de produtos com base nos filtros fornecidos."""
     query = Produto.query
@@ -106,6 +108,41 @@ def _build_search_query(
 
     if medidas:
         query = query.filter(Produto.medidas.ilike(f"%{medidas}%"))
+
+    # Filtros específicos de medidas estruturadas
+    if largura:
+        query = query.filter(Produto.medidas.ilike(f"%LARGURA%{largura}%"))
+    
+    if altura:
+        query = query.filter(Produto.medidas.ilike(f"%ALTURA%{altura}%"))
+    
+    if comprimento:
+        query = query.filter(Produto.medidas.ilike(f"%COMPRIMENTO%{comprimento}%"))
+    
+    if diametro_externo:
+        query = query.filter(
+            db.or_(
+                Produto.medidas.ilike(f"%DIÂMETRO EXTERNO%{diametro_externo}%"),
+                Produto.medidas.ilike(f"%DIAMETRO EXTERNO%{diametro_externo}%")
+            )
+        )
+    
+    if diametro_interno:
+        query = query.filter(
+            db.or_(
+                Produto.medidas.ilike(f"%DIÂMETRO INTERNO%{diametro_interno}%"),
+                Produto.medidas.ilike(f"%DIAMETRO INTERNO%{diametro_interno}%")
+            )
+        )
+    
+    if elo:
+        query = query.filter(Produto.medidas.ilike(f"%ELO%{elo}%"))
+    
+    if estrias_internas:
+        query = query.filter(Produto.medidas.ilike(f"%ESTRIAS INTERNAS%{estrias_internas}%"))
+    
+    if estrias_externas:
+        query = query.filter(Produto.medidas.ilike(f"%ESTRIAS EXTERNAS%{estrias_externas}%"))
 
     needs_join = not termo and (montadora or aplicacao_termo)
     if needs_join:
@@ -247,3 +284,122 @@ def _ranges_overlap(range1: tuple[int, int], range2: tuple[int, int]) -> bool:
 def allowed_file(filename):
     """Função para verificar se a extensão do arquivo é permitida."""
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+def _processar_medidas_estruturadas(form_data: dict) -> str:
+    """
+    Converte os campos estruturados de medidas em uma string formatada.
+    
+    Args:
+        form_data: Dicionário com os dados do formulário
+        
+    Returns:
+        String formatada com as medidas ou string vazia se não houver medidas
+    """
+    campos_medidas = {
+        'largura': 'Largura',
+        'altura': 'Altura',
+        'comprimento': 'Comprimento',
+        'diametro_externo': 'Diâmetro Externo',
+        'diametro_interno': 'Diâmetro Interno',
+        'elo': 'Elo',
+        'estrias_internas': 'Estrias Internas',
+        'estrias_externas': 'Estrias Externas'
+    }
+    
+    medidas_list = []
+    
+    # Processa campos numéricos
+    for campo, label in campos_medidas.items():
+        valor = form_data.get(campo, '').strip()
+        if valor:
+            # Adiciona 'mm' para campos de dimensão, mas não para estrias
+            if 'estrias' in campo.lower():
+                medidas_list.append(f"{label}: {valor}")
+            else:
+                medidas_list.append(f"{label}: {valor}mm")
+    
+    # Adiciona medidas adicionais se houver
+    medidas_adicionais = form_data.get('medidas_adicionais', '').strip()
+    if medidas_adicionais:
+        medidas_list.append(f"\nMedidas Adicionais:\n{medidas_adicionais}")
+    
+    return '\n'.join(medidas_list).upper() if medidas_list else ''
+
+
+def _parsear_medidas_para_dict(medidas_str: str | None) -> dict:
+    """
+    Converte a string de medidas do banco de dados de volta para um dicionário.
+    
+    Args:
+        medidas_str: String de medidas do banco de dados
+        
+    Returns:
+        Dicionário com os campos de medidas separados
+    """
+    resultado = {
+        'largura': '',
+        'altura': '',
+        'comprimento': '',
+        'diametro_externo': '',
+        'diametro_interno': '',
+        'elo': '',
+        'estrias_internas': '',
+        'estrias_externas': '',
+        'medidas_adicionais': ''
+    }
+    
+    if not medidas_str:
+        return resultado
+    
+    # Mapeia os labels para as chaves do dicionário
+    mapeamento = {
+        'LARGURA': 'largura',
+        'ALTURA': 'altura',
+        'COMPRIMENTO': 'comprimento',
+        'DIÂMETRO EXTERNO': 'diametro_externo',
+        'DIAMETRO EXTERNO': 'diametro_externo',
+        'DIÂMETRO INTERNO': 'diametro_interno',
+        'DIAMETRO INTERNO': 'diametro_interno',
+        'ELO': 'elo',
+        'ESTRIAS INTERNAS': 'estrias_internas',
+        'ESTRIAS EXTERNAS': 'estrias_externas'
+    }
+    
+    linhas = medidas_str.split('\n')
+    capturando_adicionais = False
+    adicionais_lines = []
+    
+    for linha in linhas:
+        linha = linha.strip()
+        if not linha:
+            continue
+            
+        # Verifica se é o início da seção de medidas adicionais
+        if 'MEDIDAS ADICIONAIS:' in linha.upper():
+            capturando_adicionais = True
+            continue
+        
+        if capturando_adicionais:
+            adicionais_lines.append(linha)
+        else:
+            # Processa linhas normais (ex: "LARGURA: 50MM")
+            if ':' in linha:
+                partes = linha.split(':', 1)
+                label = partes[0].strip().upper()
+                valor = partes[1].strip()
+                
+                # Remove 'MM' do valor se presente
+                valor = valor.replace('MM', '').replace('mm', '').strip()
+                
+                # Encontra a chave correspondente
+                for key_label, key_dict in mapeamento.items():
+                    if key_label in label:
+                        resultado[key_dict] = valor
+                        break
+    
+    if adicionais_lines:
+        resultado['medidas_adicionais'] = '\n'.join(adicionais_lines)
+    
+    return resultado
+

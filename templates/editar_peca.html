@@ -82,9 +82,46 @@
                 </datalist>
             </div>
 
-            <div class="search-field">
-                <label for="medidas">Medidas</label>
-                <textarea id="medidas" name="medidas" rows="4" placeholder="Ex: 200mm x 50mm (uma medida por linha)">{{ produto.medidas or '' }}</textarea>
+            <div class="search-field" style="width: 100%;">
+                <h4 style="margin-bottom: 10px; color: #333;">Medidas</h4>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
+                    <div>
+                        <label for="largura">Largura (mm)</label>
+                        <input type="text" id="largura" name="largura" placeholder="Ex: 50" value="{{ medidas_dict.get('largura', '') }}">
+                    </div>
+                    <div>
+                        <label for="altura">Altura (mm)</label>
+                        <input type="text" id="altura" name="altura" placeholder="Ex: 30" value="{{ medidas_dict.get('altura', '') }}">
+                    </div>
+                    <div>
+                        <label for="comprimento">Comprimento (mm)</label>
+                        <input type="text" id="comprimento" name="comprimento" placeholder="Ex: 200" value="{{ medidas_dict.get('comprimento', '') }}">
+                    </div>
+                    <div>
+                        <label for="diametro_externo">Diâmetro Externo (mm)</label>
+                        <input type="text" id="diametro_externo" name="diametro_externo" placeholder="Ex: 100" value="{{ medidas_dict.get('diametro_externo', '') }}">
+                    </div>
+                    <div>
+                        <label for="diametro_interno">Diâmetro Interno (mm)</label>
+                        <input type="text" id="diametro_interno" name="diametro_interno" placeholder="Ex: 80" value="{{ medidas_dict.get('diametro_interno', '') }}">
+                    </div>
+                    <div>
+                        <label for="elo">Elo</label>
+                        <input type="text" id="elo" name="elo" placeholder="Ex: 12" value="{{ medidas_dict.get('elo', '') }}">
+                    </div>
+                    <div>
+                        <label for="estrias_internas">Estrias Internas</label>
+                        <input type="text" id="estrias_internas" name="estrias_internas" placeholder="Ex: 24" value="{{ medidas_dict.get('estrias_internas', '') }}">
+                    </div>
+                    <div>
+                        <label for="estrias_externas">Estrias Externas</label>
+                        <input type="text" id="estrias_externas" name="estrias_externas" placeholder="Ex: 26" value="{{ medidas_dict.get('estrias_externas', '') }}">
+                    </div>
+                </div>
+                <div style="margin-top: 10px;">
+                    <label for="medidas_adicionais">Medidas Adicionais</label>
+                    <textarea id="medidas_adicionais" name="medidas_adicionais" rows="2" placeholder="Outras medidas ou observações sobre dimensões">{{ medidas_dict.get('medidas_adicionais', '') }}</textarea>
+                </div>
             </div>
 
             <!-- Seção de Aplicações Dinâmicas -->

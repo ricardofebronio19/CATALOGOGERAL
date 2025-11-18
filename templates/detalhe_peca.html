@@ -142,9 +142,9 @@
 
         <!-- Seção de Observações -->
         {% if produto.observacoes %}
-        <div class="info-section similar-section">
-            <h3>Observações</h3>
-            <pre>{{ produto.observacoes | highlight(termo) }}</pre>
+        <div class="info-section similar-section observacoes-section">
+            <h3>⚠️ OBSERVAÇÕES</h3>
+            <pre class="observacoes-text">{{ produto.observacoes | highlight(termo) }}</pre>
         </div>
         {% endif %}
 

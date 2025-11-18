@@ -1,6 +1,6 @@
 {
-  "latest_version": "1.8.3",
-  "download_url": "https://github.com/ricardofebronio19/CATALOGOGERAL/releases/download/v1.8.3/instalador_CatalogoDePecas_v1.8.3.exe",
-  "release_notes": "v1.8.3 — Correção de build e melhorias de estabilidade.\n\n- CORREÇÃO: Problemas de empacotamento PyInstaller resolvidos\n- CORREÇÃO: Módulos asyncio (_overlapped, _asyncio) incluídos corretamente\n- MUDANÇA: Versão navegador (run.py) em vez de desktop para maior estabilidade\n- MELHORIA: Build mais estável e confiável\n- INCLUI: Todas as correções da v1.8.2 (backup em Downloads, @login_required, interface melhorada)",
+  "latest_version": "1.8.5",
+  "download_url": "https://github.com/ricardofebronio19/CATALOGOGERAL/releases/download/v1.8.5/instalador_CatalogoDePecas_v1.8.5.exe",
+  "release_notes": "v1.8.5 — Sistema de Medidas Estruturadas e Busca Avançada\n\n✨ NOVOS RECURSOS:\n- Sistema completo de medidas estruturadas (8 campos específicos)\n- Busca avançada por medidas com seção expansível\n- Campos: Largura, Altura, Comprimento, Diâmetros, Elo, Estrias\n- Destaque vermelho na seção de Observações\n- Menu lateral de montadoras com scroll\n\n🔧 MELHORIAS:\n- Interface otimizada para entrada de dados\n- Validação e formatação automática de medidas\n- Filtros combinados na busca\n- Melhor organização visual dos formulários\n\n📦 MANTÉM:\n- Todas as funcionalidades da v1.8.3\n- Sistema de atualização automática\n- Backup/Restore aprimorado",
   "size_mb": "28"
 }

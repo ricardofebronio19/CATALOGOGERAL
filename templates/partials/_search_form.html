@@ -20,9 +20,67 @@
             <label for="grupo">Grupo:</label>
             <input type="text" id="grupo" name="grupo" placeholder="Ex: Suspensão" value="{{ request.args.get('grupo', '') }}">
         </div>
-        <div class="search-field">
-            <label for="medidas">Medidas:</label>
-            <input type="text" id="medidas" name="medidas" placeholder="Ex: 250mm x 50mm" value="{{ request.args.get('medidas', '') }}">
+    </div>
+
+    <!-- Botão para expandir busca avançada por medidas -->
+    <div style="width: 100%; margin-top: 15px;">
+        <button type="button" id="toggle-medidas-btn" class="button" style="background-color: #6c757d; display: flex; align-items: center; gap: 8px;">
+            <span id="toggle-icon">▼</span>
+            <span>Busca Avançada por Medidas</span>
+        </button>
+    </div>
+
+    <!-- Seção expansível de medidas -->
+    <div id="medidas-search-section" style="display: none; width: 100%; margin-top: 15px; padding: 20px; background-color: #f8f9fa; border-radius: 8px; border: 2px solid #dee2e6;">
+        <h4 style="margin-top: 0; margin-bottom: 15px; color: #495057;">
+            <svg width="20" height="20" style="vertical-align: middle; margin-right: 8px;" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M8 4a.5.5 0 0 1 .5.5V6a.5.5 0 0 1-1 0V4.5A.5.5 0 0 1 8 4zM3.732 5.732a.5.5 0 0 1 .707 0l.915.914a.5.5 0 1 1-.708.708l-.914-.915a.5.5 0 0 1 0-.707zM2 10a.5.5 0 0 1 .5-.5h1.586a.5.5 0 0 1 0 1H2.5A.5.5 0 0 1 2 10zm9.5 0a.5.5 0 0 1 .5-.5h1.5a.5.5 0 0 1 0 1H12a.5.5 0 0 1-.5-.5zm.754-4.246a.389.389 0 0 0-.527-.02L7.547 9.31a.91.91 0 1 0 1.302 1.258l3.434-4.297a.389.389 0 0 0-.029-.518z"/>
+                <path fill-rule="evenodd" d="M0 10a8 8 0 1 1 15.547 2.661c-.442 1.253-1.845 1.602-2.932 1.25C11.309 13.488 9.475 13 8 13c-1.474 0-3.31.488-4.615.911-1.087.352-2.49.003-2.932-1.25A7.988 7.988 0 0 1 0 10zm8-7a7 7 0 0 0-6.603 9.329c.203.575.923.876 1.68.63C4.397 12.533 6.358 12 8 12s3.604.532 4.923.96c.757.245 1.477-.056 1.68-.631A7 7 0 0 0 8 3z"/>
+            </svg>
+            Especificar Medidas
+        </h4>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+            <div class="search-field" style="margin: 0;">
+                <label for="largura">Largura (mm):</label>
+                <input type="text" id="largura" name="largura" placeholder="Ex: 50" value="{{ request.args.get('largura', '') }}">
+            </div>
+            <div class="search-field" style="margin: 0;">
+                <label for="altura">Altura (mm):</label>
+                <input type="text" id="altura" name="altura" placeholder="Ex: 30" value="{{ request.args.get('altura', '') }}">
+            </div>
+            <div class="search-field" style="margin: 0;">
+                <label for="comprimento">Comprimento (mm):</label>
+                <input type="text" id="comprimento" name="comprimento" placeholder="Ex: 200" value="{{ request.args.get('comprimento', '') }}">
+            </div>
+            <div class="search-field" style="margin: 0;">
+                <label for="diametro_externo">Diâmetro Externo (mm):</label>
+                <input type="text" id="diametro_externo" name="diametro_externo" placeholder="Ex: 100" value="{{ request.args.get('diametro_externo', '') }}">
+            </div>
+            <div class="search-field" style="margin: 0;">
+                <label for="diametro_interno">Diâmetro Interno (mm):</label>
+                <input type="text" id="diametro_interno" name="diametro_interno" placeholder="Ex: 80" value="{{ request.args.get('diametro_interno', '') }}">
+            </div>
+            <div class="search-field" style="margin: 0;">
+                <label for="elo">Elo:</label>
+                <input type="text" id="elo" name="elo" placeholder="Ex: 12" value="{{ request.args.get('elo', '') }}">
+            </div>
+            <div class="search-field" style="margin: 0;">
+                <label for="estrias_internas">Estrias Internas:</label>
+                <input type="text" id="estrias_internas" name="estrias_internas" placeholder="Ex: 24" value="{{ request.args.get('estrias_internas', '') }}">
+            </div>
+            <div class="search-field" style="margin: 0;">
+                <label for="estrias_externas">Estrias Externas:</label>
+                <input type="text" id="estrias_externas" name="estrias_externas" placeholder="Ex: 26" value="{{ request.args.get('estrias_externas', '') }}">
+            </div>
+        </div>
+        <div style="margin-top: 12px; padding: 10px; background-color: #e7f3ff; border-left: 4px solid #007bff; border-radius: 4px;">
+            <small style="color: #004085; display: flex; align-items: start; gap: 8px;">
+                <svg width="16" height="16" style="flex-shrink: 0; margin-top: 2px;" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                    <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
+                </svg>
+                <span><strong>Dica:</strong> Preencha apenas os campos que deseja filtrar. A busca encontrará produtos que contenham os valores especificados.</span>
+            </small>
         </div>
     </div>
 
@@ -38,6 +96,7 @@
 {% block scripts %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // Botão de limpar campos
         const clearButton = document.getElementById('clear-search-btn');
         if (clearButton) {
             clearButton.addEventListener('click', function() {
@@ -51,6 +110,61 @@
                     form.querySelector('input[type="text"]').focus();
                 }
             });
+        }
+
+        // Toggle da seção de medidas avançadas
+        const toggleBtn = document.getElementById('toggle-medidas-btn');
+        const medidasSection = document.getElementById('medidas-search-section');
+        const toggleIcon = document.getElementById('toggle-icon');
+        
+        if (toggleBtn && medidasSection) {
+            // Verifica se algum campo de medida foi preenchido na URL
+            const medidasFields = ['largura', 'altura', 'comprimento', 'diametro_externo', 'diametro_interno', 'elo', 'estrias_internas', 'estrias_externas'];
+            const hasMedidasParams = medidasFields.some(field => {
+                const input = document.getElementById(field);
+                return input && input.value.trim() !== '';
+            });
+
+            // Se houver parâmetros de medidas, mostra a seção expandida
+            if (hasMedidasParams) {
+                medidasSection.style.display = 'block';
+                toggleIcon.textContent = '▲';
+            }
+
+            toggleBtn.addEventListener('click', function() {
+                const isVisible = medidasSection.style.display === 'block';
+                
+                if (isVisible) {
+                    // Esconder com animação suave
+                    medidasSection.style.maxHeight = medidasSection.scrollHeight + 'px';
+                    setTimeout(() => {
+                        medidasSection.style.maxHeight = '0';
+                        medidasSection.style.overflow = 'hidden';
+                    }, 10);
+                    setTimeout(() => {
+                        medidasSection.style.display = 'none';
+                        medidasSection.style.maxHeight = '';
+                        medidasSection.style.overflow = '';
+                    }, 300);
+                    toggleIcon.textContent = '▼';
+                } else {
+                    // Mostrar com animação suave
+                    medidasSection.style.display = 'block';
+                    medidasSection.style.maxHeight = '0';
+                    medidasSection.style.overflow = 'hidden';
+                    setTimeout(() => {
+                        medidasSection.style.maxHeight = medidasSection.scrollHeight + 'px';
+                    }, 10);
+                    setTimeout(() => {
+                        medidasSection.style.maxHeight = '';
+                        medidasSection.style.overflow = '';
+                    }, 300);
+                    toggleIcon.textContent = '▲';
+                }
+            });
+
+            // Adiciona transição CSS
+            medidasSection.style.transition = 'max-height 0.3s ease-in-out';
         }
     });
 </script>

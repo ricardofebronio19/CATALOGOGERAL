@@ -79,9 +79,46 @@
                 </datalist>
             </div>
 
-            <div class="search-field">
-                <label for="medidas">Medidas</label>
-                <textarea id="medidas" name="medidas" rows="4" placeholder="Ex: 200mm x 50mm (uma medida por linha)"></textarea>
+            <div class="search-field" style="width: 100%;">
+                <h4 style="margin-bottom: 10px; color: #333;">Medidas</h4>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
+                    <div>
+                        <label for="largura">Largura (mm)</label>
+                        <input type="text" id="largura" name="largura" placeholder="Ex: 50">
+                    </div>
+                    <div>
+                        <label for="altura">Altura (mm)</label>
+                        <input type="text" id="altura" name="altura" placeholder="Ex: 30">
+                    </div>
+                    <div>
+                        <label for="comprimento">Comprimento (mm)</label>
+                        <input type="text" id="comprimento" name="comprimento" placeholder="Ex: 200">
+                    </div>
+                    <div>
+                        <label for="diametro_externo">Diâmetro Externo (mm)</label>
+                        <input type="text" id="diametro_externo" name="diametro_externo" placeholder="Ex: 100">
+                    </div>
+                    <div>
+                        <label for="diametro_interno">Diâmetro Interno (mm)</label>
+                        <input type="text" id="diametro_interno" name="diametro_interno" placeholder="Ex: 80">
+                    </div>
+                    <div>
+                        <label for="elo">Elo</label>
+                        <input type="text" id="elo" name="elo" placeholder="Ex: 12">
+                    </div>
+                    <div>
+                        <label for="estrias_internas">Estrias Internas</label>
+                        <input type="text" id="estrias_internas" name="estrias_internas" placeholder="Ex: 24">
+                    </div>
+                    <div>
+                        <label for="estrias_externas">Estrias Externas</label>
+                        <input type="text" id="estrias_externas" name="estrias_externas" placeholder="Ex: 26">
+                    </div>
+                </div>
+                <div style="margin-top: 10px;">
+                    <label for="medidas_adicionais">Medidas Adicionais</label>
+                    <textarea id="medidas_adicionais" name="medidas_adicionais" rows="2" placeholder="Outras medidas ou observações sobre dimensões"></textarea>
+                </div>
             </div>
 
             <!-- Seção de Aplicações Dinâmicas -->

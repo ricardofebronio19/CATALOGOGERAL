@@ -37,6 +37,8 @@ from core_utils import (
     _ranges_overlap,
     allowed_file,
     _normalize_for_search,
+    _processar_medidas_estruturadas,
+    _parsear_medidas_para_dict,
 )
 from utils.image_utils import download_image_from_url
 from models import Aplicacao, ImagemProduto, Produto, User, SugestaoIgnorada
@@ -135,12 +137,26 @@ def buscar():
     aplicacao_termo = request.args.get("aplicacao", "")
     grupo = request.args.get("grupo", "")
     medidas = request.args.get("medidas", "")
+    
+    # Novos parâmetros de medidas estruturadas
+    largura = request.args.get("largura", "")
+    altura = request.args.get("altura", "")
+    comprimento = request.args.get("comprimento", "")
+    diametro_externo = request.args.get("diametro_externo", "")
+    diametro_interno = request.args.get("diametro_interno", "")
+    elo = request.args.get("elo", "")
+    estrias_internas = request.args.get("estrias_internas", "")
+    estrias_externas = request.args.get("estrias_externas", "")
+    
     sort_by = request.args.get("sort_by", "codigo")
     sort_dir = request.args.get("sort_dir", "asc")
 
     PER_PAGE = 20
     query = _build_search_query(
-        termo, codigo_produto, montadora, aplicacao_termo, grupo, medidas
+        termo, codigo_produto, montadora, aplicacao_termo, grupo, medidas,
+        largura=largura, altura=altura, comprimento=comprimento,
+        diametro_externo=diametro_externo, diametro_interno=diametro_interno,
+        elo=elo, estrias_internas=estrias_internas, estrias_externas=estrias_externas
     )
 
     # Define a coluna de ordenação
@@ -200,6 +216,14 @@ def buscar():
         'aplicacao': aplicacao_termo,
         'grupo': grupo,
         'medidas': medidas,
+        'largura': largura,
+        'altura': altura,
+        'comprimento': comprimento,
+        'diametro_externo': diametro_externo,
+        'diametro_interno': diametro_interno,
+        'elo': elo,
+        'estrias_internas': estrias_internas,
+        'estrias_externas': estrias_externas,
         'sort_by': sort_by,
         'sort_dir': sort_dir
     }
@@ -415,13 +439,16 @@ def adicionar_peca():
             return redirect(url_for("admin.adicionar_peca"))
 
         try:
+            # Processa os campos de medidas estruturados
+            medidas_formatadas = _processar_medidas_estruturadas(request.form)
+            
             novo_produto = Produto(
                 nome=nome,
                 codigo=codigo,
                 grupo=request.form.get("grupo", "").strip().upper(),
                 fornecedor=request.form.get("fornecedor", "").strip().upper(),
                 conversoes=request.form.get("conversoes", "").strip().upper(),
-                medidas=request.form.get("medidas", "").strip().upper(),
+                medidas=medidas_formatadas,
                 observacoes=request.form.get("observacoes", "").strip().upper(),
             )
             db.session.add(novo_produto)
@@ -532,12 +559,15 @@ def editar_peca(id):
             return redirect(url_for("admin.editar_peca", id=id))
 
         try:
+            # Processa os campos de medidas estruturados
+            medidas_formatadas = _processar_medidas_estruturadas(request.form)
+            
             produto.nome = nome
             produto.codigo = codigo
             produto.grupo = request.form.get("grupo", "").strip().upper()
             produto.fornecedor = request.form.get("fornecedor", "").strip().upper()
             produto.conversoes = request.form.get("conversoes", "").strip().upper()
-            produto.medidas = request.form.get("medidas", "").strip().upper()
+            produto.medidas = medidas_formatadas
             produto.observacoes = request.form.get("observacoes", "").strip().upper()
 
             similares_ids = [
@@ -637,8 +667,10 @@ def editar_peca(id):
             flash(f"Ocorreu um erro inesperado ao atualizar o produto: {e}", "danger")
 
     datalists = _get_form_datalists(app_context=current_app)
+    medidas_dict = _parsear_medidas_para_dict(produto.medidas)
     return render_template(
-        "editar_peca.html", produto=produto, voltar_url=voltar_url, **datalists
+        "editar_peca.html", produto=produto, voltar_url=voltar_url, 
+        medidas_dict=medidas_dict, **datalists
     )
 
 

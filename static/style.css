@@ -517,6 +517,34 @@ main.container { padding-bottom: 30px; }
     margin-top: 20px;
 }
 
+/* Seção de Observações com destaque vermelho */
+.observacoes-section {
+    background-color: #fff5f5 !important;
+    border: 3px solid #dc3545 !important;
+    border-left: 8px solid #dc3545 !important;
+    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.2) !important;
+}
+
+.observacoes-section h3 {
+    color: #dc3545 !important;
+    font-size: 1.3em !important;
+    font-weight: bold !important;
+    margin-bottom: 15px !important;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.observacoes-text {
+    color: #c82333 !important;
+    font-size: 1.05em !important;
+    font-weight: 500 !important;
+    line-height: 1.6 !important;
+    background-color: #fff !important;
+    padding: 15px !important;
+    border-radius: 4px;
+    border: 1px solid #f5c6cb;
+}
+
 /* Lista vertical compacta para Veículo / Ano / Motor nas colunas de similares */
 .vertical-list { 
     display: flex; 
@@ -702,10 +730,12 @@ main.container { padding-bottom: 30px; }
     border: 1px solid #e1e4e8;
     border-radius: 8px;
     padding: 0; /* Remove padding para o h2 preencher o topo */
-    height: fit-content;
+    max-height: 790px; /* Altura máxima para a sidebar */
     align-self: flex-start;
     box-shadow: 0 2px 5px rgba(0,0,0,0.05); /* Sombra sutil */
     overflow: hidden; /* Garante que o border-radius do h2 funcione */
+    display: flex;
+    flex-direction: column;
 }
 
 .sidebar h2 {
@@ -716,12 +746,34 @@ main.container { padding-bottom: 30px; }
     padding: 15px 20px; /* Mais padding */
     text-align: center;
     font-weight: 600; /* Fonte um pouco mais forte */
+    flex-shrink: 0; /* Impede que o título encolha */
 }
 
 .sidebar ul {
     list-style: none;
     padding: 10px; /* Espaçamento interno para os itens */
     margin: 0;
+    overflow-y: auto; /* Adiciona scroll vertical */
+    flex-grow: 1; /* Permite que a lista ocupe o espaço disponível */
+}
+
+/* Estilização da scrollbar para navegadores webkit (Chrome, Safari, Edge) */
+.sidebar ul::-webkit-scrollbar {
+    width: 8px;
+}
+
+.sidebar ul::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.sidebar ul::-webkit-scrollbar-thumb {
+    background: var(--cor-principal, #ff6600);
+    border-radius: 4px;
+}
+
+.sidebar ul::-webkit-scrollbar-thumb:hover {
+    background: #e55a00;
 }
 
 .montadora-item {
@@ -1279,3 +1331,53 @@ mark {
 }
 
 /* ===== fim dos estilos movidos ===== */
+
+/* ===== Busca Avançada por Medidas ===== */
+#toggle-medidas-btn {
+    transition: all 0.3s ease;
+    cursor: pointer;
+    border: 2px solid #6c757d;
+}
+
+#toggle-medidas-btn:hover {
+    background-color: #5a6268 !important;
+    border-color: #545b62;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+#toggle-icon {
+    transition: transform 0.3s ease;
+    display: inline-block;
+    font-size: 0.9em;
+}
+
+#medidas-search-section {
+    animation: slideDown 0.3s ease-in-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+#medidas-search-section input[type="text"] {
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+#medidas-search-section input[type="text"]:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+    outline: none;
+}
+
+#medidas-search-section .search-field label {
+    font-size: 0.9em;
+    color: #495057;
+}
