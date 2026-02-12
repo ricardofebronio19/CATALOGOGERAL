@@ -3,31 +3,32 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# Virtual environment
+# Virtual environments
 .venv/
+venv/
+env/
 
 # Distribution / packaging
 build/
 dist/
 Output/
+*.egg-info/
+
+# PyInstaller
 *.spec
 
-# Installer / build artefacts
-*.exe
-*.msi
-
-# Local app data and DB
-AppData/
-**/catalogo.db
-*.db
-
-# Logs
-*.log
+# Installer outputs
+Output/
 
 # Editor files
 .vscode/
+*.suo
+*.user
 *.swp
-*.swo
+
+# Database and uploads (if local)
+data/catalogo.db
+uploads/
 
 # OS files
 Thumbs.db

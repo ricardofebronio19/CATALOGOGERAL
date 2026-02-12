@@ -166,6 +166,7 @@ def create_app():
         "pool_pre_ping": True,
     }
     app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
+    app.config["JSON_AS_ASCII"] = False  # Preserva caracteres UTF-8 como Ç
 
     # Garante que as pastas de dados existam (cria com o APP_DATA_PATH atual)
     try:

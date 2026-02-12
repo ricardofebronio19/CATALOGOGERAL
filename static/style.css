@@ -205,6 +205,32 @@ main.container { padding-bottom: 30px; }
     flex-grow: 1;
 }
 
+/* Botão de copiar código */
+.btn-copy-code {
+    background: linear-gradient(135deg, var(--cor-principal, #ff6600), #ff8533);
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9em;
+    font-weight: 600;
+    margin-left: 10px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(255, 102, 0, 0.3);
+}
+
+.btn-copy-code:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(255, 102, 0, 0.4);
+    background: linear-gradient(135deg, #ff8533, var(--cor-principal, #ff6600));
+}
+
+.btn-copy-code:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 2px rgba(255, 102, 0, 0.3);
+}
+
 /* --- Estilos para a Galeria de Imagens --- */
 .image-gallery {
     display: flex;

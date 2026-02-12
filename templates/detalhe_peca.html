@@ -17,8 +17,8 @@
                 <p>
                     <strong>Código:</strong> 
                     <span id="product-code">{{ produto.codigo }}</span>
-                    <button onclick="copyToClipboard('{{ produto.codigo }}', 'Código do produto')" title="Copiar código" style="background: none; border: none; cursor: pointer; padding: 0 5px;">
-                        <img src="{{ url_for('static', filename='copy-icon.svg') }}" alt="Copiar" style="width: 16px; height: 16px; vertical-align: middle;">
+                    <button onclick="copyToClipboard('{{ produto.codigo }}', 'Código do produto')" title="Copiar código" class="btn-copy-code">
+                        📋 Copiar
                     </button>
                 </p>
                 <p><strong>Grupo:</strong> {{ produto.grupo or 'N/A' }}</p>
@@ -85,7 +85,7 @@
                     </div>
                 </h3>
                 <div class="filter-help-text">
-                    <img src="{{ url_for('static', filename='info-icon.svg') }}" alt="Info">
+                    <span style="font-size: 1.2em; margin-right: 5px;">ℹ️</span>
                     <span>Clique em uma aplicação para filtrar os produtos similares.</span>
                 </div>
                 <div id="applicationSearchCount" style="margin-bottom: 10px; font-size: 11px; color: #6c757d; font-style: italic; text-align: right;">

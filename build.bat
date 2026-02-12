@@ -17,7 +17,7 @@ if "%APP_VERSION%"=="" (
     for /f "usebackq delims=" %%i in (`git describe --tags --abbrev^=0 2^>nul`) do set APP_VERSION=%%i
 )
 if "%APP_VERSION%"=="" (
-    set APP_VERSION=1.7.0
+    set APP_VERSION=2.0.0
 )
 set ENTRY_SCRIPT=run.py
 set ICON_FILE=static\favicon.ico
