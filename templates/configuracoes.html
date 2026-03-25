@@ -7,100 +7,173 @@
     <h1>Configurações do Sistema</h1>
 </header>
 
+{%- if config is not defined -%}
+    {%- set config = config_aparencia -%}
+{%- endif -%}
+
 <div class="config-container">
-    <!-- Seção de Aparência -->
-    <div class="config-section">
-        <h2>Aparência</h2>
-        <form action="{{ url_for('admin.configuracoes') }}" method="POST" enctype="multipart/form-data" class="search-section" style="max-width: 600px;">
-            <div class="search-field">
-                <label for="cor_principal">Cor Principal:</label>
-                <input type="color" id="cor_principal" name="cor_principal" value="{{ config.cor_principal }}">
-            </div>
-            <div class="search-field">
-                <label for="logo">Logo do Catálogo (substituir):</label>
-                <input type="file" id="logo" name="logo" accept="image/*">
-                {% if config.logo_path %}
-                <p style="margin-top: 10px;">Logo atual: <img src="{{ url_for('uploaded_file', filename=config.logo_path) }}" alt="Logo Atual" style="max-height: 40px; vertical-align: middle; background: #f0f0f0; padding: 5px;"></p>
-                {% endif %}
-            </div>
-            <button type="submit" class="button">Salvar Aparência</button>
-        </form>
-    </div>
+    <div class="config-grid">
+        <!-- Coluna 1: Aparência e Funcionalidades -->
+        <div class="config-column">
+            <!-- Seção de Aparência -->
+            <div class="config-section">
+                <h2>🎨 Aparência</h2>
+                <form action="{{ url_for('admin.configuracoes') }}" method="POST" enctype="multipart/form-data" class="search-section">
+                    <div class="search-field">
+                        <label for="cor_principal">Cor Principal:</label>
+                        <input type="color" id="cor_principal" name="cor_principal" value="{{ config.cor_principal }}">
+                    </div>
+                    <div class="search-field">
+                        <label for="cor_coluna_conversoes">Cor - Coluna "Conversões":</label>
+                        <input type="color" id="cor_coluna_conversoes" name="cor_coluna_conversoes" value="{{ config.cor_coluna_conversoes or '#fff3cd' }}">
+                    </div>
+                    <div class="search-field">
+                        <label for="cor_coluna_medidas">Cor - Coluna "Medidas":</label>
+                        <input type="color" id="cor_coluna_medidas" name="cor_coluna_medidas" value="{{ config.cor_coluna_medidas or '#d1ecf1' }}">
+                    </div>
 
-    <!-- Seção de Importação -->
-    <div class="config-section">
-        <h2>Importar Dados</h2>
-    <form action="{{ url_for('admin.tarefa_importar_csv') }}" method="POST" enctype="multipart/form-data">
-            <div class="search-field">
-                <label for="csv_file">Importar Produtos de CSV:</label>
-                <input type="file" id="csv_file" name="csv_file" accept=".csv" required>
-            </div>
-            <button type="submit" class="button">Importar CSV</button>
-        </form>
-    </div>
+                    <!-- Visualização de Prévia em Tempo Real -->
+                    <div style="background: #fff; padding: 15px; border: 1px solid #e9ecef; border-radius: 6px; margin: 15px 0;">
+                        <h4 style="margin: 0 0 10px 0; font-size: 0.85em; color: #6c757d; text-transform: uppercase;">Prévia Visual</h4>
+                        
+                        <div id="preview-header" style="background-color: {{ config.cor_principal }}; color: #fff; padding: 10px; border-radius: 4px; text-align: center; font-weight: bold; margin-bottom: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                            Cabeçalho do Sistema
+                        </div>
 
-    <!-- Seção de Ícones das Montadoras (compacta com dropdown) -->
-    <div class="config-section">
-        <h2>Ícones das Montadoras</h2>
-        <form id="montadora-icon-form" action="{{ url_for('admin.configuracoes') }}" method="POST" enctype="multipart/form-data" class="search-section" style="max-width: 600px; gap: 16px;">
-            <p>Selecione uma montadora e envie um ícone personalizado (PNG/JPG/WebP). Se não houver ícone, será usado o padrão em <code>static/images/logos/</code>.</p>
+                        <div style="display: flex; gap: 10px;">
+                            <div id="preview-conversoes" style="flex: 1; background-color: {{ config.cor_coluna_conversoes or '#fff3cd' }}; padding: 10px; border-radius: 4px; border: 1px solid rgba(0,0,0,0.05); font-size: 0.9em;">
+                                <strong>Conversões</strong>
+                            </div>
+                            <div id="preview-medidas" style="flex: 1; background-color: {{ config.cor_coluna_medidas or '#d1ecf1' }}; padding: 10px; border-radius: 4px; border: 1px solid rgba(0,0,0,0.05); font-size: 0.9em;">
+                                <strong>Medidas</strong>
+                            </div>
+                        </div>
+                    </div>
 
-            <div class="search-field" style="width:100%;">
-                <label for="montadora-select">Montadora:</label>
-                <select id="montadora-select" style="min-width: 260px;">
-                    {% for m in montadoras %}
-                        <option value="{{ m }}">{{ m }}</option>
-                    {% endfor %}
-                </select>
-            </div>
+                    <div class="search-field">
+                        <label for="logo">Logo do Catálogo (substituir):</label>
+                        <input type="file" id="logo" name="logo" accept="image/*">
+                        {% if config.logo_path %}
+                        <p style="margin-top: 10px;">Logo atual: <img src="{{ url_for('uploaded_file', filename=config.logo_path) }}" alt="Logo Atual" style="max-height: 40px; vertical-align: middle; background: #f0f0f0; padding: 5px;"></p>
+                        {% endif %}
+                    </div>
+                    <button type="submit" class="button">Salvar Aparência</button>
+                </form>
 
-            <div class="search-field" style="display:flex; align-items:center; gap:16px;">
-                <div>
-                    <div style="font-weight:600; margin-bottom:6px;">Ícone atual</div>
-                    <img id="montadora-icon-preview" src="" alt="Prévia do ícone" style="height:36px; background:#f0f0f0; padding:6px; border-radius:6px; max-width: 200px; object-fit: contain;">
-                </div>
-                <div style="flex:1;">
-                    <div style="font-weight:600; margin-bottom:6px;">Novo arquivo</div>
-                    <input type="file" id="montadora-icon-file" name="" accept="image/*">
-                    <small style="display:block; color:#666;">O arquivo será salvo como <code>icon_&lt;slug&gt;.&lt;ext&gt;</code> em uploads.</small>
-                </div>
+                <form action="{{ url_for('admin.restaurar_cores_padrao') }}" method="POST" style="margin-top: 15px; border-top: 1px solid #e9ecef; padding-top: 15px;">
+                    <button type="submit" class="button" style="background-color: #6c757d; width: 100%;" onclick="return confirm('Tem certeza que deseja restaurar todas as cores para o padrão do sistema?');">↺ Restaurar Cores Padrão</button>
+                </form>
             </div>
 
-            <div>
-                <button type="submit" class="button">Salvar Ícone</button>
-            </div>
-        </form>
-    </div>
-
-    <!-- Seção de Backup e Restauração -->
-    <div class="config-section">
-        <h2>Backup e Restauração</h2>
-        <div style="display: flex; gap: 20px; align-items: flex-start;">
-            <div style="flex: 1;">
-                <h3 style="margin-top: 0;">Criar Backup</h3>
-                <p>Crie uma cópia de segurança de todo o catálogo, incluindo produtos, imagens e configurações.</p>
-                <p style="font-size: 0.9em; color: #666; margin-bottom: 15px;">
-                    📁 O arquivo será salvo na sua pasta <strong>Downloads</strong>
-                </p>
-                <a href="{{ url_for('admin.backup') }}" class="button" id="btn-backup" onclick="showBackupLoading(event)">
-                    💾 Fazer Backup Agora
-                </a>
-                <div id="backup-loading" style="display: none; margin-top: 10px;">
-                    <span style="color: #007bff; font-weight: bold;">⏳ Criando backup, aguarde...</span>
-                    <br>
-                    <span style="color: #666; font-size: 0.9em;">Isso pode levar alguns segundos dependendo do tamanho do catálogo.</span>
-                </div>
-            </div>
-            <div style="flex: 1; border-left: 2px solid #ddd; padding-left: 20px;">
-                <h3 style="margin-top: 0;">Restaurar Backup</h3>
-                <form action="{{ url_for('admin.restaurar') }}" method="POST" enctype="multipart/form-data" onsubmit="return confirm('ATENÇÃO: A restauração substituirá TODOS os dados atuais. Esta ação não pode ser desfeita. Deseja continuar?');">
-                    <p>Restaure o catálogo a partir de um arquivo de backup (.zip).</p>
-                    <input type="file" name="backup_file" accept=".zip" required style="margin-bottom: 10px;">
-                    <button type="submit" class="button" style="background-color: #dc3545;">🔄 Restaurar Backup</button>
+            <!-- Seção de Funcionalidades -->
+            <div class="config-section">
+                <h2>⚙️ Funcionalidades</h2>
+                <form action="{{ url_for('admin.configuracoes') }}" method="POST" class="search-section">
+                    <!-- Pesquisa externa removida permanentemente -->
+                    {# <div class="search-field">
+                        <label for="pesquisa_externa_ativa" style="display: flex; align-items: center; gap: 10px;">
+                            <input type="checkbox" id="pesquisa_externa_ativa" name="pesquisa_externa_ativa" value="1" {% if config.pesquisa_externa_ativa %}checked{% endif %}>
+                            <span>Ativar botão de pesquisa externa na internet</span>
+                        </label>
+                        <small style="display: block; margin-top: 5px; color: #666;">
+                            Quando ativo, será exibido um botão na página inicial para buscar informações de peças na internet usando código e marca do produto.
+                        </small>
+                    </div> #}
+                    <button type="submit" class="button">Salvar Funcionalidades</button>
                 </form>
             </div>
         </div>
+
+        <!-- Coluna 2: Importação e Ícones -->
+        <div class="config-column">
+            <!-- Seção de Importação -->
+            <div class="config-section">
+                <h2>📂 Importar Dados</h2>
+                <form action="{{ url_for('admin.tarefa_importar_csv') }}" method="POST" enctype="multipart/form-data">
+                    <div class="search-field">
+                        <label for="csv_file">Importar Produtos de CSV:</label>
+                        <input type="file" id="csv_file" name="csv_file" accept=".csv" required>
+                    </div>
+                    <button type="submit" class="button">Importar CSV</button>
+                </form>
+            </div>
+
+            <!-- Seção de Ícones das Montadoras -->
+            <div class="config-section">
+                <h2>🏭 Ícones das Montadoras</h2>
+                <form id="montadora-icon-form" action="{{ url_for('admin.configuracoes') }}" method="POST" enctype="multipart/form-data" class="search-section">
+                    <p>Selecione uma montadora e envie um ícone personalizado (PNG/JPG/WebP). Se não houver ícone, será usado o padrão em <code>static/images/logos/</code>.</p>
+
+                    <div class="search-field" style="width:100%;">
+                        <label for="montadora-select">Montadora:</label>
+                        <select id="montadora-select" style="min-width: 200px;">
+                            {% for m in montadoras %}
+                                <option value="{{ m }}">{{ m }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="search-field" style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+                        <div>
+                            <div style="font-weight:600; margin-bottom:6px;">Ícone atual</div>
+                            <img id="montadora-icon-preview" src="" alt="Prévia do ícone" style="height:36px; background:#f0f0f0; padding:6px; border-radius:6px; max-width: 150px; object-fit: contain;">
+                        </div>
+                        <div style="flex:1; min-width: 200px;">
+                            <div style="font-weight:600; margin-bottom:6px;">Novo arquivo</div>
+                            <input type="file" id="montadora-icon-file" name="" accept="image/*">
+                            <small style="display:block; color:#666;">O arquivo será salvo como <code>icon_&lt;slug&gt;.&lt;ext&gt;</code> em uploads.</small>
+                        </div>
+                    </div>
+
+                    <div>
+                        <button type="submit" class="button">Salvar Ícone</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Coluna 3: Backup e Restauração -->
+        <div class="config-column">
+            <!-- Seção de Backup e Restauração -->
+            <div class="config-section config-section-full">
+                <h2>💾 Backup e Restauração</h2>
+                <div class="backup-restore-container">
+                    <div class="backup-section">
+                        <h3 style="margin-top: 0;">Criar Backup</h3>
+                        <p>Crie uma cópia de segurança de todo o catálogo, incluindo produtos, imagens e configurações.</p>
+                        <p style="font-size: 0.9em; color: #666; margin-bottom: 15px;">
+                            📁 O arquivo será salvo na sua pasta <strong>Downloads</strong>
+                        </p>
+                        <a href="{{ url_for('admin.backup') }}" class="button" id="btn-backup" onclick="showBackupLoading(event)">
+                            💾 Fazer Backup Agora
+                        </a>
+                        <a href="{{ url_for('admin.catalogo_pdf') }}" class="button" id="btn-catalogo" style="background-color:#28a745; margin-left:10px;" onclick="showCatalogLoading(event)" target="_blank">
+                            📄 Gerar Catálogo PDF
+                        </a>
+                        <div id="backup-loading" style="display: none; margin-top: 10px;">
+                            <span style="color: #007bff; font-weight: bold;">⏳ Criando backup, aguarde...</span>
+                            <br>
+                            <span style="color: #666; font-size: 0.9em;">Isso pode levar alguns segundos dependendo do tamanho do catálogo.</span>
+                        </div>
+                        <div id="catalog-loading" style="display: none; margin-top: 10px;">
+                            <span style="color: #007bff; font-weight: bold;">⏳ Gerando catálogo, aguarde...</span>
+                            <br>
+                            <span style="color: #666; font-size: 0.9em;">O processo pode demorar dependendo do número de produtos e imagens.</span>
+                        </div>
+                    </div>
+                    <div class="restore-section">
+                        <h3 style="margin-top: 0;">Restaurar Backup</h3>
+                        <form action="{{ url_for('admin.restaurar') }}" method="POST" enctype="multipart/form-data" onsubmit="return confirm('ATENÇÃO: A restauração substituirá TODOS os dados atuais. Esta ação não pode ser desfeita. Deseja continuar?');">
+                            <p>Restaure o catálogo a partir de um arquivo de backup (.zip).</p>
+                            <input type="file" name="backup_file" accept=".zip" required style="margin-bottom: 10px;">
+                            <button type="submit" class="button" style="background-color: #dc3545;">🔄 Restaurar Backup</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
+</div>
 
 <script>
 function showBackupLoading(event) {
@@ -124,26 +197,128 @@ function showBackupLoading(event) {
 }
 </script>
 
+<script>
+function showCatalogLoading(event) {
+    const btn = document.getElementById('btn-catalogo');
+    const loading = document.getElementById('catalog-loading');
+    // Mostra indicador de loading semelhante ao backup
+    btn.style.opacity = '0.6';
+    btn.style.pointerEvents = 'none';
+    btn.textContent = '⏳ Gerando catálogo...';
+    loading.style.display = 'block';
+
+    setTimeout(() => {
+        btn.style.opacity = '1';
+        btn.style.pointerEvents = 'auto';
+        btn.textContent = '📄 Gerar Catálogo PDF';
+        loading.style.display = 'none';
+    }, 5000);
+}
+</script>
+
 </div>
 
 <style>
     .config-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 20px;
+    }
+    
+    .config-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        gap: 20px;
+        align-items: start;
+    }
+    
+    .config-column {
         display: flex;
         flex-direction: column;
-        gap: 30px;
+        gap: 20px;
     }
+    
     .config-section {
         padding: 20px;
         border: 1px solid #ddd;
         border-radius: 8px;
         background-color: #f9f9f9;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
+    
+    .config-section:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+    
+    .config-section-full {
+        min-height: 100%;
+    }
+    
     .config-section h2 {
         margin-top: 0;
         border-bottom: 2px solid var(--cor-principal, #ff6600);
         padding-bottom: 10px;
         margin-bottom: 20px;
+        font-size: 1.2em;
+        display: flex;
+        align-items: center;
+        gap: 8px;
     }
+    
+    .backup-restore-container {
+        display: flex;
+        flex-direction: column;
+        gap: 25px;
+    }
+    
+    .backup-section, .restore-section {
+        padding: 15px;
+        border: 1px solid #e0e0e0;
+        border-radius: 6px;
+        background-color: #ffffff;
+    }
+    
+    .backup-section {
+        background-color: #f8f9fa;
+        border-color: #28a745;
+        border-left: 4px solid #28a745;
+    }
+    
+    .restore-section {
+        background-color: #fdf2f2;
+        border-color: #dc3545;
+        border-left: 4px solid #dc3545;
+    }
+    
+    /* Responsividade para tablets */
+    @media (max-width: 768px) {
+        .config-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .config-container {
+            padding: 0 10px;
+        }
+        
+        .search-field[style*="display:flex"] {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+        }
+    }
+    
+    /* Responsividade para mobile */
+    @media (max-width: 480px) {
+        .config-section {
+            padding: 15px;
+        }
+        
+        .config-section h2 {
+            font-size: 1.1em;
+        }
+    }
+    
     .progress-bar-background {
         width: 100%;
         background-color: #e9ecef;
@@ -151,6 +326,7 @@ function showBackupLoading(event) {
         height: 24px;
         overflow: hidden;
     }
+    
     .progress-bar-foreground {
         width: 0%;
         height: 100%;
@@ -203,6 +379,25 @@ function showBackupLoading(event) {
             const select = document.getElementById('montadora-select');
             updatePreviewAndInput();
             if (select) select.addEventListener('change', updatePreviewAndInput);
+        });
+
+        // Script para atualização em tempo real da prévia de cores
+        document.addEventListener('DOMContentLoaded', function() {
+            const map = {
+                'cor_principal': 'preview-header',
+                'cor_coluna_conversoes': 'preview-conversoes',
+                'cor_coluna_medidas': 'preview-medidas'
+            };
+            
+            Object.keys(map).forEach(function(inputId) {
+                const input = document.getElementById(inputId);
+                const preview = document.getElementById(map[inputId]);
+                if(input && preview) {
+                    input.addEventListener('input', function() {
+                        preview.style.backgroundColor = this.value;
+                    });
+                }
+            });
         });
     })();
 </script>

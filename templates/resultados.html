@@ -51,6 +51,9 @@
                     {{ sortable_header('nome', 'Nome') }}
                     {{ sortable_header('fornecedor', 'Fornecedor') }}
                     <th>Aplicações</th>
+                    {% if current_user.is_authenticated %}
+                        <th style="width: 120px;">Ações</th>
+                    {% endif %}
                 </tr>
             </thead>
             <tbody>
@@ -76,6 +79,17 @@
                             <span style="font-size: 0.8em; color: #666;">... e mais {{ produto.aplicacoes|length - 2 }}</span>
                         {% endif %}
                     </td>
+                    {% if current_user.is_authenticated %}
+                        <td>
+                            <form method="POST" action="{{ url_for('main.adicionar_ao_carrinho') }}" style="margin: 0; display: inline;">
+                                <input type="hidden" name="produto_id" value="{{ produto.id }}">
+                                <input type="hidden" name="quantidade" value="1">
+                                <button type="submit" class="button" style="padding: 5px 10px; font-size: 12px; background: #28a745; color: white;" title="Adicionar ao carrinho">
+                                    🛒+
+                                </button>
+                            </form>
+                        </td>
+                    {% endif %}
                 </tr>
                 {% endfor %}
             </tbody>

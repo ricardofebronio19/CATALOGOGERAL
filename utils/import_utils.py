@@ -41,9 +41,10 @@ def _parse_e_salvar_aplicacoes(
         aplicacao_str = aplicacao_str.strip()
         if not aplicacao_str:
             continue
-
-        year_pattern = r"(\b\d{4}(?:/\d{2,4}|/\.{3})?\b)"
+        # Aceita anos com 2 ou 4 dígitos e formas como "98/04", "2008" ou "2010/..."
+        year_pattern = r"(\b\d{2,4}(?:/\d{2,4}|/\.\.\.)?\b)"
         anos_encontrados = re.findall(year_pattern, aplicacao_str)
+        # Remove todas as ocorrências de anos da string de aplicação
         veiculos_str = re.sub(year_pattern, "", aplicacao_str).strip()
 
         montadora = montadora_geral
@@ -53,8 +54,12 @@ def _parse_e_salvar_aplicacoes(
                 montadora = partes[0].strip()
                 veiculos_str = partes[1].strip()
 
+        # Não dividir por espaços (mantém nomes como "TOPIC 2.7").
+        # Divide por vírgulas, barra com espaços " / ", traço com espaços " - " ou pipe.
         veiculos_potenciais = [
-            v.strip() for v in re.split(r"[, ]+", veiculos_str) if v.strip()
+            v.strip()
+            for v in re.split(r",|\s-\s|\s/\s|\|", veiculos_str)
+            if v.strip()
         ]
 
         for veiculo_nome in veiculos_potenciais:
@@ -133,9 +138,10 @@ def importar_csv_logic(app, filepath):
                     observacoes = (get_value("observacoes") or get_value("obs")).strip()
 
                     produto_existente = Produto.query.filter(
-                        func.upper(Produto.codigo) == codigo.upper()
+                        func.upper(Produto.codigo) == codigo.upper(),
+                        func.upper(Produto.fornecedor) == (fornecedor or "").upper(),
                     ).first()
-                    produto_alvo = produto_existente or Produto(codigo=codigo)
+                    produto_alvo = produto_existente or Produto(codigo=codigo, fornecedor=fornecedor or None)
                     if not produto_existente:
                         db.session.add(produto_alvo)
                         produtos_adicionados += 1

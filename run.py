@@ -7,7 +7,24 @@ import tempfile
 import threading
 import webbrowser
 
-from waitress import serve
+try:
+    from waitress import serve  # type: ignore
+except Exception:
+    serve = None
+    _WAITRESS_MISSING = True
+else:
+    _WAITRESS_MISSING = False
+
+def _fallback_serve(app, host, port, max_request_body_size=None):
+    # Fallback simples para desenvolvimento quando waitress não está instalado.
+    # Usa Flask dev server em modo threaded não é recomendado para produção.
+    print("Aviso: pacote 'waitress' não encontrado. Usando servidor de desenvolvimento Flask como fallback.")
+    print("Para instalar o Waitress (recomendado para produção): pip install waitress")
+    # Flask's run aceita host/port; ignora max_request_body_size
+    try:
+        app.run(host=host, port=port, threaded=True)
+    except Exception as e:
+        print(f"Erro ao iniciar servidor de fallback: {e}")
 
 from app import (
     APP_DATA_PATH,
@@ -37,8 +54,10 @@ except Exception:
     # Não devemos falhar na inicialização do app por conta desta tentativa.
     pass
 
-# Cria a instância da aplicação
-app = create_app()
+# Placeholder para a instância da aplicação. A `app` será criada dentro de `main()`
+# para permitir opções de linha de comando que possam alterar o arquivo de DB
+# antes da inicialização (ex: --use-repo-db).
+app = None
 
 
 def executar_restauracao_de_backup():
@@ -77,15 +96,77 @@ def executar_restauracao_de_backup():
             f"../CatalogoDePecas_old_{os.path.getmtime(restore_filepath)}",
         )
         if os.path.exists(APP_DATA_PATH):
-            shutil.move(APP_DATA_PATH, backup_dir_old)
-            print(f"O diretório de dados antigo foi salvo em: {backup_dir_old}")
+            try:
+                shutil.move(APP_DATA_PATH, backup_dir_old)
+                print(f"O diretório de dados antigo foi salvo em: {backup_dir_old}")
+            except Exception as e_move:
+                # Em Windows é comum que arquivos (ex: sqlite DB) estejam abertos
+                # e impeçam operações atômicas de rename/rmtree. Tentamos um
+                # fallback que move/copia os itens individualmente, ignorando
+                # arquivos que estejam em uso para não abortar a restauração.
+                print(f"Falha ao mover diretório inteiro: {e_move}. Tentando mover itens individualmente.")
+                os.makedirs(backup_dir_old, exist_ok=True)
+                for name in os.listdir(APP_DATA_PATH):
+                    src = os.path.join(APP_DATA_PATH, name)
+                    dst = os.path.join(backup_dir_old, name)
+                    try:
+                        shutil.move(src, dst)
+                    except Exception as e_item:
+                        print(f"Não foi possível mover {src}: {e_item}. Tentando copiar e pular se travado.")
+                        try:
+                            if os.path.isdir(src):
+                                shutil.copytree(src, dst)
+                                try:
+                                    shutil.rmtree(src)
+                                except Exception:
+                                    pass
+                            else:
+                                shutil.copy2(src, dst)
+                                try:
+                                    os.remove(src)
+                                except Exception:
+                                    pass
+                        except Exception as e_copy:
+                            print(f"Falha ao copiar {src}: {e_copy}. O item será mantido no local.")
 
-        # 2. Recria o diretório de dados e extrai o backup (usando o temporário)
+        # 2. Extrai o backup para um diretório temporário e mescla no APP_DATA_PATH
         os.makedirs(APP_DATA_PATH, exist_ok=True)
         import zipfile
 
-        with zipfile.ZipFile(temp_restore, "r") as zf:  # type: ignore
-            zf.extractall(APP_DATA_PATH)
+        temp_extract_dir = None
+        try:
+            temp_extract_dir = tempfile.mkdtemp(prefix="catalogo_restore_")
+            with zipfile.ZipFile(temp_restore, "r") as zf:  # type: ignore
+                zf.extractall(temp_extract_dir)
+
+            # Função auxiliar: copia/mescla recusivamente, sobrescrevendo quando possível
+            def _merge_copy(src_root, dst_root):
+                for root, dirs, files in os.walk(src_root):
+                    rel = os.path.relpath(root, src_root)
+                    target_dir = os.path.join(dst_root, rel) if rel != "." else dst_root
+                    os.makedirs(target_dir, exist_ok=True)
+                    for d in dirs:
+                        os.makedirs(os.path.join(target_dir, d), exist_ok=True)
+                    for f in files:
+                        s = os.path.join(root, f)
+                        t = os.path.join(target_dir, f)
+                        try:
+                            # Tenta substituir o arquivo destino
+                            shutil.copy2(s, t)
+                        except PermissionError:
+                            print(f"Arquivo em uso, não foi possível sobrescrever: {t}. Pulando.")
+                        except Exception as e_f:
+                            print(f"Erro ao copiar {s} -> {t}: {e_f}. Pulando.")
+
+            _merge_copy(temp_extract_dir, APP_DATA_PATH)
+
+        finally:
+            # Limpa a extração temporária
+            try:
+                if temp_extract_dir and os.path.exists(temp_extract_dir):
+                    shutil.rmtree(temp_extract_dir)
+            except Exception:
+                pass
 
         # 3. Se o backup for do tipo SQL, executa o script SQL para recriar o banco
         sql_path = os.path.join(APP_DATA_PATH, "catalogo.db.sql")
@@ -151,13 +232,13 @@ def executar_atualizacao():
         # Mantém o pacote de atualização para uma nova tentativa
 
 
-def iniciar_servidor(host, port, abrir_navegador):
+def iniciar_servidor(app_instance, host, port, abrir_navegador):
     """Inicializa o banco de dados (se necessário) e inicia o servidor Waitress."""
     print("Garantindo que o banco de dados esteja inicializado...")
-    inicializar_banco(app)
+    inicializar_banco(app_instance)
 
     # Inicia a verificação de atualizações e agenda verificações periódicas
-    threading.Timer(5.0, schedule_periodic_update_check, args=[app]).start()
+    threading.Timer(5.0, schedule_periodic_update_check, args=[app_instance]).start()
 
     url = f"http://{host}:{port}"
     print("\nServidor iniciado. Pronto para receber conexões.")
@@ -178,7 +259,21 @@ def iniciar_servidor(host, port, abrir_navegador):
 
     # Inicia o servidor de produção
     # Use host='0.0.0.0' para permitir acesso de outras máquinas na rede
-    serve(app, host=host, port=port)  # type: ignore
+    # Ajusta `max_request_body_size` para permitir uploads grandes (padrão 512MB),
+    # pode ser sobrescrito pela variável de ambiente `MAX_REQUEST_BODY_SIZE`.
+    max_body = int(os.getenv("MAX_REQUEST_BODY_SIZE", 536870912))
+    if _WAITRESS_MISSING or serve is None:
+        _fallback_serve(app_instance, host, port, max_request_body_size=max_body)
+    else:
+        try:
+            serve(app_instance, host=host, port=port, max_request_body_size=max_body)  # type: ignore
+        except OSError as e:
+            if "Address already in use" in str(e) or "WinError 10048" in str(e):
+                print(f"\n[ERRO] A porta {port} já está em uso.")
+                print("Verifique se o aplicativo já está aberto ou se outro serviço está usando esta porta.")
+                input("Pressione Enter para sair...")
+            else:
+                raise e
 
 
 def reset_database():
@@ -225,7 +320,7 @@ def main():
         # entrada para que o subcomando esperado ocupe a posição correta.
         if first.lower() == "run.py":
             del sys.argv[1]
-    # Normaliza o argv buscando um subcomando conhecido em qualquer posição
+
     # Isso ajuda quando empacotadores ou atalhos injetam argumentos em posições
     # diferentes (ex: alguns wrappers podem colocar o comando após opções).
     known_cmds = {"run", "reset-db", "link-images", "import-csv"}
@@ -237,6 +332,10 @@ def main():
                     rest = sys.argv[1:i] + sys.argv[i + 1:]
                     sys.argv = [sys.argv[0], a] + rest
                 break
+
+    # Se nenhum comando conhecido for encontrado, assume 'run' como padrão
+    if len(sys.argv) == 1 or sys.argv[1] not in known_cmds:
+        sys.argv.insert(1, "run")
 
     parser = argparse.ArgumentParser(
         description="Servidor e gerenciador para a aplicação Catálogo de Peças."
@@ -264,6 +363,12 @@ def main():
         action="store_true",
         help="Impede que o navegador seja aberto automaticamente.",
     )
+    run_parser.add_argument(
+        "--use-repo-db",
+        action="store_true",
+        dest="use_repo_db",
+        help="Copia 'data/catalogo.db' do repositório para o APP_DATA_PATH, sobrescrevendo. Útil em desenvolvimento.",
+    )
 
     # Comando 'reset-db'
     subparsers.add_parser(
@@ -284,6 +389,25 @@ def main():
     )
 
     args = parser.parse_args()
+
+    # Se o usuário pediu para usar o DB do repositório, copie-o para APP_DATA_PATH
+    if getattr(args, 'use_repo_db', False):
+        try:
+            repo_db = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'catalogo.db')
+            target_db = os.path.join(APP_DATA_PATH, 'catalogo.db')
+            if os.path.exists(repo_db):
+                os.makedirs(APP_DATA_PATH, exist_ok=True)
+                shutil.copy2(repo_db, target_db)
+                print(f"Arquivo de DB do repositório copiado para: {target_db}")
+            else:
+                print(f"Arquivo {repo_db} não encontrado no repositório.")
+        except Exception as e:
+            print(f"Falha ao copiar DB do repositório: {e}")
+
+    # Cria a instância da aplicação (depois de possíveis operações no DB)
+    global app
+    if app is None:
+        app = create_app()
 
     if args.command == "reset-db":
         reset_database()
@@ -311,7 +435,7 @@ def main():
         executar_atualizacao()
 
         # Inicia o servidor
-        iniciar_servidor(host, port, not no_browser)
+        iniciar_servidor(app, host, port, not no_browser)
 
 
 if __name__ == "__main__":

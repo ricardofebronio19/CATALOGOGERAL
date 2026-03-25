@@ -8,6 +8,7 @@
             <label for="codigo_produto">Código do Produto:</label>
             <input type="text" id="codigo_produto" name="codigo_produto" placeholder="Ex: AL-123" value="{{ request.args.get('codigo_produto', '') }}">
         </div>
+        <!-- campo de placa removido -->
         <div class="search-field">
             <label for="montadora">Montadora:</label>
             <input type="text" id="montadora" name="montadora" placeholder="Ex: Fiat" value="{{ request.args.get('montadora', '') }}">
@@ -166,6 +167,8 @@
             // Adiciona transição CSS
             medidasSection.style.transition = 'max-height 0.3s ease-in-out';
         }
+
+        // Busca por placa removida
     });
 </script>
 {% endblock %}

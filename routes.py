@@ -1,4 +1,5 @@
 import collections
+import io
 import json
 import os
 import shutil
@@ -20,6 +21,7 @@ from flask import (
     redirect,
     render_template,
     request,
+    send_file,
     send_from_directory,
     url_for,
 )
@@ -41,7 +43,27 @@ from core_utils import (
     _parsear_medidas_para_dict,
 )
 from utils.image_utils import download_image_from_url
-from models import Aplicacao, ImagemProduto, Produto, User, SugestaoIgnorada
+from utils.cart_utils import (
+    add_to_cart,
+    remove_from_cart,
+    update_cart_item,
+    clear_cart,
+    get_cart_items,
+    get_cart_count,
+    get_cart_summary
+)
+from models import Aplicacao, ImagemProduto, Produto, User, SugestaoIgnorada, Contato
+
+# Importação da função de busca externa (importada separadamente para debugging)
+# Importações removidas - busca externa desabilitada
+# try:
+#     from utils.external_search import buscar_produto_externo
+# except ImportError as e:
+#     print(f"Erro ao importar busca externa: {e}")
+#     def buscar_produto_externo(codigo, marca, timeout=10):
+#         return [{"titulo": "Busca externa indisponível", "codigo": codigo, "marca": marca, "descricao": "Módulo de busca externa não carregado", "imagem_url": "", "url": "", "conversoes": [], "fonte": "Sistema"}]
+#     def _buscar_produto_externo(codigo, marca, timeout=10):
+#         return [{"titulo": "Funcionalidade temporariamente indisponível", "codigo": codigo, "marca": marca, "descricao": "Erro na importação do módulo de busca externa", "imagem_url": "", "url": "", "conversoes": []}]
 
 TASK_STATUS = {"status": "Ocioso", "output": ""}
 
@@ -104,6 +126,8 @@ def index():
         # pasta estática 'uploads/carousel' (fallback) — tentamos só se carousel_media vazia.
         if not carousel_media:
             carousel_dir = os.path.join(APP_DATA_PATH, "uploads", "carousel")
+
+            
             if os.path.exists(carousel_dir):
                 allowed = {"png", "jpg", "jpeg", "gif", "mp4", "webm"}
                 for fname in sorted(os.listdir(carousel_dir)):
@@ -189,11 +213,18 @@ def buscar():
                 # Normaliza comparações para ignorar acentos e diferenças de caixa
                 monta_ok = True
                 if montadora:
-                    monta_ok = _normalize_for_search(montadora) in _normalize_for_search(app.montadora or "")
+                    # Usa comparação exata para evitar matches parciais
+                    monta_ok = _normalize_for_search(montadora) == _normalize_for_search(app.montadora or "")
 
                 aplic_ok = True
                 if aplicacao_termo:
-                    aplic_ok = _normalize_for_search(aplicacao_termo) in _normalize_for_search(app.veiculo or "") or _normalize_for_search(aplicacao_termo) in _normalize_for_search(app.motor or "")
+                    # Usa comparação exata para evitar matches parciais (ex: A1 em A10)
+                    aplicacao_normalizada = _normalize_for_search(aplicacao_termo)
+                    veiculo_normalizado = _normalize_for_search(app.veiculo or "")
+                    motor_normalizado = _normalize_for_search(app.motor or "")
+                    
+                    aplic_ok = (aplicacao_normalizada == veiculo_normalizado or 
+                               aplicacao_normalizada == motor_normalizado)
 
                 if monta_ok and aplic_ok:
                     aplicacoes_relevantes.append(app)
@@ -241,6 +272,9 @@ def buscar():
         is_admin=current_user.is_authenticated and hasattr(current_user, 'eh_admin') and current_user.eh_admin,
         endpoint=request.endpoint,  # Passa o endpoint atual para o template
     )
+
+
+# Busca por placa removida — rota /api/lookup_plate excluída
 
 
 @main_bp.route("/peca/<int:id>")
@@ -379,6 +413,13 @@ def detalhe_peca(id):
         sugestoes_similares=sugestoes_similares,
         voltar_url=voltar_url,
     )
+    return render_template(
+        "detalhe_peca.html",
+        produto=produto,
+        aplicacoes_agrupadas=aplicacoes_agrupadas,
+        sugestoes_similares=sugestoes_similares,
+        voltar_url=voltar_url,
+    )
 
 
 # --- Rotas de Autenticação (auth_bp) ---
@@ -427,13 +468,19 @@ def adicionar_peca():
     if request.method == "POST":
         nome = request.form.get("nome", "").strip().upper()
         codigo = request.form.get("codigo", "").strip().upper()
+        fornecedor = request.form.get("fornecedor", "").strip().upper()
         if not nome or not codigo:
             flash("Nome da Peça e Código são campos obrigatórios.", "danger")
             return redirect(url_for("admin.adicionar_peca"))
 
-        if Produto.query.filter(func.upper(Produto.codigo) == codigo).first():
+        # Permite códigos duplicados desde que sejam de fornecedores diferentes
+        existente_mesmo_fornecedor = Produto.query.filter(
+            func.upper(Produto.codigo) == codigo,
+            func.upper(Produto.fornecedor) == fornecedor,
+        ).first()
+        if existente_mesmo_fornecedor:
             flash(
-                f'O código "{codigo}" já está em uso. Por favor, escolha outro.',
+                f'O código "{codigo}" já está em uso para o fornecedor "{fornecedor}". Por favor, escolha outro.',
                 "danger",
             )
             return redirect(url_for("admin.adicionar_peca"))
@@ -544,16 +591,19 @@ def editar_peca(id):
     if request.method == "POST":
         nome = request.form.get("nome", "").strip().upper()
         codigo = request.form.get("codigo", "").strip().upper()
+        fornecedor = request.form.get("fornecedor", "").strip().upper()
         if not nome or not codigo:
             flash("Nome da Peça e Código são campos obrigatórios.", "danger")
             return redirect(url_for("admin.editar_peca", id=id))
 
         produto_existente = Produto.query.filter(
-            func.upper(Produto.codigo) == codigo, Produto.id != id
+            func.upper(Produto.codigo) == codigo,
+            func.upper(Produto.fornecedor) == fornecedor,
+            Produto.id != id,
         ).first()
         if produto_existente:
             flash(
-                f'O código "{codigo}" já está em uso pelo produto "{produto_existente.nome}".',
+                f'O código "{codigo}" já está em uso para o fornecedor "{fornecedor}" pelo produto "{produto_existente.nome}".',
                 "danger",
             )
             return redirect(url_for("admin.editar_peca", id=id))
@@ -1020,6 +1070,12 @@ def configuracoes():
     if request.method == "POST":
         # Cor principal
         config["cor_principal"] = request.form.get("cor_principal", "#ff6600")
+        # Cores das colunas em Detalhes do Produto
+        config["cor_coluna_conversoes"] = request.form.get("cor_coluna_conversoes", config.get("cor_coluna_conversoes", "#fff3cd"))
+        config["cor_coluna_medidas"] = request.form.get("cor_coluna_medidas", config.get("cor_coluna_medidas", "#d1ecf1"))
+        
+        # Pesquisa externa desabilitada permanentemente
+        config["pesquisa_externa_ativa"] = False
 
         # Logo principal do sistema
         if "logo" in request.files:
@@ -1062,6 +1118,158 @@ def configuracoes():
     montadoras = [m[0] for m in montadoras]
 
     return render_template("configuracoes.html", config=config, montadoras=montadoras)
+
+
+@admin_bp.route("/configuracoes/restaurar_cores", methods=["POST"])
+def restaurar_cores_padrao():
+    """Restaura as cores de aparência para os padrões originais do sistema."""
+    config = carregar_config_aparencia()
+    config["cor_principal"] = "#ff6600"
+    config["cor_coluna_conversoes"] = "#fff3cd"
+    config["cor_coluna_medidas"] = "#d1ecf1"
+    salvar_config_aparencia(config)
+    flash("Cores restauradas para o padrão com sucesso!", "success")
+    return redirect(url_for("admin.configuracoes"))
+
+@admin_bp.route("/catalogo/pdf")
+@login_required
+def catalogo_pdf():
+    """Gera PDF com todo o catálogo de produtos (estilo semelhante ao PDF do carrinho)."""
+    if not current_user.is_admin:
+        flash('Acesso negado: apenas administradores podem gerar o catálogo.', 'danger')
+        return redirect(url_for('admin.configuracoes'))
+
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.units import cm
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image as RLImage
+    from reportlab.lib import colors
+    from reportlab.lib.enums import TA_CENTER
+    import tempfile
+    import time
+
+    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.pdf', prefix='catalogo_')
+    temp_path = temp_file.name
+    temp_file.close()
+
+    try:
+        produtos = Produto.query.options(selectinload(Produto.imagens), selectinload(Produto.aplicacoes)).order_by(Produto.nome).all()
+
+        doc = SimpleDocTemplate(temp_path, pagesize=A4, topMargin=2*cm, bottomMargin=2*cm, leftMargin=2*cm, rightMargin=2*cm)
+        styles = getSampleStyleSheet()
+        title_style = ParagraphStyle('Title', parent=styles['Heading1'], fontSize=18, textColor=colors.darkblue, alignment=TA_CENTER, spaceAfter=20)
+        normal_style = styles['Normal']; normal_style.fontSize = 9
+        name_style = ParagraphStyle('NameStyle', parent=normal_style, fontSize=10, leading=12, wordWrap='CJK')
+        small_style = ParagraphStyle('SmallCell', parent=normal_style, fontSize=7, leading=8)
+
+        story = []
+        story.append(Paragraph('CATÁLOGO DE PEÇAS', title_style))
+        story.append(Spacer(1,12))
+
+        import re
+        def wrap_and_truncate(text, chunk=20, max_total=800):
+            if not text:
+                return ''
+            t = str(text)
+            if len(t) > max_total:
+                t = t[:max_total-3] + '...'
+            pattern = re.compile(r"(\S{%d})" % chunk)
+            return pattern.sub(lambda m: m.group(1) + '\u200b', t)
+
+        table_data = []
+        table_data.append([
+            Paragraph('<b>Imagem</b>', normal_style),
+            Paragraph('<b>Código</b>', normal_style),
+            Paragraph('<b>Nome</b>', normal_style),
+            Paragraph('<b>Fornecedor</b>', normal_style),
+            Paragraph('<b>Ano</b>', normal_style),
+            Paragraph('<b>Aplicações</b>', normal_style),
+            Paragraph('<b>Motor</b>', normal_style),
+        ])
+
+        for produto in produtos:
+            img_flowable = ''
+            try:
+                if produto.imagens:
+                    fname = produto.imagens[0].filename
+                    uploads_folder = current_app.config.get('UPLOAD_FOLDER')
+                    if uploads_folder:
+                        img_path = os.path.join(uploads_folder, fname)
+                        if os.path.exists(img_path):
+                            img_flowable = RLImage(img_path, width=1.8*cm, height=1.8*cm)
+            except Exception:
+                img_flowable = ''
+
+            code_cell = Paragraph(produto.codigo or '', normal_style)
+            name_text = wrap_and_truncate(produto.nome or '', chunk=20, max_total=300)
+            name_cell = Paragraph(name_text, name_style)
+            supplier_cell = Paragraph(produto.fornecedor or '', normal_style)
+
+            apps_lines = []
+            anos_list = []
+            motors_list = []
+            for aplicacao in produto.aplicacoes:
+                parts = []
+                if aplicacao.montadora:
+                    parts.append(aplicacao.montadora)
+                if aplicacao.veiculo:
+                    parts.append(aplicacao.veiculo)
+                apps_lines.append(' '.join(parts))
+                anos_list.append(str(aplicacao.ano).strip() if aplicacao.ano else '')
+                motors_list.append(str(aplicacao.motor).strip() if aplicacao.motor else '')
+
+            if not apps_lines:
+                apps_lines = ['Não informadas']
+            if not anos_list:
+                anos_list = ['']
+            if not motors_list:
+                motors_list = ['']
+
+            app_list = [wrap_and_truncate(a, chunk=25, max_total=800) for a in apps_lines]
+            max_rows = max(len(app_list), len(anos_list), len(motors_list))
+            for i in range(max_rows):
+                year_cell = anos_list[i] if i < len(anos_list) else ''
+                motor_cell = motors_list[i] if i < len(motors_list) else ''
+                app_cell = app_list[i] if i < len(app_list) else ''
+
+                year_par = Paragraph(year_cell.replace('\n','<br/>'), small_style) if year_cell else Paragraph('', small_style)
+                app_par = Paragraph(app_cell.replace('\n','<br/>'), small_style) if app_cell else Paragraph('', small_style)
+                motor_par = Paragraph(motor_cell, small_style) if motor_cell else Paragraph('', small_style)
+
+                if i == 0:
+                    table_data.append([img_flowable, code_cell, name_cell, supplier_cell, year_par, app_par, motor_par])
+                else:
+                    table_data.append(['', '', '', '', year_par, app_par, motor_par])
+
+        col_widths = [1.8*cm, 2.5*cm, 5.0*cm, 2.0*cm, 1.6*cm, 2.2*cm, 1.4*cm]
+        products_table = Table(table_data, colWidths=col_widths, hAlign='LEFT')
+        products_table.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('GRID', (0, 0), (-1, -1), 0.4, colors.lightgrey),
+            ('BACKGROUND', (0, 0), (-1, 0), colors.whitesmoke),
+            ('FONTSIZE', (0, 0), (-1, -1), 8),
+            ('LEFTPADDING', (0,0), (-1,-1), 4),
+            ('RIGHTPADDING', (0,0), (-1,-1), 4),
+        ]))
+
+        story.append(products_table)
+        story.append(Spacer(1, 16))
+
+        footer = Paragraph('Documento gerado automaticamente pelo Sistema de Catálogo de Peças', ParagraphStyle('Footer', parent=normal_style, fontSize=8, textColor=colors.grey, alignment=TA_CENTER))
+        story.append(footer)
+
+        doc.build(story)
+
+        return send_file(temp_path, as_attachment=True, download_name=f'catalogo_{datetime.now().strftime("%Y%m%d_%H%M%S")}.pdf', mimetype='application/pdf')
+
+    except Exception as e:
+        try:
+            if os.path.exists(temp_path):
+                os.unlink(temp_path)
+        except Exception:
+            pass
+        flash(f'Erro ao gerar catálogo PDF: {e}', 'danger')
+        return redirect(url_for('admin.configuracoes'))
 
 
 @admin_bp.route("/tarefas", methods=["GET"])
@@ -1179,20 +1387,14 @@ def tarefa_vincular_imagens():
 @login_required
 def backup():
     """Cria um backup completo do banco de dados e arquivos da aplicação."""
-    print("[BACKUP] Iniciando processo de backup...")
+    print("[BACKUP] Iniciando processo de backup (streaming em memória)...")
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     backup_filename = f"backup_catalogo_{timestamp}.zip"
-    
-    # Usa a pasta Downloads do usuário
-    downloads_path = os.path.join(os.path.expanduser("~"), "Downloads")
-    backup_zip_path = os.path.join(downloads_path, backup_filename)
     source_db_path = os.path.join(APP_DATA_PATH, "catalogo.db")
 
-    print(f"[BACKUP] Caminho do backup: {backup_zip_path}")
-    print(f"[BACKUP] Caminho do DB: {source_db_path}")
-
     try:
-        with zipfile.ZipFile(backup_zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
             # Backup do banco de dados como SQL dump
             if os.path.exists(source_db_path):
                 print("[BACKUP] Fazendo dump do banco de dados...")
@@ -1202,7 +1404,7 @@ def backup():
                 src_conn = sqlite3.connect(f"file:{source_db_path}?mode=ro", uri=True)
                 src_conn.backup(bck_conn)
                 db_dump = "\n".join(bck_conn.iterdump())
-                zf.writestr("catalogo.db.sql", db_dump.encode("utf-8"))
+                zf.writestr("catalogo.db.sql", db_dump)
                 src_conn.close()
                 bck_conn.close()
                 print("[BACKUP] ✓ Dump do banco concluído")
@@ -1222,13 +1424,11 @@ def backup():
             
             print(f"[BACKUP] ✓ {file_count} arquivos adicionados ao backup")
 
-        print(f"[BACKUP] ✓ Backup criado com sucesso: {backup_zip_path}")
-        
-        # Envia o arquivo para download
-        flash(f"Backup criado com sucesso! Arquivo salvo em: {backup_zip_path}", "success")
-        return send_from_directory(
-            downloads_path, backup_filename, as_attachment=True
-        )
+        # Prepara buffer para envio
+        buf.seek(0)
+        print(f"[BACKUP] ✓ Backup preparado em memória: {backup_filename}")
+        flash(f"Backup criado com sucesso! Iniciando download: {backup_filename}", "success")
+        return send_file(buf, as_attachment=True, download_name=backup_filename, mimetype="application/zip")
 
     except Exception as e:
         print(f"[BACKUP] ✗ ERRO: {e}")
@@ -1258,32 +1458,25 @@ def restaurar():
             is_sql_backup = True
 
     if is_sql_backup:
+        # Evita tentar sobrescrever o banco em tempo de execução (causa
+        # "arquivo em uso" no Windows). Em vez disso, grava o zip recebido
+        # e solicita um reinício para que a restauração seja feita na
+        # inicialização (seguro, pois a app estará parada).
+        restart_trigger_file = os.path.join(APP_DATA_PATH, "RESTART_REQUIRED")
         try:
-            with zipfile.ZipFile(restore_filepath, "r") as zf:
-                zf.extractall(APP_DATA_PATH)
-
-            import sqlite3
-
-            db_path = os.path.join(APP_DATA_PATH, "catalogo.db")
-            sql_path = os.path.join(APP_DATA_PATH, "catalogo.db.sql")
-            if os.path.exists(db_path):
-                os.remove(db_path)
-
-            conn = sqlite3.connect(db_path)
-            with open(sql_path, "r", encoding="utf-8") as f:
-                conn.executescript(f.read())
-            conn.close()
-
-            os.remove(sql_path)
-            os.remove(restore_filepath)
+            with open(restart_trigger_file, "w") as f:
+                f.write("restart")
+        except Exception:
+            # Se não conseguir escrever o gatilho, ao menos informe o usuário
             flash(
-                "Restauração concluída com sucesso! A página será recarregada.",
-                "success",
+                "Backup recebido, mas não foi possível agendar a restauração. Pare o servidor manualmente e coloque 'backup_para_restaurar.zip' em APP_DATA_PATH.",
+                "warning",
             )
             return redirect(url_for("admin.configuracoes"))
-        except Exception as e:
-            flash(f"Erro ao restaurar o backup: {e}", "danger")
-            return redirect(url_for("admin.configuracoes"))
+
+        # Mostra tela de reiniciando (a lógica em run.py irá executar a restauração
+        # ao detectar o arquivo 'backup_para_restaurar.zip' durante a inicialização).
+        return render_template("reiniciando.html")
     else:
         restart_trigger_file = os.path.join(APP_DATA_PATH, "RESTART_REQUIRED")
         with open(restart_trigger_file, "w") as f:
@@ -1401,12 +1594,51 @@ def get_montadora_for_veiculo():
     if not veiculo:
         return {"montadora": None}
 
+    # Usa comparação exata para evitar matches parciais (ex: A1 vs A10)
     aplicacao = (
-        Aplicacao.query.filter(Aplicacao.veiculo.ilike(veiculo))
+        Aplicacao.query.filter(func.upper(Aplicacao.veiculo) == veiculo)
         .order_by(Aplicacao.id.desc())
         .first()
     )
+    
+    # Se não encontrar com comparação exata, tenta busca mais flexível
+    if not aplicacao:
+        aplicacao = (
+            Aplicacao.query.filter(
+                db.or_(
+                    Aplicacao.veiculo.ilike(f"% {veiculo} %"),
+                    Aplicacao.veiculo.ilike(f"{veiculo} %"),
+                    Aplicacao.veiculo.ilike(f"% {veiculo}"),
+                    Aplicacao.veiculo.ilike(veiculo)
+                )
+            )
+            .order_by(Aplicacao.id.desc())
+            .first()
+        )
     return {"montadora": aplicacao.montadora if aplicacao else None}
+
+
+# Funcionalidade de pesquisa externa removida permanentemente
+# @main_bp.route("/pesquisa-externa")
+# @login_required
+# def pesquisa_externa():
+#     """Página de pesquisa externa na internet - REMOVIDA."""
+#     flash("Funcionalidade removida do sistema.", "error")
+#     return redirect(url_for("main.index"))
+
+
+# API de busca externa removida
+# @main_bp.route("/api/buscar_externo")
+# @login_required
+# def buscar_externo():
+#     """API para buscar informações de produtos na internet."""
+#     return {"error": "Funcionalidade removida"}, 404
+
+
+# Rota de teste removida
+# @main_bp.route("/teste-busca-externa")
+# def teste_busca_externa():
+#     return {"status": "erro", "erro": "Funcionalidade removida"}, 404
 
 
 # --- Rota de Atualização da Aplicação ---
@@ -1497,3 +1729,514 @@ def ignorar_sugestao(produto_id, sugestao_id):
             return {"success": False, "message": f"Erro: {e}"}, 500
         flash(f"Erro ao processar a solicitação: {e}", "danger")
         return redirect(request.referrer or url_for("main.detalhe_peca", id=produto.id))
+
+
+# --- Rotas de Contatos ---
+
+@main_bp.route("/contatos")
+@login_required
+def listar_contatos():
+    """Lista todos os contatos"""
+    page = request.args.get('page', 1, type=int)
+    termo = request.args.get('termo', '', type=str)
+    favoritos_apenas = request.args.get('favoritos', False, type=bool)
+    
+    query = Contato.query
+    
+    if termo:
+        termo_norm = _normalize_for_search(termo)
+        query = query.filter(
+            or_(
+                func.lower(Contato.nome).contains(termo_norm),
+                func.lower(Contato.empresa).contains(termo_norm),
+                func.lower(Contato.telefone).contains(termo_norm),
+                func.lower(Contato.email).contains(termo_norm)
+            )
+        )
+    
+    if favoritos_apenas:
+        query = query.filter(Contato.favorito == True)
+    
+    contatos = query.order_by(Contato.favorito.desc(), Contato.nome).paginate(
+        page=page, per_page=20, error_out=False
+    )
+    
+    return render_template('contatos/listar_contatos.html', 
+                         contatos=contatos, 
+                         termo=termo, 
+                         favoritos_apenas=favoritos_apenas)
+
+
+@main_bp.route("/contatos/adicionar", methods=['GET', 'POST'])
+@login_required
+def adicionar_contato():
+    """Adiciona um novo contato"""
+    if request.method == 'POST':
+        try:
+            contato = Contato(
+                nome=request.form['nome'].strip(),
+                empresa=request.form.get('empresa', '').strip() or None,
+                telefone=request.form.get('telefone', '').strip() or None,
+                whatsapp=request.form.get('whatsapp', '').strip() or None,
+                email=request.form.get('email', '').strip() or None,
+                cargo=request.form.get('cargo', '').strip() or None,
+                endereco=request.form.get('endereco', '').strip() or None,
+                observacoes=request.form.get('observacoes', '').strip() or None,
+                favorito=bool(request.form.get('favorito'))
+            )
+            
+            db.session.add(contato)
+            db.session.commit()
+            
+            flash('Contato adicionado com sucesso!', 'success')
+            return redirect(url_for('main.listar_contatos'))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro ao adicionar contato: {str(e)}', 'danger')
+    
+    return render_template('contatos/adicionar_contato.html')
+
+
+@main_bp.route("/contatos/<int:id>/editar", methods=['GET', 'POST'])
+@login_required
+def editar_contato(id):
+    """Edita um contato existente"""
+    contato = Contato.query.get_or_404(id)
+    
+    if request.method == 'POST':
+        try:
+            contato.nome = request.form['nome'].strip()
+            contato.empresa = request.form.get('empresa', '').strip() or None
+            contato.telefone = request.form.get('telefone', '').strip() or None
+            contato.whatsapp = request.form.get('whatsapp', '').strip() or None
+            contato.email = request.form.get('email', '').strip() or None
+            contato.cargo = request.form.get('cargo', '').strip() or None
+            contato.endereco = request.form.get('endereco', '').strip() or None
+            contato.observacoes = request.form.get('observacoes', '').strip() or None
+            contato.favorito = bool(request.form.get('favorito'))
+            
+            db.session.commit()
+            
+            flash('Contato atualizado com sucesso!', 'success')
+            return redirect(url_for('main.listar_contatos'))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro ao atualizar contato: {str(e)}', 'danger')
+    
+    return render_template('contatos/editar_contato.html', contato=contato)
+
+
+@main_bp.route("/contatos/<int:id>/deletar", methods=['POST'])
+@login_required
+def deletar_contato(id):
+    """Deleta um contato"""
+    if not current_user.is_admin:
+        flash('Apenas administradores podem deletar contatos.', 'danger')
+        return redirect(url_for('main.listar_contatos'))
+    
+    contato = Contato.query.get_or_404(id)
+    
+    try:
+        db.session.delete(contato)
+        db.session.commit()
+        flash(f'Contato "{contato.nome}" deletado com sucesso!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao deletar contato: {str(e)}', 'danger')
+    
+    return redirect(url_for('main.listar_contatos'))
+
+
+@main_bp.route("/contatos/<int:id>/favorito", methods=['POST'])
+@login_required
+def toggle_favorito_contato(id):
+    """Alterna o status de favorito de um contato"""
+    contato = Contato.query.get_or_404(id)
+    
+    try:
+        contato.favorito = not contato.favorito
+        db.session.commit()
+        
+        status = "adicionado aos" if contato.favorito else "removido dos"
+        flash(f'Contato {status} favoritos!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao atualizar favorito: {str(e)}', 'danger')
+    
+    return redirect(request.referrer or url_for('main.listar_contatos'))
+
+
+@main_bp.route("/contatos/<int:id>/whatsapp")
+@login_required
+def abrir_whatsapp(id):
+    """Abre o WhatsApp para o contato"""
+    contato = Contato.query.get_or_404(id)
+    
+    if not contato.whatsapp:
+        flash('Este contato não possui WhatsApp cadastrado.', 'warning')
+        return redirect(url_for('main.listar_contatos'))
+    
+    numero_formatado = contato.whatsapp_formatado
+    if not numero_formatado:
+        flash('Número de WhatsApp inválido.', 'danger')
+        return redirect(url_for('main.listar_contatos'))
+    
+    # Redireciona para o WhatsApp Web
+    whatsapp_url = f"https://wa.me/{numero_formatado}"
+    
+    return redirect(whatsapp_url)
+
+
+# ==================== ROTAS DO CARRINHO ====================
+
+@main_bp.route("/carrinho")
+@login_required
+def visualizar_carrinho():
+    """Exibe os itens do carrinho"""
+    summary = get_cart_summary()
+    return render_template('carrinho/visualizar_carrinho.html', 
+                         cart_summary=summary)
+
+
+@main_bp.route("/carrinho/adicionar", methods=["POST"])
+@login_required
+def adicionar_ao_carrinho():
+    """Adiciona um produto ao carrinho"""
+    produto_id = request.form.get('produto_id', type=int)
+    quantidade = request.form.get('quantidade', 1, type=int)
+    observacoes = request.form.get('observacoes', '')
+    
+    if not produto_id:
+        flash('Produto não encontrado.', 'danger')
+        return redirect(request.referrer or url_for('main.index'))
+    
+    produto = Produto.query.get_or_404(produto_id)
+    
+    if add_to_cart(produto_id, quantidade, observacoes):
+        flash(f'"{produto.nome}" foi adicionado ao carrinho!', 'success')
+    else:
+        flash('Erro ao adicionar produto ao carrinho.', 'danger')
+    
+    return redirect(request.referrer or url_for('main.visualizar_carrinho'))
+
+
+@main_bp.route("/carrinho/remover", methods=["POST"])
+@login_required
+def remover_do_carrinho():
+    """Remove um produto do carrinho"""
+    produto_id = request.form.get('produto_id', type=int)
+    
+    if not produto_id:
+        flash('Produto não encontrado.', 'danger')
+        return redirect(url_for('main.visualizar_carrinho'))
+    
+    produto = Produto.query.get_or_404(produto_id)
+    
+    if remove_from_cart(produto_id):
+        flash(f'"{produto.nome}" foi removido do carrinho.', 'success')
+    else:
+        flash('Erro ao remover produto do carrinho.', 'danger')
+    
+    return redirect(url_for('main.visualizar_carrinho'))
+
+
+@main_bp.route("/carrinho/atualizar", methods=["POST"])
+@login_required
+def atualizar_carrinho():
+    """Atualiza quantidades e observações dos itens do carrinho"""
+    for key, value in request.form.items():
+        if key.startswith('quantidade_'):
+            produto_id = int(key.split('_')[1])
+            quantidade = int(value) if value else 0
+            observacoes = request.form.get(f'observacoes_{produto_id}', '')
+            
+            if quantidade <= 0:
+                remove_from_cart(produto_id)
+            else:
+                update_cart_item(produto_id, quantidade, observacoes)
+    
+    flash('Carrinho atualizado com sucesso!', 'success')
+    return redirect(url_for('main.visualizar_carrinho'))
+
+
+@main_bp.route("/carrinho/limpar", methods=["POST"])
+@login_required
+def limpar_carrinho():
+    """Limpa todos os itens do carrinho"""
+    clear_cart()
+    flash('Carrinho foi esvaziado.', 'success')
+    return redirect(url_for('main.visualizar_carrinho'))
+
+
+@main_bp.route("/carrinho/pdf")
+@login_required
+def carrinho_pdf():
+    """Gera PDF do carrinho"""
+    from datetime import datetime
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.units import cm
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image as RLImage
+    from reportlab.lib import colors
+    from reportlab.lib.enums import TA_CENTER, TA_LEFT
+    import tempfile
+    import os
+    import threading
+    import time
+    
+    # Criar arquivo temporário com nome único
+    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.pdf', 
+                                           prefix='carrinho_')
+    temp_path = temp_file.name
+    temp_file.close()
+    
+    try:
+        # Obter itens do carrinho
+        cart_summary = get_cart_summary()
+        
+        if not cart_summary['items']:
+            flash('O carrinho está vazio. Adicione itens antes de gerar o PDF.', 'warning')
+            return redirect(url_for('main.visualizar_carrinho'))
+        
+        # Configurar documento PDF
+        doc = SimpleDocTemplate(temp_path, pagesize=A4,
+                               topMargin=2*cm, bottomMargin=2*cm,
+                               leftMargin=2*cm, rightMargin=2*cm)
+        
+        # Estilos
+        styles = getSampleStyleSheet()
+        title_style = ParagraphStyle('CustomTitle', parent=styles['Heading1'],
+                                   fontSize=18, textColor=colors.darkblue,
+                                   alignment=TA_CENTER, spaceAfter=30)
+        
+        normal_style = styles['Normal']
+        normal_style.fontSize = 10
+        
+        # Conteúdo do PDF
+        story = []
+        
+        # Título
+        story.append(Paragraph("LISTA DE PEÇAS - CARRINHO", title_style))
+        story.append(Spacer(1, 20))
+        
+        # Informações do usuário e data
+        info_data = [
+            ['Usuário:', current_user.username],
+            ['Data:', datetime.now().strftime('%d/%m/%Y %H:%M')],
+            ['Total de itens:', str(cart_summary['count'])],
+            ['Produtos diferentes:', str(cart_summary['total_produtos'])]
+        ]
+        
+        info_table = Table(info_data, colWidths=[4*cm, 6*cm])
+        info_table.setStyle(TableStyle([
+            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('ALIGN', (1, 0), (1, -1), 'LEFT'),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('GRID', (0, 0), (-1, -1), 1, colors.lightgrey),
+        ]))
+        
+        story.append(info_table)
+        story.append(Spacer(1, 30))
+        
+        # Montar tabela semelhante à lista de resultados: Imagem | Código | Nome | Fornecedor | Ano | Aplicações (todas)
+        from flask import current_app
+        import re
+
+        # Helper: insere zero-width spaces em sequências longas sem espaços e trunca textos muito longos
+        def wrap_and_truncate(text, chunk=20, max_total=800):
+            if not text:
+                return ''
+            # Trunca o texto total se for muito grande
+            t = str(text)
+            if len(t) > max_total:
+                t = t[:max_total-3] + '...'
+            # Insere ZWSP em sequências contínuas de caracteres sem espaços para permitir quebra
+            # Substitui cada sequência de não-brancos longos por grupos com ZWSP
+            pattern = re.compile(r"(\S{%d})" % chunk)
+            # Use lambda to insert the zero-width space character to avoid \u escapes in string literals
+            return pattern.sub(lambda m: m.group(1) + '\u200b', t)
+
+        table_data = []
+        # Estilo específico para a coluna Nome (permite quebra de linha)
+        name_style = ParagraphStyle('NameStyle', parent=normal_style, fontSize=10, leading=12, wordWrap='CJK')
+        # Estilo reduzido para células de Ano/Aplicações/Motor (evita quebras de linha)
+        small_style = ParagraphStyle('SmallCell', parent=normal_style, fontSize=7, leading=8)
+
+        # Cabeçalho
+        table_data.append([
+            Paragraph('<b>Imagem</b>', normal_style),
+            Paragraph('<b>Código</b>', normal_style),
+            Paragraph('<b>Nome</b>', normal_style),
+            Paragraph('<b>Fornecedor</b>', normal_style),
+            Paragraph('<b>Ano</b>', normal_style),
+            Paragraph('<b>Aplicações</b>', normal_style),
+            Paragraph('<b>Motor</b>', normal_style)
+        ])
+
+        for item in cart_summary['items']:
+            produto = item['produto']
+
+            # Imagem (usar primeira imagem se existir)
+            img_flowable = ''
+            try:
+                if produto.imagens:
+                    fname = produto.imagens[0].filename
+                    uploads_folder = current_app.config.get('UPLOAD_FOLDER')
+                    if uploads_folder:
+                        img_path = os.path.join(uploads_folder, fname)
+                        if os.path.exists(img_path):
+                            img_flowable = RLImage(img_path, width=2*cm, height=2*cm)
+            except Exception:
+                img_flowable = ''
+
+            # Código, Nome, Fornecedor
+            code_cell = Paragraph(produto.codigo or '', normal_style)
+            name_text = wrap_and_truncate(produto.nome or '', chunk=20, max_total=300)
+            name_cell = Paragraph(name_text, name_style)
+            supplier_cell = Paragraph(produto.fornecedor or '', normal_style)
+
+            # Todas as aplicações — extrair anos separadamente e listar demais campos em Aplicações
+            apps_lines = []
+            anos_set = []
+            motors_set = []
+            for aplicacao in produto.aplicacoes:
+                parts = []
+                if aplicacao.montadora:
+                    parts.append(aplicacao.montadora)
+                if aplicacao.veiculo:
+                    parts.append(aplicacao.veiculo)
+                if aplicacao.motor:
+                    # Não adicionar o texto do motor em 'parts' (coluna Aplicações);
+                    # apenas colecionar o motor para a coluna 'Motor'.
+                    try:
+                        motor_str = str(aplicacao.motor).strip()
+                        if motor_str and motor_str not in motors_set:
+                            motors_set.append(motor_str)
+                    except Exception:
+                        pass
+                if aplicacao.ano:
+                    # coletar anos para coluna separada
+                    try:
+                        ano_str = str(aplicacao.ano).strip()
+                        if ano_str and ano_str not in anos_set:
+                            anos_set.append(ano_str)
+                    except Exception:
+                        pass
+                if parts:
+                    apps_lines.append(" ".join(parts))
+
+            # Preparar listas alinhadas por aplicação: ano, aplicação, motor
+            if apps_lines:
+                # aplicaçoes já contém montadora+veiculo (sem motor)
+                app_list = apps_lines
+            else:
+                app_list = ['Não informadas']
+
+            # Garantir que anos_set e motors_set estejam alinhados com as aplicações na mesma ordem
+            # Aqui, coletamos listas na mesma ordem das aplicações originais
+            anos_list = []
+            motors_list = []
+            for aplicacao in produto.aplicacoes:
+                try:
+                    anos_list.append(str(aplicacao.ano).strip() if aplicacao.ano else '')
+                except Exception:
+                    anos_list.append('')
+                try:
+                    motors_list.append(str(aplicacao.motor).strip() if aplicacao.motor else '')
+                except Exception:
+                    motors_list.append('')
+
+            # Se não houver aplicações, criar uma linha vazia para ano/motor
+            if not anos_list:
+                anos_list = ['']
+            if not motors_list:
+                motors_list = ['']
+
+            # Trunca e insere ZWSP nos textos de aplicações
+            app_list = [wrap_and_truncate(a, chunk=25, max_total=800) for a in app_list]
+
+            # Agora criar uma linha por aplicação, alinhando ano/aplicação/motor
+            max_rows = max(len(app_list), len(anos_list), len(motors_list))
+            for i in range(max_rows):
+                year_cell = anos_list[i] if i < len(anos_list) else ''
+                motor_cell = motors_list[i] if i < len(motors_list) else ''
+                app_cell = app_list[i] if i < len(app_list) else ''
+
+                year_par = Paragraph(year_cell.replace('\n', '<br/>'), small_style) if year_cell else Paragraph('', small_style)
+                app_par = Paragraph(app_cell.replace('\n', '<br/>'), small_style) if app_cell else Paragraph('', small_style)
+                motor_par = Paragraph(motor_cell, small_style) if motor_cell else Paragraph('', small_style)
+
+                if i == 0:
+                    table_data.append([img_flowable, code_cell, name_cell, supplier_cell, year_par, app_par, motor_par])
+                else:
+                    # linhas seguintes sem imagem/código/nome/fornecedor repetidos
+                    table_data.append(['', '', '', '', year_par, app_par, motor_par])
+
+        # Ajuste de larguras para caber dentro da área imprimível (A4 - margens 2cm)
+        # Soma aproximada deve ficar <= 17cm (21cm largura total - 4cm margens)
+        col_widths = [1.8*cm, 2.5*cm, 5.0*cm, 2.0*cm, 1.6*cm, 2.2*cm, 1.4*cm]
+        products_table = Table(table_data, colWidths=col_widths, hAlign='LEFT')
+        products_table.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('GRID', (0, 0), (-1, -1), 0.4, colors.lightgrey),
+            ('BACKGROUND', (0, 0), (-1, 0), colors.whitesmoke),
+            ('FONTSIZE', (0, 0), (-1, -1), 8),
+            ('LEFTPADDING', (0,0), (-1,-1), 4),
+            ('RIGHTPADDING', (0,0), (-1,-1), 4),
+            ('ALIGN', (0,0), (0,-1), 'CENTER'),
+            ('ALIGN', (1,0), (1,-1), 'LEFT'),
+            ('ALIGN', (2,0), (2,-1), 'LEFT'),
+            ('ALIGN', (3,0), (3,-1), 'LEFT'),
+            ('ALIGN', (4,0), (4,-1), 'LEFT'),
+            ('ALIGN', (5,0), (5,-1), 'LEFT'),
+            ('ALIGN', (6,0), (6,-1), 'LEFT'),
+        ]))
+
+        story.append(products_table)
+        
+        story.append(Spacer(1, 20))
+        
+        # Rodapé
+        footer = Paragraph(f"Documento gerado automaticamente pelo Sistema de Catálogo de Peças", 
+                         ParagraphStyle('Footer', parent=normal_style, 
+                                      fontSize=8, textColor=colors.grey, 
+                                      alignment=TA_CENTER))
+        story.append(footer)
+        
+        # Gerar PDF
+        doc.build(story)
+        
+        # Função para deletar arquivo após delay (em thread separada)
+        def delayed_cleanup(file_path, delay=30):
+            """Tenta deletar o arquivo após um delay"""
+            time.sleep(delay)
+            try:
+                if os.path.exists(file_path):
+                    os.unlink(file_path)
+            except (PermissionError, OSError):
+                pass  # Arquivo ainda pode estar em uso
+        
+        # Iniciar cleanup em background
+        cleanup_thread = threading.Thread(target=delayed_cleanup, args=(temp_path,))
+        cleanup_thread.daemon = True
+        cleanup_thread.start()
+        
+        # Enviar arquivo
+        return send_file(temp_path, 
+                        as_attachment=True,
+                        download_name=f'carrinho_{datetime.now().strftime("%Y%m%d_%H%M%S")}.pdf',
+                        mimetype='application/pdf')
+    
+    except Exception as e:
+        # Em caso de erro, tentar deletar o arquivo imediatamente
+        try:
+            if os.path.exists(temp_path):
+                os.unlink(temp_path)
+        except (PermissionError, OSError):
+            pass
+        
+        flash(f'Erro ao gerar PDF: {str(e)}', 'danger')
+        return redirect(url_for('main.visualizar_carrinho'))

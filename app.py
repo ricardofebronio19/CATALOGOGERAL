@@ -6,6 +6,7 @@ import threading
 from datetime import datetime
 
 import requests
+import logging
 from flask import Flask, request, send_from_directory
 from flask_login import LoginManager, current_user
 from flask_sqlalchemy import SQLAlchemy
@@ -113,10 +114,22 @@ def carregar_config_aparencia():
             # Mapeamento opcional de ícones por montadora (slug -> filename em uploads)
             # Ex.: { "chevrolet": "chevrolet_custom.png" }
             config.setdefault("montadora_icons", {})
+            # Configuração para pesquisa externa na internet
+            config.setdefault("pesquisa_externa_ativa", False)
+            # Cores específicas para colunas em 'Detalhes do Produto'
+            config.setdefault("cor_coluna_conversoes", "#fff3cd")
+            config.setdefault("cor_coluna_medidas", "#d1ecf1")
             return config
     except (FileNotFoundError, json.JSONDecodeError):
-        # Retorna um dicionário padrão se o arquivo não existir ou for inválido
-        return {"cor_principal": "#ff6600", "logo_path": None, "montadora_icons": {}}
+        # Retorna um dicionário padrão se o arquivo não existir ou ser inválido
+        return {
+            "cor_principal": "#ff6600",
+            "logo_path": None,
+            "montadora_icons": {},
+            "pesquisa_externa_ativa": False,
+            "cor_coluna_conversoes": "#fff3cd",
+            "cor_coluna_medidas": "#d1ecf1",
+        }
 
 
 def salvar_config_aparencia(config):
@@ -150,14 +163,24 @@ def create_app():
         # Se estiver rodando como um script Python normal
         app = Flask(__name__)
 
-    # --- Configuração da Aplicação ---
-    # Gera uma chave secreta se não existir, para maior segurança.
-    config_aparencia = carregar_config_aparencia()
-    if "secret_key" not in config_aparencia:
-        config_aparencia["secret_key"] = os.urandom(24).hex()
-        salvar_config_aparencia(config_aparencia)
+    # --- Carrega configuração por ambiente (config.py) ---
+    from config import DevelopmentConfig, ProductionConfig
 
-    app.config["SECRET_KEY"] = config_aparencia["secret_key"]
+    config_name = os.getenv("FLASK_CONFIG", "production").lower()
+    if config_name.startswith("dev"):
+        app.config.from_object(DevelopmentConfig)
+    else:
+        app.config.from_object(ProductionConfig)
+
+    # Gera/usa secret_key a partir da aparência se não houver SECRET_KEY em env
+    config_aparencia = carregar_config_aparencia()
+    if not app.config.get("SECRET_KEY"):
+        if "secret_key" not in config_aparencia:
+            config_aparencia["secret_key"] = os.urandom(24).hex()
+            salvar_config_aparencia(config_aparencia)
+        app.config["SECRET_KEY"] = config_aparencia["secret_key"]
+
+    # Define valores dependentes de APP_DATA_PATH
     app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + os.path.join(
         APP_DATA_PATH, "catalogo.db"
     )
@@ -166,7 +189,11 @@ def create_app():
         "pool_pre_ping": True,
     }
     app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
-    app.config["JSON_AS_ASCII"] = False  # Preserva caracteres UTF-8 como Ç
+    # Limita o tamanho máximo das requisições para proteger a aplicação.
+    # Pode ser sobrescrito pela variável de ambiente `MAX_CONTENT_LENGTH` (bytes).
+    app.config["MAX_CONTENT_LENGTH"] = int(os.getenv("MAX_CONTENT_LENGTH", 536870912))  # 512MB
+
+    # API de consulta por placa removida (funcionalidade desativada)
 
     # Garante que as pastas de dados existam (cria com o APP_DATA_PATH atual)
     try:
@@ -174,6 +201,24 @@ def create_app():
         os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
     except Exception:
         # Não falhar na criação de pastas durante import (tests podem manipular paths)
+        pass
+
+    # Desenvolvimento: se o banco de dados no APP_DATA_PATH não existir, mas
+    # houver um `data/catalogo.db` presente no repositório (útil ao rodar
+    # localmente a partir do código), copiamos esse arquivo para o diretório
+    # de dados do usuário para evitar trabalhar contra um DB vazio.
+    try:
+        proj_db = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "catalogo.db")
+        target_db = os.path.join(APP_DATA_PATH, "catalogo.db")
+        if os.path.exists(proj_db) and not os.path.exists(target_db):
+            try:
+                import shutil
+
+                shutil.copy2(proj_db, target_db)
+                print(f"Banco de dados de desenvolvimento copiado para: {target_db}")
+            except Exception as e:
+                print(f"Falha ao copiar banco de dados de desenvolvimento: {e}")
+    except Exception:
         pass
 
     # --- Inicialização das Extensões ---
@@ -266,12 +311,23 @@ def register_jinja_helpers(app):
         # Isso simplifica a criação de links que mantêm o estado da busca.
         search_args = request.args.copy()
         search_args.pop("page", None)
+        
+        # Informações do carrinho
+        cart_count = 0
+        if current_user.is_authenticated:
+            try:
+                from utils.cart_utils import get_cart_count
+                cart_count = get_cart_count()
+            except Exception:
+                cart_count = 0
+        
         return dict(
             config_aparencia=config,
             is_admin=is_admin,
             app_version=VERSION,
             update_info=update_info,
             search_args=search_args,
+            cart_count=cart_count,
         )
 
 
@@ -393,8 +449,19 @@ def inicializar_banco(app, reset=False):
             admin_user.set_password(random_password)
             db.session.add(admin_user)
             db.session.commit()
-            print("=" * 50)
-            print("ATENÇÃO: Usuário 'admin' criado pela primeira vez.")
-            print(f"A senha temporária é: {random_password}")
-            print("Anote esta senha e altere-a assim que possível.")
-            print("=" * 50)
+            logging.basicConfig(level=logging.INFO)
+            logging.warning("ATENÇÃO: Usuário 'admin' criado pela primeira vez.")
+            # Grava a senha temporária em arquivo seguro no APP_DATA_PATH para consulta posterior
+            try:
+                os.makedirs(APP_DATA_PATH, exist_ok=True)
+                password_file = os.path.join(APP_DATA_PATH, "initial_admin_password.txt")
+                with open(password_file, "w", encoding="utf-8") as pf:
+                    pf.write(random_password)
+                try:
+                    os.chmod(password_file, 0o600)
+                except Exception:
+                    # Não crítico em Windows, apenas tenta aplicar permissão
+                    pass
+                logging.warning(f"Senha temporária gravada em: {password_file}")
+            except Exception as e:
+                logging.warning("Usuário admin criado, mas falha ao gravar senha em arquivo seguro. Altere a senha manualmente.")

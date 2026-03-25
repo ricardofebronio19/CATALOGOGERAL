@@ -1,0 +1,454 @@
+{% extends "base.html" %}
+
+{% block title %}Carrinho de Peças{% endblock %}
+
+{% block head %}
+    <style>
+        .cart-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .cart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid var(--cor-principal, #ff6600);
+            padding-bottom: 15px;
+        }
+        
+        .cart-summary {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 25px;
+            border-left: 4px solid var(--cor-principal, #ff6600);
+        }
+        
+        .cart-summary h3 {
+            margin-top: 0;
+            color: var(--cor-principal, #ff6600);
+        }
+        
+        .cart-stats {
+            display: flex;
+            gap: 30px;
+            margin: 15px 0;
+        }
+        
+        .cart-stat {
+            text-align: center;
+        }
+        
+        .cart-stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--cor-principal, #ff6600);
+            display: block;
+        }
+        
+        .cart-stat-label {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .cart-item {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .cart-item-row {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .cart-item-image {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+        }
+        
+        .cart-item-details {
+            flex: 1;
+        }
+        
+        .cart-item-name {
+            font-weight: bold;
+            font-size: 16px;
+            margin-bottom: 5px;
+            color: #333;
+        }
+        
+        .cart-item-info {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 3px;
+        }
+        
+        .cart-item-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .quantity-input {
+            width: 70px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            text-align: center;
+        }
+        
+        .observations-input {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .cart-actions {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+        
+        .btn-primary {
+            background-color: var(--cor-principal, #ff6600);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: #e55a00;
+            color: white;
+        }
+        
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #5a6268;
+            color: white;
+        }
+        
+        .btn-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background-color: #c82333;
+            color: white;
+        }
+        
+        .btn-success {
+            background-color: #28a745;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background-color: #218838;
+            color: white;
+        }
+        
+        .empty-cart {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+        
+        .empty-cart-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+        
+        .remove-btn {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .remove-btn:hover {
+            background-color: #c82333;
+        }
+        
+        @media (max-width: 768px) {
+            .cart-item-row {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .cart-item-controls {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .cart-actions {
+                flex-direction: column;
+            }
+            
+            .cart-stats {
+                flex-direction: column;
+                gap: 15px;
+            }
+        }
+        
+        /* Estilos específicos para impressão */
+        @media print {
+            body {
+                font-size: 12pt;
+                line-height: 1.4;
+                color: #000;
+                background: white;
+            }
+            
+            .nav, .cart-actions, .remove-btn, .cart-item-controls {
+                display: none !important;
+            }
+            
+            .cart-container {
+                max-width: none;
+                padding: 0;
+            }
+            
+            .cart-header {
+                border-bottom: 2px solid #000;
+                margin-bottom: 20px;
+            }
+            
+            .cart-item {
+                border: 1px solid #ccc;
+                margin-bottom: 15px;
+                padding: 15px;
+                page-break-inside: avoid;
+            }
+            
+            .cart-item-name {
+                font-size: 14pt;
+                font-weight: bold;
+                margin-bottom: 8px;
+            }
+            
+            .cart-item-info {
+                margin-bottom: 4px;
+            }
+            
+            .cart-item-details {
+                width: 100%;
+            }
+            
+            .cart-item-image {
+                display: none;
+            }
+            
+            .print-applications {
+                margin-top: 10px;
+                font-size: 11pt;
+                display: block !important;
+            }
+            
+            .application-item {
+                margin-bottom: 3px;
+                padding-left: 15px;
+            }
+            
+            .application-item:before {
+                content: "• ";
+                margin-right: 5px;
+            }
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="cart-container">
+    <div class="cart-header">
+        <h1>🛒 Meu Carrinho</h1>
+        <a href="{{ url_for('main.index') }}" class="btn btn-secondary">
+            ◀ Continuar Comprando
+        </a>
+    </div>
+
+    {% if cart_summary['items'] %}
+        <div class="cart-summary">
+            <h3>Resumo do Carrinho</h3>
+            <div class="cart-stats">
+                <div class="cart-stat">
+                    <span class="cart-stat-number">{{ cart_summary['count'] }}</span>
+                    <div class="cart-stat-label">Total de Itens</div>
+                </div>
+                <div class="cart-stat">
+                    <span class="cart-stat-number">{{ cart_summary['total_produtos'] }}</span>
+                    <div class="cart-stat-label">Produtos Diferentes</div>
+                </div>
+                <div class="cart-stat">
+                    <span class="cart-stat-number">{{ current_user.username }}</span>
+                    <div class="cart-stat-label">Usuário</div>
+                </div>
+            </div>
+        </div>
+
+        <form method="POST" action="{{ url_for('main.atualizar_carrinho') }}">
+            {% for item in cart_summary['items'] %}
+                <div class="cart-item">
+                    <div class="cart-item-row">
+                        <a href="{{ url_for('main.detalhe_peca', id=item.produto.id) }}">
+                            <img src="{% if item.produto.imagens %}{{ url_for('uploaded_file', filename=item.produto.imagens[0].filename) }}{% else %}https://via.placeholder.com/80x80/eee/aaa?text=N/A{% endif %}"
+                                 alt="Imagem de {{ item.produto.nome }}" class="cart-item-image">
+                        </a>
+                        
+                        <div class="cart-item-details">
+                            <div class="cart-item-name">
+                                <a href="{{ url_for('main.detalhe_peca', id=item.produto.id) }}" 
+                                   style="text-decoration: none; color: inherit;">
+                                    {{ item.produto.nome }}
+                                </a>
+                            </div>
+                            <div class="cart-item-info">
+                                <strong>Código:</strong> {{ item.produto.codigo or 'N/A' }}
+                            </div>
+                            <div class="cart-item-info">
+                                <strong>Fornecedor:</strong> {{ item.produto.fornecedor or 'N/A' }}
+                            </div>
+                            {% if item.produto.grupo %}
+                                <div class="cart-item-info">
+                                    <strong>Grupo:</strong> {{ item.produto.grupo }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Informações de aplicações para impressão -->
+                        <div class="print-applications" style="display: none;">
+                            {% if item.produto.aplicacoes %}
+                                <strong>Aplicações:</strong>
+                                {% for aplicacao in item.produto.aplicacoes[:10] %}
+                                    <div class="application-item">
+                                        {% if aplicacao.montadora %}{{ aplicacao.montadora }}{% endif %}
+                                        {% if aplicacao.veiculo %} {{ aplicacao.veiculo }}{% endif %}
+                                        {% if aplicacao.ano %} ({{ aplicacao.ano }}){% endif %}
+                                        {% if aplicacao.motor %} - Motor: {{ aplicacao.motor }}{% endif %}
+                                    </div>
+                                {% endfor %}
+                                {% if item.produto.aplicacoes|length > 10 %}
+                                    <div class="application-item">... e mais {{ item.produto.aplicacoes|length - 10 }} aplicações</div>
+                                {% endif %}
+                            {% else %}
+                                <strong>Aplicações:</strong> Não informadas
+                            {% endif %}
+                        </div>
+                        
+                        <form method="POST" action="{{ url_for('main.remover_do_carrinho') }}" style="margin: 0;">
+                            <input type="hidden" name="produto_id" value="{{ item.produto.id }}">
+                            <button type="submit" class="remove-btn" 
+                                    onclick="return confirm('Remover este item do carrinho?');">
+                                ✕ Remover
+                            </button>
+                        </form>
+                    </div>
+                    
+                    <div class="cart-item-controls">
+                        <label for="quantidade_{{ item.produto.id }}"><strong>Quantidade:</strong></label>
+                        <input type="number" 
+                               name="quantidade_{{ item.produto.id }}" 
+                               value="{{ item.quantidade }}" 
+                               min="1" 
+                               class="quantity-input">
+                        
+                        <label for="observacoes_{{ item.produto.id }}"><strong>Observações:</strong></label>
+                        <input type="text" 
+                               name="observacoes_{{ item.produto.id }}" 
+                               value="{{ item.observacoes }}" 
+                               placeholder="Observações para este item..."
+                               class="observations-input">
+                    </div>
+                </div>
+            {% endfor %}
+            
+            <div class="cart-actions">
+                <button type="submit" class="btn btn-primary">
+                    💾 Atualizar Carrinho
+                </button>
+                
+                <a href="{{ url_for('main.carrinho_pdf') }}" class="btn btn-success" target="_blank">
+                    📄 Gerar PDF
+                </a>
+                
+                <button type="button" class="btn btn-secondary" onclick="window.print();">
+                    🖨️ Imprimir Página
+                </button>
+                
+                <form method="POST" action="{{ url_for('main.limpar_carrinho') }}" style="margin: 0;">
+                    <button type="submit" class="btn btn-danger" 
+                            onclick="return confirm('Tem certeza que deseja esvaziar todo o carrinho?');">
+                        🗑️ Esvaziar Carrinho
+                    </button>
+                </form>
+            </div>
+        </form>
+        
+    {% else %}
+        <div class="empty-cart">
+            <div class="empty-cart-icon">🛒</div>
+            <h2>Seu carrinho está vazio</h2>
+            <p>Adicione alguns produtos para começar a montar sua lista de peças.</p>
+            <a href="{{ url_for('main.index') }}" class="btn btn-primary" style="margin-top: 20px;">
+                🔍 Buscar Produtos
+            </a>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+// Confirma remoção de itens
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-save quando quantidade muda
+    const quantityInputs = document.querySelectorAll('.quantity-input');
+    quantityInputs.forEach(input => {
+        let timeout;
+        input.addEventListener('input', function() {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => {
+                if (this.value < 1) {
+                    this.value = 1;
+                }
+            }, 500);
+        });
+    });
+});
+</script>
+
+{% endblock %}

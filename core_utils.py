@@ -88,7 +88,7 @@ def _build_search_query(
             Aplicacao, Produto.id == Aplicacao.produto_id, isouter=True
         ).distinct()
         for palavra in termo.strip().split():
-            # Usa busca simples com ilike para evitar SQL muito complexo
+            # Usa busca com ilike que é case-insensitive e funciona bem com acentos no SQLite
             query = query.filter(
                 db.or_(
                     Produto.nome.ilike(f"%{palavra}%"),
@@ -96,6 +96,7 @@ def _build_search_query(
                     Produto.fornecedor.ilike(f"%{palavra}%"),
                     Aplicacao.veiculo.ilike(f"%{palavra}%"),
                     Aplicacao.motor.ilike(f"%{palavra}%"),
+                    Aplicacao.conf_mtr.ilike(f"%{palavra}%"),
                     Produto.conversoes.ilike(f"%{palavra}%"),
                 )
             )
@@ -164,11 +165,26 @@ def _build_search_query(
             query = query.filter(Aplicacao.montadora.ilike(f"%{montadora}%"))
 
     if aplicacao_termo:
-        aplicacao_like = f"%{aplicacao_termo}%"
+        # Para evitar matches parciais (ex: A1 em A10), usamos uma busca mais específica
+        # Adicionamos espaços e delimitadores para garantir match de palavra completa
         query = query.filter(
             db.or_(
-                Aplicacao.veiculo.ilike(aplicacao_like),
-                Aplicacao.motor.ilike(aplicacao_like),
+                # Match exato (considerando case insensitive)
+                func.upper(Aplicacao.veiculo) == func.upper(aplicacao_termo),
+                func.upper(Aplicacao.motor) == func.upper(aplicacao_termo),
+                func.upper(Aplicacao.conf_mtr) == func.upper(aplicacao_termo),
+                # Match com espaço antes/depois (para casos como "A1 SEDAN")
+                Aplicacao.veiculo.ilike(f"% {aplicacao_termo} %"),
+                Aplicacao.motor.ilike(f"% {aplicacao_termo} %"),
+                Aplicacao.conf_mtr.ilike(f"% {aplicacao_termo} %"),
+                # Match no início com espaço depois (para casos como "A1 PREMIUM")
+                Aplicacao.veiculo.ilike(f"{aplicacao_termo} %"),
+                Aplicacao.motor.ilike(f"{aplicacao_termo} %"),
+                Aplicacao.conf_mtr.ilike(f"{aplicacao_termo} %"),
+                # Match no final com espaço antes (para casos como "GOLF A1")
+                Aplicacao.veiculo.ilike(f"% {aplicacao_termo}"),
+                Aplicacao.motor.ilike(f"% {aplicacao_termo}"),
+                Aplicacao.conf_mtr.ilike(f"% {aplicacao_termo}"),
             )
         )
 

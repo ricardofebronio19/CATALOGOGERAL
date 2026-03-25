@@ -47,10 +47,33 @@
                 <label for="nome">Nome da Peça</label>
                 <input type="text" id="nome" name="nome" class="form-control" required>
             </div>
-            <div class="search-field">
-                <label for="codigo">Código</label>
-                <input type="text" id="codigo" name="codigo" class="form-control" required>
-                <div id="codigo-validation-message" class="validation-message"></div>
+            <!-- Campos agrupados: Código, Fornecedor e Grupo -->
+            <div class="search-field" style="width: 100%;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
+                    <div>
+                        <label for="codigo">Código</label>
+                        <input type="text" id="codigo" name="codigo" class="form-control" required>
+                        <div id="codigo-validation-message" class="validation-message"></div>
+                    </div>
+                    <div>
+                        <label for="fornecedor">Fornecedor</label>
+                        <input type="text" id="fornecedor" name="fornecedor" list="fornecedores-lista" autocomplete="off">
+                        <datalist id="fornecedores-lista">
+                            {% for forn_item in fornecedores %}
+                                <option value="{{ forn_item }}">
+                            {% endfor %}
+                        </datalist>
+                    </div>
+                    <div>
+                        <label for="grupo">Grupo</label>
+                        <input type="text" id="grupo" name="grupo" list="grupos-lista" autocomplete="off">
+                        <datalist id="grupos-lista">
+                            {% for grupo_item in grupos %}
+                                <option value="{{ grupo_item }}">
+                            {% endfor %}
+                        </datalist>
+                    </div>
+                </div>
             </div>
             
             <datalist id="montadoras-lista">
@@ -58,26 +81,6 @@
                     <option value="{{ fab_item }}">
                 {% endfor %}
             </datalist>
-
-            <div class="search-field">
-                <label for="fornecedor">Fornecedor</label>
-                <input type="text" id="fornecedor" name="fornecedor" list="fornecedores-lista" autocomplete="off">
-                <datalist id="fornecedores-lista">
-                    {% for forn_item in fornecedores %}
-                        <option value="{{ forn_item }}">
-                    {% endfor %}
-                </datalist>
-            </div>
-
-            <div class="search-field">
-                <label for="grupo">Grupo</label>
-                <input type="text" id="grupo" name="grupo" list="grupos-lista" autocomplete="off">
-                <datalist id="grupos-lista">
-                    {% for grupo_item in grupos %}
-                        <option value="{{ grupo_item }}">
-                    {% endfor %}
-                </datalist>
-            </div>
 
             <div class="search-field" style="width: 100%;">
                 <h4 style="margin-bottom: 10px; color: #333;">Medidas</h4>

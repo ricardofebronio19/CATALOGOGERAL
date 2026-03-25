@@ -331,7 +331,7 @@ def main():
             if response.status_code == 200:
                 print("[GUI] ✓ Servidor pronto!")
                 break
-        except:
+        except Exception:
             pass
         time.sleep(0.2)
     

@@ -15,7 +15,7 @@ similares_association = db.Table(
 class Produto(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(100), nullable=False)
-    codigo = db.Column(db.String(50), unique=True, nullable=False, index=True)
+    codigo = db.Column(db.String(50), nullable=False, index=True)
     grupo = db.Column(db.String(50), nullable=True, index=True)
     fornecedor = db.Column(db.String(100), nullable=True, index=True)
     conversoes = db.Column(db.Text, nullable=True)
@@ -39,6 +39,10 @@ class Produto(db.Model):
         lazy=True,
         cascade="all, delete-orphan",
         order_by="ImagemProduto.ordem",
+    )
+
+    __table_args__ = (
+        db.UniqueConstraint("codigo", "fornecedor", name="uq_codigo_fornecedor"),
     )
 
     def __repr__(self):
@@ -95,3 +99,34 @@ class SugestaoIgnorada(db.Model):
     __table_args__ = (
         db.UniqueConstraint("produto_id", "sugestao_id", name="uq_ignorar_sugestao"),
     )
+
+
+class Contato(db.Model):
+    """Model para gerenciar contatos com integração WhatsApp"""
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(150), nullable=False)
+    empresa = db.Column(db.String(200), nullable=True)
+    telefone = db.Column(db.String(20), nullable=True)
+    whatsapp = db.Column(db.String(20), nullable=True)
+    email = db.Column(db.String(150), nullable=True)
+    cargo = db.Column(db.String(100), nullable=True)
+    endereco = db.Column(db.Text, nullable=True)
+    observacoes = db.Column(db.Text, nullable=True)
+    favorito = db.Column(db.Boolean, default=False)
+    data_criacao = db.Column(db.DateTime, default=db.func.current_timestamp())
+    data_atualizacao = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
+
+    def __repr__(self):
+        return f"<Contato {self.nome}>"
+
+    @property
+    def whatsapp_formatado(self):
+        """Retorna o WhatsApp formatado para links diretos"""
+        if not self.whatsapp:
+            return None
+        # Remove caracteres não numéricos
+        numero = ''.join(filter(str.isdigit, self.whatsapp))
+        # Se não começar com 55, adiciona o código do Brasil
+        if not numero.startswith('55') and len(numero) >= 10:
+            numero = '55' + numero
+        return numero

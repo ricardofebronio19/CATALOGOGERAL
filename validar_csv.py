@@ -1,5 +1,6 @@
 import csv
 import os
+import logging
 
 
 def validar_csv(filepath_entrada: str):
@@ -13,7 +14,8 @@ def validar_csv(filepath_entrada: str):
     4. Se cada linha tem o mesmo número de colunas que o cabeçalho.
     5. Se colunas obrigatórias (como 'Código') não estão vazias.
     """
-    print(
+    logging.basicConfig(level=logging.INFO)
+    logging.info(
         "--- Iniciando validação e correção do arquivo: "
         + os.path.basename(filepath_entrada)
         + " ---"
@@ -21,10 +23,10 @@ def validar_csv(filepath_entrada: str):
 
     # 1. Validação de Existência do Arquivo
     if not os.path.exists(filepath_entrada):
-        print(f"❌ ERRO: Arquivo não encontrado em '{filepath_entrada}'")
+        logging.error(f"❌ ERRO: Arquivo não encontrado em '{filepath_entrada}'")
         return False
 
-    print("✅ Arquivo encontrado.")
+    logging.info("✅ Arquivo encontrado.")
 
     # Colunas obrigatórias esperadas no cabeçalho
     # Aceitamos tanto 'aplicacoes_json' (formato JSON) quanto 'aplicacoes' (texto legível separado por '|')
@@ -45,7 +47,7 @@ def validar_csv(filepath_entrada: str):
             )
 
         with csvfile:
-            print("✅ Arquivo aberto com sucesso (codificação compatível).")
+            logging.info("✅ Arquivo aberto com sucesso (codificação compatível).")
 
             # Usamos DictReader para validar pelo nome da coluna, não pela posição
             reader = csv.DictReader(csvfile)
@@ -53,7 +55,7 @@ def validar_csv(filepath_entrada: str):
             # 2. Validação do Cabeçalho
             header = reader.fieldnames
             if not header:
-                print("❌ ERRO: O arquivo CSV está vazio ou não tem cabeçalho.")
+                logging.error("❌ ERRO: O arquivo CSV está vazio ou não tem cabeçalho.")
                 return False
 
             colunas_faltando = colunas_obrigatorias - set(header)
@@ -64,7 +66,7 @@ def validar_csv(filepath_entrada: str):
                 )
 
             if not errors:  # Só continua se o cabeçalho for válido
-                print("✅ Cabeçalho validado com sucesso.")
+                logging.info("✅ Cabeçalho validado com sucesso.")
 
                 # 3. Validação das Linhas de Dados
                 for i, row in enumerate(reader, 2):  # Começa da linha 2 do arquivo
@@ -85,24 +87,24 @@ def validar_csv(filepath_entrada: str):
                         )
 
     except Exception as e:
-        print(f"❌ ERRO FATAL: Não foi possível processar o arquivo. Erro: {e}")
+        logging.error(f"❌ ERRO FATAL: Não foi possível processar o arquivo. Erro: {e}")
         return False
 
     # 4. Relatório Final
-    print("\n--- Relatório da Validação ---")
+    logging.info("\n--- Relatório da Validação ---")
     if not errors:
-        print(
+        logging.info(
             "🎉 SUCESSO: Nenhuma inconsistência encontrada. O arquivo parece estar pronto para importação."
         )
         return True
     else:
-        print(f"❌ ERRO: Foram encontrados {len(errors)} problemas no arquivo.")
+        logging.error(f"❌ ERRO: Foram encontrados {len(errors)} problemas no arquivo.")
         # Mostra os primeiros 20 erros para não poluir o console
         for error_msg in errors[:20]:
-            print(f"  - {error_msg}")
+            logging.error(f"  - {error_msg}")
         if len(errors) > 20:
-            print(f"  ... e mais {len(errors) - 20} outros erros.")
-        print(
+            logging.error(f"  ... e mais {len(errors) - 20} outros erros.")
+        logging.error(
             "\nPor favor, corrija os problemas listados acima no arquivo CSV e tente novamente."
         )
         return False

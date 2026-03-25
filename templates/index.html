@@ -42,6 +42,19 @@
                 <p>Encontre peças por código, nome, aplicação e mais.</p>
             </div>
             {% include 'partials/_search_form.html' ignore missing %}
+            
+            <!-- Botão de Pesquisa Externa removido -->
+            {# {% if config_aparencia and config_aparencia.pesquisa_externa_ativa %}
+            <div style="text-align: center; margin: 20px 0;">
+                <a href="{{ url_for('main.pesquisa_externa') }}" class="button pesquisa-externa-btn">
+                    🌐 Pesquisar na Internet
+                </a>
+                <p style="font-size: 0.9em; color: #666; margin-top: 8px;">
+                    Busque informações sobre peças diretamente na internet usando código e marca
+                </p>
+            </div>
+            {% endif %} #}
+            
             <!-- Carrossel: exibe as imagens dos 4 últimos itens adicionados -->
             {% if carousel_media %}
             <div class="homepage-carousel" aria-label="Carrossel de lançamentos">

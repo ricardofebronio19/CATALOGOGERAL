@@ -22,13 +22,14 @@ body {
 header {
     background-color: var(--cor-principal, #ff6600);
     color: #fff;
-    padding: 15px 30px;
+    padding: 8px 20px;  /* Reduzido de 15px 30px */
     text-align: center;
     border-radius: 8px 8px 8px 8px;
 }
 
 h1 {
     margin: 0;
+    font-size: 1.6em;  /* Reduzido para tornar mais compacto */
 }
 
 h1 {
@@ -279,7 +280,9 @@ main.container { padding-bottom: 30px; }
 .thumbnail-image {
     width: 50px;
     height: 50px;
-    object-fit: cover;
+    object-fit: contain;
+    object-position: center;
+    background-color: #fff;
     border: 2px solid #ccc;
     border-radius: 4px;
     cursor: pointer;
@@ -351,6 +354,25 @@ main.container { padding-bottom: 30px; }
     padding: 10px 15px;
     margin: 0;
     border-bottom: 1px solid #ddd;
+}
+
+/* --- Destaque Personalizável para Colunas (Conversões e Medidas) --- */
+/* As variáveis --bg-conversoes e --bg-medidas devem ser definidas no HTML via style inline */
+.info-section.destaque-conversoes, 
+.info-section-lateral.destaque-conversoes {
+    background-color: var(--bg-conversoes, #fff3cd) !important;
+    border: 1px solid rgba(0,0,0,0.1);
+}
+.info-section.destaque-medidas, 
+.info-section-lateral.destaque-medidas {
+    background-color: var(--bg-medidas, #d1ecf1) !important;
+    border: 1px solid rgba(0,0,0,0.1);
+}
+/* Ajuste suave no cabeçalho dessas seções para manter contraste */
+.info-section.destaque-conversoes h3, .info-section-lateral.destaque-conversoes h3,
+.info-section.destaque-medidas h3, .info-section-lateral.destaque-medidas h3 {
+    background-color: rgba(255,255,255,0.5) !important;
+    border-bottom: 1px solid rgba(0,0,0,0.1);
 }
 
 .info-section pre, .info-section ul, .info-section-lateral pre {
@@ -880,12 +902,12 @@ main.container { padding-bottom: 30px; }
 }
 
 .main-content-header {
-    margin-bottom: 20px;
+    margin-bottom: 15px;  /* Reduzido de 20px */
 }
 
 .main-content-header h1 {
-    font-size: 1.8em;
-    margin-bottom: 5px;
+    font-size: 1.6em;  /* Reduzido de 1.8em */
+    margin-bottom: 3px;  /* Reduzido de 5px */
 }
 .main-content-header p {
     color: #586069;
@@ -1313,7 +1335,8 @@ mark {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    gap: 8px;  /* Reduzido de 12px */
+    margin-bottom: 10px;  /* Adiciona margem menor */
 }
 .results-header .button {
     margin-left: 12px;
@@ -1345,7 +1368,9 @@ mark {
 .product-image-thumbnail {
     width: 60px;
     height: 60px;
-    object-fit: cover;
+    object-fit: contain;
+    object-position: center;
+    background-color: #fff;
     border-radius: 4px;
     border: 1px solid #ddd;
 }
@@ -1406,4 +1431,89 @@ mark {
 #medidas-search-section .search-field label {
     font-size: 0.9em;
     color: #495057;
+}
+
+/* Estilos de pesquisa externa removidos */
+/*
+.pesquisa-externa-btn {
+    background: linear-gradient(135deg, #28a745, #20c997) !important;
+    color: white !important;
+    border: none;
+    padding: 12px 24px;
+    font-size: 16px;
+    font-weight: bold;
+    border-radius: 8px;
+    text-decoration: none;
+    display: inline-block;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+}
+
+.pesquisa-externa-btn:hover {
+    background: linear-gradient(135deg, #218838, #1dc99e) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(40, 167, 69, 0.4);
+}
+
+.pesquisa-externa-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+}
+*/
+
+/* === ESTILOS PARA CONTATOS === */
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 30px 0;
+    gap: 5px;
+}
+
+.pagination-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 12px;
+    margin: 0 2px;
+    background-color: #fff;
+    color: #007bff;
+    text-decoration: none;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    font-size: 14px;
+    transition: all 0.2s;
+    min-width: 40px;
+    height: 36px;
+}
+
+.pagination-link:hover {
+    background-color: #e9ecef;
+    border-color: #adb5bd;
+}
+
+.pagination-link.active {
+    background-color: var(--cor-principal, #ff6600);
+    color: white;
+    border-color: var(--cor-principal, #ff6600);
+}
+
+.pagination-ellipsis {
+    padding: 8px 4px;
+    color: #6c757d;
+    font-size: 14px;
+}
+
+/* Estilos responsivos para contatos */
+@media (max-width: 768px) {
+    .pagination {
+        gap: 2px;
+    }
+    
+    .pagination-link {
+        padding: 6px 8px;
+        min-width: 32px;
+        height: 32px;
+        font-size: 12px;
+    }
 }

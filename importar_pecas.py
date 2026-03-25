@@ -6,6 +6,7 @@ import re
 from app import create_app, db
 from models import Aplicacao, Produto
 from validar_csv import validar_csv
+import logging
 
 
 def importar_pecas_de_csv(app, csv_path: str):
@@ -18,14 +19,15 @@ def importar_pecas_de_csv(app, csv_path: str):
     :param app: A instância da aplicação Flask.
     :param csv_path: O caminho para o arquivo CSV.
     """
-    print(f"--- Iniciando importação do arquivo: {os.path.basename(csv_path)} ---")
+    logging.basicConfig(level=logging.INFO)
+    logging.info(f"--- Iniciando importação do arquivo: {os.path.basename(csv_path)} ---")
     try:
         # 1. Validação prévia da estrutura do CSV
         if not validar_csv(csv_path):
-            print("\nImportação cancelada devido a erros de validação no arquivo CSV.")
+            logging.warning("\nImportação cancelada devido a erros de validação no arquivo CSV.")
             return
 
-        print(
+        logging.info(
             "\nValidação do CSV concluída. Iniciando a importação para o banco de dados..."
         )
 
@@ -45,7 +47,7 @@ def importar_pecas_de_csv(app, csv_path: str):
                 reader = csv.DictReader(csvfile)
                 rows = list(reader)
                 if not rows:
-                    print("Arquivo CSV está vazio. Nenhuma ação realizada.")
+                    logging.warning("Arquivo CSV está vazio. Nenhuma ação realizada.")
                     return
 
             total_linhas = len(rows)
@@ -136,6 +138,8 @@ def importar_pecas_de_csv(app, csv_path: str):
                 aplicacoes_data = []
                 aplicacoes_json = row.get("aplicacoes_json")
                 aplicacoes_text = row.get("aplicacoes")
+                aplicacoes_veiculo = (row.get("veiculo") or "").strip()
+                aplicacoes_ano = (row.get("ano") or "").strip()
                 if aplicacoes_json:
                     try:
                         aplicacoes_data = json.loads(aplicacoes_json)
@@ -206,6 +210,19 @@ def importar_pecas_de_csv(app, csv_path: str):
                                 "montadora": montadora_global,
                             }
                         )
+                elif aplicacoes_veiculo:
+                    # CSV separado em colunas `veiculo` e `ano` (caso do isapa.csv)
+                    veiculo_raw = aplicacoes_veiculo
+                    ano_raw = aplicacoes_ano
+                    aplicacoes_data.append(
+                        {
+                            "veiculo": veiculo_raw,
+                            "ano": ano_raw,
+                            "motor": "",
+                            "conf_mtr": "",
+                            "montadora": row.get("montadoras") or row.get("montadora") or "",
+                        }
+                    )
 
                 if aplicacoes_data:
                     # Remove aplicações antigas do produto (se existirem)
