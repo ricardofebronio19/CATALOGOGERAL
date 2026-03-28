@@ -1,5 +1,5 @@
 #!/usr/bin/env powershell
-# Script para preparar release v1.7.0
+# Script para preparar release v2.0.2
 
 param(
     [switch]$BuildOnly,
@@ -7,7 +7,7 @@ param(
     [switch]$SkipBuild
 )
 
-Write-Host "=== Preparando Release v1.7.2 ===" -ForegroundColor Green
+Write-Host "=== Preparando Release v2.0.2 ===" -ForegroundColor Green
 
 # 1. Verificar se estamos no diretório correto
 if (!(Test-Path "build.bat")) {
@@ -49,7 +49,7 @@ if ($BuildOnly) {
 }
 
 # 4. Verificar se o instalador foi criado
-$installerPath = "Output\instalador_CatalogoDePecas_v1.7.2.exe"
+$installerPath = "Output\instalador_CatalogoDePecas_v2.0.2.exe"
 if (!(Test-Path $installerPath)) {
     Write-Error "Instalador não encontrado em: $installerPath"
     exit 1
@@ -58,30 +58,24 @@ if (!(Test-Path $installerPath)) {
 Write-Host "Instalador criado: $installerPath" -ForegroundColor Green
 
 # 5. Preparar informações do release
-$tagName = "v1.7.2"
-$releaseName = "CatalogoDePecas v1.7.2"
+$tagName = "v2.0.2"
+$releaseName = "CatalogoDePecas v2.0.2"
 $releaseNotes = @"
-# 🚀 Catálogo de Peças v1.7.2
+# 🚀 Catálogo de Peças v2.0.2
 
-## Principais Novidades
-
-### ✨ Sistema de Atualização Automática
-- Verificação automática de novas versões a cada 6 horas
-- Banner interativo para notificar administradores
-- Download e instalação automática com aprovação do usuário
-- Interface moderna com animações e informações detalhadas
-
-### 🎨 Melhorias Visuais
-- Destaque das montadoras com fundo gradiente colorido
-- Alternância de cores nas linhas dos veículos
-- Menu principal modernizado com efeitos visuais
-- Responsividade aprimorada para dispositivos móveis
+## Melhorias desta Versão
 
 ### 🔧 Correções e Melhorias
-- Corrigido erro de IntegrityError ao adicionar produtos
-- Autopreenchimento da montadora funcionando corretamente
-- Melhor tratamento de erros e validação de formulários
-- Performance otimizada e código mais limpo
+- Correções de bugs menores identificados na versão anterior
+- Melhorias na estabilidade geral do sistema
+- Otimizações de performance para consultas no banco de dados
+- Atualização de dependências para versões mais seguras
+- Refinamentos na interface de usuário
+
+### 🛠️ Manutenção
+- Limpeza de código e refatoração de componentes internos
+- Melhoria no tratamento de erros e logs
+- Atualização da documentação interna
 
 ## 📦 Instalação
 
@@ -96,7 +90,7 @@ $releaseNotes = @"
 
 ## 📋 Arquivos de Release
 
-- **instalador_CatalogoDePecas_v1.7.2.exe** - Instalador completo (~35MB)
+- **instalador_CatalogoDePecas_v2.0.2.exe** - Instalador completo (~35MB)
 
 ---
 **Compatibilidade:** Windows 10/11

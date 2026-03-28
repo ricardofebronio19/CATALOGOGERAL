@@ -17,58 +17,34 @@ def _normalize_for_search(text: str) -> str:
         return ""
     nfkd_form = unicodedata.normalize("NFD", text.lower())
     text = "".join([c for c in nfkd_form if not unicodedata.combining(c)])
-    return text.replace(".", "").replace("-", "").replace(",", "").replace(" ", "")
+    return text.replace(".", "").replace("-", "").replace(",", "").replace("/", "").replace(" ", "")
 
 
 def _apply_db_normalization(column):
     """Aplica funções SQL para normalizar uma coluna para busca (case, acentos, pontuação)."""
     normalized_column = func.lower(column)
     # Mapa ampliado de caracteres acentuados para suportar vários idiomas
+    # Mapa reduzido aos caracteres portugueses/brasileiros essenciais
+    # para evitar `parser stack overflow` no SQLite com muitas chamadas replace() aninhadas
     accent_map = {
-        # a
-        "á": "a",
-        "à": "a",
-        "â": "a",
-        "ã": "a",
-        "ä": "a",
-        "å": "a",
-        "æ": "ae",
-        # c
+        "á": "a", "à": "a", "â": "a", "ã": "a",
         "ç": "c",
-        # e
-        "é": "e",
-        "è": "e",
-        "ê": "e",
-        "ë": "e",
-        # i
+        "é": "e", "ê": "e",
         "í": "i",
-        "ì": "i",
-        "î": "i",
-        "ï": "i",
-        # o
-        "ó": "o",
-        "ò": "o",
-        "ô": "o",
-        "õ": "o",
-        "ö": "o",
-        "ø": "o",
-        "œ": "oe",
-        # u
-        "ú": "u",
-        "ù": "u",
-        "û": "u",
-        "ü": "u",
-        # n
-        "ñ": "n",
-        # y
-        "ý": "y",
-        "ÿ": "y",
+        "ó": "o", "ô": "o", "õ": "o",
+        "ú": "u", "ü": "u",
     }
     for accented, unaccented in accent_map.items():
         normalized_column = func.replace(normalized_column, accented, unaccented)
     return func.replace(
         func.replace(
-            func.replace(func.replace(normalized_column, ".", ""), "-", ""), ",", ""
+            func.replace(
+                func.replace(func.replace(normalized_column, ".", ""), "-", ""),
+                ",",
+                "",
+            ),
+            "/",
+            "",
         ),
         " ",
         "",
@@ -89,6 +65,7 @@ def _build_search_query(
         ).distinct()
         for palavra in termo.strip().split():
             # Usa busca com ilike que é case-insensitive e funciona bem com acentos no SQLite
+            palavra_normalizada = _normalize_for_search(palavra)
             query = query.filter(
                 db.or_(
                     Produto.nome.ilike(f"%{palavra}%"),
@@ -98,6 +75,7 @@ def _build_search_query(
                     Aplicacao.motor.ilike(f"%{palavra}%"),
                     Aplicacao.conf_mtr.ilike(f"%{palavra}%"),
                     Produto.conversoes.ilike(f"%{palavra}%"),
+                    _apply_db_normalization(Produto.conversoes).contains(palavra_normalizada),
                 )
             )
 

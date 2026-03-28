@@ -1,5 +1,12 @@
 # Changelog
 
+## v2.0.2 - 2026-03-28
+
+- Correções de bugs menores
+- Melhorias na estabilidade do sistema
+- Otimizações de performance
+- Atualização de dependências
+
 ## v2.0.0 - 2026-02-11
 
 - Lançamento principal 2.0.0

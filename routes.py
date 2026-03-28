@@ -520,18 +520,20 @@ def adicionar_peca():
                     novo_produto.imagens.append(nova_imagem)
                     proxima_ordem += 1
 
-            imagem_url = request.form.get("imagem_url")
-            if imagem_url:
-                downloaded_filename = download_image_from_url(
-                    imagem_url,
-                    os.path.join(APP_DATA_PATH, "uploads"),
-                    product_code=novo_produto.codigo,
-                )
-                if downloaded_filename:
-                    nova_imagem = ImagemProduto(
-                        filename=downloaded_filename, ordem=proxima_ordem
+            for url_field in ("imagem_url", "imagem_url_2", "imagem_url_3"):
+                imagem_url = request.form.get(url_field)
+                if imagem_url:
+                    downloaded_filename = download_image_from_url(
+                        imagem_url,
+                        os.path.join(APP_DATA_PATH, "uploads"),
+                        product_code=novo_produto.codigo,
                     )
-                    novo_produto.imagens.append(nova_imagem)
+                    if downloaded_filename:
+                        nova_imagem = ImagemProduto(
+                            filename=downloaded_filename, ordem=proxima_ordem
+                        )
+                        novo_produto.imagens.append(nova_imagem)
+                        proxima_ordem += 1
 
             # Lógica de similares
             similares_ids = [
@@ -682,18 +684,20 @@ def editar_peca(id):
                     produto.imagens.append(nova_imagem)
                     proxima_ordem += 1
 
-            imagem_url = request.form.get("imagem_url")
-            if imagem_url:
-                downloaded_filename = download_image_from_url(
-                    imagem_url,
-                    os.path.join(APP_DATA_PATH, "uploads"),
-                    product_code=produto.codigo,
-                )
-                if downloaded_filename:
-                    nova_imagem = ImagemProduto(
-                        filename=downloaded_filename, ordem=proxima_ordem
+            for url_field in ("imagem_url", "imagem_url_2", "imagem_url_3"):
+                imagem_url = request.form.get(url_field)
+                if imagem_url:
+                    downloaded_filename = download_image_from_url(
+                        imagem_url,
+                        os.path.join(APP_DATA_PATH, "uploads"),
+                        product_code=produto.codigo,
                     )
-                    produto.imagens.append(nova_imagem)
+                    if downloaded_filename:
+                        nova_imagem = ImagemProduto(
+                            filename=downloaded_filename, ordem=proxima_ordem
+                        )
+                        produto.imagens.append(nova_imagem)
+                        proxima_ordem += 1
 
             ordem_imagens_str = request.form.get("ordem_imagens")
             if ordem_imagens_str:

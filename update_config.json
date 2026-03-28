@@ -1,6 +1,6 @@
 {
-  "latest_version": "2.0.0",
-  "download_url": "https://github.com/ricardofebronio19/CATALOGOGERAL/releases/download/v2.0.0/instalador_CatalogoDePecas_v2.0.0.exe",
-  "release_notes": "v2.0.0 — Lançamento 2.0: melhorias e atualizações maiores\n\n🔧 CORREÇÕES:\n- Ajustes de compatibilidade e correções de bugs relatados\n\n✨ MELHORIAS:\n- Refatorações internas e otimizações de performance\n- Atualização de dependências críticas\n\n🚀 NOVIDADES:\n- Preparado para distribuição 2.0 e fluxo de atualização simplificado",
+  "latest_version": "2.0.2",
+  "download_url": "https://github.com/ricardofebronio19/CATALOGOGERAL/releases/download/v2.0.2/instalador_CatalogoDePecas_v2.0.2.exe",
+  "release_notes": "v2.0.2 — Correções e melhorias de estabilidade\n\n🔧 CORREÇÕES:\n- Correções de bugs menores identificados na versão anterior\n- Melhorias na estabilidade geral do sistema\n - Verificação de porta antes de iniciar servidor\n\n✨ MELHORIAS:\n- Otimizações de performance para consultas no banco de dados\n- Suporte a múltiplas URLs de imagem nos formulários\n- Refinamentos na normalização de busca\n- Atualização de dependências\n\n🛠️ MANUTENÇÃO:\n- Limpeza de código e refatoração interna\n- Melhoria no tratamento de erros",
   "size_mb": "28"
 }

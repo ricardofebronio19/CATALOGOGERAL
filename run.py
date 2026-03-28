@@ -232,8 +232,27 @@ def executar_atualizacao():
         # Mantém o pacote de atualização para uma nova tentativa
 
 
+def _verificar_porta_livre(host, port):
+    """Retorna True se a porta estiver disponível para uso."""
+    import socket
+    bind_host = "127.0.0.1" if host in ("0.0.0.0", "::", "", None) else host
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        try:
+            s.bind((bind_host, port))
+            return True
+        except OSError:
+            return False
+
+
 def iniciar_servidor(app_instance, host, port, abrir_navegador):
     """Inicializa o banco de dados (se necessário) e inicia o servidor Waitress."""
+    # Verifica se a porta está disponível ANTES de tentar iniciar
+    if not _verificar_porta_livre(host, port):
+        print(f"\n[ERRO] A porta {port} já está em uso.")
+        print("Verifique se o aplicativo já está aberto ou se outro serviço está usando esta porta.")
+        input("Pressione Enter para sair...")
+        return
+
     print("Garantindo que o banco de dados esteja inicializado...")
     inicializar_banco(app_instance)
 
@@ -246,16 +265,18 @@ def iniciar_servidor(app_instance, host, port, abrir_navegador):
     print("Pressione Ctrl+C no terminal para parar o servidor.")
 
     if abrir_navegador:
-        # Alguns navegadores não aceitam 0.0.0.0 como host para abrir uma aba.
-        # Usar 'localhost' quando o host for 0.0.0.0 ou equivalente garante que
-        # o browser abra corretamente apontando para a máquina local.
-        browser_url = url
-        if host in ("0.0.0.0", "::", "", None):
-            browser_url = f"http://localhost:{port}"
-        try:
-            webbrowser.open(browser_url, new=2)  # new=2 tenta abrir em nova aba
-        except Exception as e:
-            print(f"Não foi possível abrir o navegador automaticamente: {e}")
+        # Abre o navegador com um delay para garantir que o servidor já está
+        # escutando antes da primeira requisição chegar.
+        browser_host = "localhost" if host in ("0.0.0.0", "::", "", None) else host
+        browser_url = f"http://{browser_host}:{port}"
+        def _abrir_browser():
+            import time
+            time.sleep(1.5)
+            try:
+                webbrowser.open(browser_url, new=2)
+            except Exception as e:
+                print(f"Não foi possível abrir o navegador automaticamente: {e}")
+        threading.Thread(target=_abrir_browser, daemon=True).start()
 
     # Inicia o servidor de produção
     # Use host='0.0.0.0' para permitir acesso de outras máquinas na rede
