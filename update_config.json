@@ -1,6 +1,6 @@
 {
-  "latest_version": "2.0.2",
-  "download_url": "https://github.com/ricardofebronio19/CATALOGOGERAL/releases/download/v2.0.2/instalador_CatalogoDePecas_v2.0.2.exe",
-  "release_notes": "v2.0.2 — Correções e melhorias de estabilidade\n\n🔧 CORREÇÕES:\n- Correções de bugs menores identificados na versão anterior\n- Melhorias na estabilidade geral do sistema\n - Verificação de porta antes de iniciar servidor\n\n✨ MELHORIAS:\n- Otimizações de performance para consultas no banco de dados\n- Suporte a múltiplas URLs de imagem nos formulários\n- Refinamentos na normalização de busca\n- Atualização de dependências\n\n🛠️ MANUTENÇÃO:\n- Limpeza de código e refatoração interna\n- Melhoria no tratamento de erros",
+  "latest_version": "2.0.4",
+  "download_url": "https://github.com/ricardofebronio19/CATALOGOGERAL/releases/download/v2.0.4/instalador_CatalogoDePecas_v2.0.4.exe",
+  "release_notes": "v2.0.4 — Navegação de imagens e busca aprimorada\n\n✨ NAVEGAÇÃO DE IMAGENS:\n- Navegação por setas no modal de imagens\n- Controles de teclado (←→ Home End Esc)\n- Contador visual \"X de Y\" para múltiplas imagens\n- Auto-detecção e sincronização entre thumbnail e modal\n\n🔍 BUSCA APRIMORADA:\n- Melhorias na busca FTS com normalização avançada\n- Otimização nas conversões SQL com CAST apropriados\n- Interface de resultados responsiva\n- Ajustes na performance de queries complexas\n\n🎨 MELHORIAS UX:\n- Interface de busca responsiva com melhor layout\n- Feedback visual aprimorado nos resultados\n- Refinamentos na navegação entre páginas",
   "size_mb": "28"
 }
