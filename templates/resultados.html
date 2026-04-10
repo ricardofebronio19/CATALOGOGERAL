@@ -23,10 +23,26 @@
                 Busca por: <mark>{{ termo }}</mark>
             {% endif %}
         </p>
+        {% if pagination.total == 0 %}
+            <div style="background-color: #fff3cd; border: 1px solid #ffeeba; color: #856404; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                <h4 style="margin: 0 0 10px 0;">⚠️ Nenhum resultado encontrado</h4>
+                <p style="margin: 0;">
+                    Tente:
+                    <br>• Verificar a ortografia dos termos
+                    <br>• Usar termos mais gerais (ex: "BANDEJA" em vez de "BANDEJA SUSPENSAO")
+                    <br>• Buscar apenas por parte do código (ex: "ALB" em vez de "ALB-4345")
+                    <br>• <strong>Clique no botão "🔄 Atualizar" para limpar o cache</strong>
+                </p>
+            </div>
+        {% else %}
+            <div style="background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; padding: 10px; border-radius: 6px; margin: 15px 0;">
+                ✅ <strong>{{ pagination.total }}</strong> produtos encontrados! Mostrando os primeiros {{ pagination.items|length }}.
+            </div>
+        {% endif %}
     </div>
 
     {% if pagination.items %}
-        <table class="application-table results-table">
+        <table class="application-table results-table" style="display: table !important; width: 100% !important; visibility: visible !important;">
             <thead>
                 <tr>
                     <th>Imagem</th>
@@ -98,4 +114,46 @@
     {% else %}
         <p style="text-align: center; padding: 20px;">Nenhum produto encontrado para os critérios de busca.</p>
     {% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Verifica se há resultados mas eles estão ocultos
+    const resultsTable = document.querySelector('.results-table');
+    const totalResults = {{ pagination.total if pagination else 0 }};
+    
+    if (totalResults > 0 && resultsTable) {
+        // Verifica se a tabela está visível
+        setTimeout(function() {
+            const tableRect = resultsTable.getBoundingClientRect();
+            const isVisible = tableRect.height > 0 && tableRect.width > 0;
+            
+            if (!isVisible) {
+                // Força a visibilidade da tabela
+                resultsTable.style.display = 'table';
+                resultsTable.style.visibility = 'visible';
+                resultsTable.style.opacity = '1';
+                
+                // Mostra alerta para o usuário
+                const alert = document.createElement('div');
+                alert.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #ffc107; color: #212529; padding: 15px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); z-index: 9999; max-width: 300px;';
+                alert.innerHTML = '<strong>🔧 Problema detectado!</strong><br>Os resultados estavam ocultos. Foram forçados a aparecer. Se o problema persistir, limpe o cache do navegador.';
+                document.body.appendChild(alert);
+                
+                setTimeout(() => alert.remove(), 5000);
+            }
+        }, 500);
+    }
+    
+    // Debug: mostra informações no console
+    console.log('Página de resultados carregada');
+    console.log('Total de resultados:', totalResults);
+    console.log('Resultados na página:', {{ pagination.items|length if pagination else 0 }});
+    
+    {% if termo %}
+    console.log('Termo buscado:', '{{ termo }}');
+    {% endif %}
+});
+</script>
 {% endblock %}

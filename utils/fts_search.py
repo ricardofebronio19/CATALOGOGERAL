@@ -187,10 +187,10 @@ class FullTextSearch:
                     f.aplicacoes,
                     f.medidas,
                     f.observacoes,
-                    bm25(f) as relevancia
+                    bm25({self.fts_table}) as relevancia
                 FROM {self.fts_table} f
                 WHERE {self.fts_table} MATCH ?
-                ORDER BY bm25(f)
+                ORDER BY bm25({self.fts_table})
                 LIMIT ? OFFSET ?
                 """
                 
@@ -225,7 +225,27 @@ class FullTextSearch:
         """
         import re
         
-        # Remove caracteres especiais do FTS5
+        # Para códigos com pontos, tenta diferentes estratégias
+        original_query = query.strip()
+        
+        # Se contém pontos, tenta buscar com aspas e também sem pontos
+        if '.' in original_query:
+            # Versão com aspas para busca exata
+            quoted_version = f'"{original_query}"'
+            # Versão sem pontos para busca flexível  
+            no_dots_version = original_query.replace('.', ' ')
+            # Remove múltiplos espaços
+            no_dots_version = re.sub(r'\s+', ' ', no_dots_version).strip()
+            terms_no_dots = [term.strip() for term in no_dots_version.split() if term.strip()]
+            
+            if terms_no_dots:
+                wildcard_terms = ' OR '.join([f'{term}*' for term in terms_no_dots])
+                return f'{quoted_version} OR ({wildcard_terms})'
+            else:
+                return quoted_version
+        
+        # Para queries normais (sem pontos), usa lógica original
+        # Remove caracteres especiais do FTS5, exceto pontos que já foram tratados
         query = re.sub(r'[^\w\s\*\-\+]', ' ', query)
         
         # Divide em termos individuais
@@ -237,7 +257,7 @@ class FullTextSearch:
         # Para busca mais flexível, adiciona * ao final de cada termo
         # e conecta com OR se há múltiplos termos
         if len(terms) == 1:
-            return f'"{terms[0]}"* OR {terms[0]}*'
+            return f'"{terms[0]}" OR {terms[0]}*'
         else:
             # Para múltiplos termos, busca com AND e OR
             exact_phrase = '"' + ' '.join(terms) + '"'

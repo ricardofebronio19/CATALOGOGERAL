@@ -34,6 +34,21 @@ def _normalize_for_search(text: str) -> str:
     return text.replace(".", "").replace("-", "").replace(",", "").replace("/", "").replace(" ", "")
 
 
+def _normalize_code_for_search(text):
+    """
+    Normaliza código removendo acentos, pontuações, traços e espaços.
+    Específico para códigos de conversão que podem ter formatos variados.
+    """
+    if not text:
+        return ""
+    nfkd_form = unicodedata.normalize("NFD", text.lower())
+    text = "".join([c for c in nfkd_form if not unicodedata.combining(c)])
+    # Remove pontuações comuns em códigos
+    import re
+    text = re.sub(r'[^\w]', '', text)  # Remove tudo que não é letra ou número
+    return text
+
+
 def _apply_db_normalization(column):
     """Aplica funções SQL para normalizar uma coluna para busca (case, acentos, pontuação)."""
     normalized_column = func.lower(column)
@@ -65,6 +80,23 @@ def _apply_db_normalization(column):
     )
 
 
+def _apply_code_normalization(column):
+    """
+    Aplica normalização específica para códigos no banco de dados.
+    Versão simplificada para evitar stack overflow no SQLite.
+    """
+    normalized_column = func.lower(column)
+    
+    # Remove apenas os caracteres mais comuns em códigos
+    # Limitamos as operações para evitar stack overflow
+    normalized_column = func.replace(normalized_column, ".", "")
+    normalized_column = func.replace(normalized_column, "-", "")
+    normalized_column = func.replace(normalized_column, "_", "")
+    normalized_column = func.replace(normalized_column, " ", "")
+    
+    return normalized_column
+
+
 def _build_search_query(
     termo, codigo_produto, montadora, aplicacao_termo, grupo, medidas,
     largura=None, altura=None, comprimento=None, diametro_externo=None, 
@@ -81,7 +113,8 @@ def _build_search_query(
     """
     
     # Se FTS5 disponível e termo geral informado, usa busca full-text
-    if FTS_AVAILABLE and use_fts and termo and not any([
+    # TEMPORARIAMENTE DESABILITADO - problema com códigos que contém pontos
+    if False and FTS_AVAILABLE and use_fts and termo and not any([
         codigo_produto, montadora, aplicacao_termo, grupo, medidas,
         largura, altura, comprimento, diametro_externo, diametro_interno, elo,
         estrias_internas, estrias_externas
@@ -98,6 +131,7 @@ def _build_search_query(
         for palavra in termo.strip().split():
             # Usa busca com ilike que é case-insensitive e funciona bem com acentos no SQLite
             palavra_normalizada = _normalize_for_search(palavra)
+            palavra_codigo_normalizada = _normalize_code_for_search(palavra)
             query = query.filter(
                 db.or_(
                     Produto.nome.ilike(f"%{palavra}%"),
@@ -106,8 +140,12 @@ def _build_search_query(
                     Aplicacao.veiculo.ilike(f"%{palavra}%"),
                     Aplicacao.motor.ilike(f"%{palavra}%"),
                     Aplicacao.conf_mtr.ilike(f"%{palavra}%"),
+                    # Busca normal em conversões
                     Produto.conversoes.ilike(f"%{palavra}%"),
+                    # Busca normalizada geral em conversões
                     _apply_db_normalization(Produto.conversoes).contains(palavra_normalizada),
+                    # Busca normalizada específica para códigos em conversões
+                    _apply_code_normalization(Produto.conversoes).contains(palavra_codigo_normalizada),
                 )
             )
 

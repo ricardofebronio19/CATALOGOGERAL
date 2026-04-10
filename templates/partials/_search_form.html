@@ -86,8 +86,9 @@
     </div>
 
     <div class="search-actions" style="width: 100%; display: flex; justify-content: flex-start; align-items: center; gap: 10px; margin-top: 10px;">
-        <button type="submit">Buscar</button>
+        <button type="submit" id="submit-btn">Buscar</button>
         <button type="button" id="clear-search-btn" class="button" style="background-color: #6c757d;">Limpar Campos</button>
+        <button type="button" id="force-refresh-btn" class="button" style="background-color: #28a745;">🔄 Atualizar</button>
         {% if is_admin %}
             <a href="{{ url_for('admin.exportar_csv', **request.args) }}" class="button" style="background-color: #17a2b8;" title="Exportar resultados atuais para CSV">Exportar CSV</a>
         {% endif %}
@@ -109,6 +110,41 @@
                     });
                     // Opcional: focar no primeiro campo após limpar
                     form.querySelector('input[type="text"]').focus();
+                }
+            });
+        }
+
+        // Botão de atualizar/forçar refresh
+        const forceRefreshButton = document.getElementById('force-refresh-btn');
+        if (forceRefreshButton) {
+            forceRefreshButton.addEventListener('click', function() {
+                // Adiciona timestamp para forçar refresh
+                const form = document.getElementById('search-form');
+                if (form) {
+                    const hiddenInput = document.createElement('input');
+                    hiddenInput.type = 'hidden';
+                    hiddenInput.name = '_refresh';
+                    hiddenInput.value = Date.now();
+                    form.appendChild(hiddenInput);
+                    form.submit();
+                }
+            });
+        }
+
+        // Debug: mostra feedback de busca
+        const submitButton = document.getElementById('submit-btn');
+        if (submitButton) {
+            submitButton.addEventListener('click', function() {
+                const termo = document.getElementById('termo').value.trim();
+                if (termo) {
+                    console.log('Buscando por:', termo);
+                    // Adiciona indicador visual
+                    submitButton.textContent = 'Buscando...';
+                    submitButton.disabled = true;
+                    setTimeout(() => {
+                        submitButton.textContent = 'Buscar';
+                        submitButton.disabled = false;
+                    }, 2000);
                 }
             });
         }

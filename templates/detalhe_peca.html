@@ -381,6 +381,7 @@
                             <!-- O Modal/Popup da Imagem -->
                             <div id="imageModal" class="image-modal">
                                 <span class="modal-close">&times;</span>
+                                <img id="modalImage" class="modal-content" alt="Imagem ampliada">
                                 <div class="modal-zoom-controls" style="position:absolute; right:18px; top:18px; display:flex; flex-direction:column; gap:6px; z-index:2200">
                                     <button id="zoomInBtn" class="button" style="padding:6px 8px; font-size:14px;">+</button>
                                     <button id="zoomOutBtn" class="button" style="padding:6px 8px; font-size:14px;">−</button>
@@ -451,32 +452,41 @@
                                 /* Estilos do modal de imagem (centralizado fullscreen) */
                                 .image-modal {
                                     position: fixed;
-                                    inset: 0;
+                                    top: 0;
+                                    left: 0;
+                                    width: 100%;
+                                    height: 100%;
                                     display: none;
                                     justify-content: center;
                                     align-items: center;
                                     background: rgba(0,0,0,0.75);
                                     z-index: 2000;
+                                    overflow: auto;
                                 }
                                 .image-modal .modal-close {
-                                    position: absolute;
+                                    position: fixed;
                                     top: 18px;
                                     right: 18px;
                                     font-size: 28px;
                                     color: white;
                                     cursor: pointer;
-                                    background: rgba(0,0,0,0.3);
-                                    padding: 6px 10px;
+                                    background: rgba(0,0,0,0.6);
+                                    padding: 8px 12px;
                                     border-radius: 6px;
                                     z-index: 2201;
+                                    user-select: none;
+                                    line-height: 1;
                                 }
                                 .image-modal .modal-close:hover {
-                                    background: rgba(0,0,0,0.5);
+                                    background: rgba(0,0,0,0.8);
                                 }
                                 .image-modal .modal-content {
                                     display: block;
-                                    max-width: 90%;
-                                    max-height: 90%;
+                                    margin: auto;
+                                    max-width: 90vw;
+                                    max-height: 90vh;
+                                    min-width: 300px;
+                                    min-height: 200px;
                                     box-shadow: 0 8px 24px rgba(0,0,0,0.5);
                                     border-radius: 4px;
                                     transition: transform 160ms cubic-bezier(.2,.8,.2,1);
@@ -486,22 +496,26 @@
                                     -webkit-backface-visibility: hidden;
                                     transform: translateZ(0);
                                     -webkit-transform: translate3d(0,0,0);
+                                    position: relative;
+                                    object-fit: contain;
                                 }
                                 
                                 /* Estilos das setas de navegação */
                                 .modal-nav-controls {
-                                    position: absolute;
+                                    position: fixed;
                                     top: 50%;
-                                    width: 100%;
+                                    left: 0;
+                                    right: 0;
                                     display: flex;
                                     justify-content: space-between;
                                     padding: 0 20px;
                                     pointer-events: none;
                                     z-index: 2201;
+                                    transform: translateY(-50%);
                                 }
                                 .modal-nav-btn {
                                     pointer-events: all;
-                                    background: rgba(0,0,0,0.5);
+                                    background: rgba(0,0,0,0.6);
                                     border: none;
                                     color: white;
                                     padding: 12px;
@@ -513,9 +527,10 @@
                                     justify-content: center;
                                     width: 50px;
                                     height: 50px;
+                                    user-select: none;
                                 }
                                 .modal-nav-btn:hover {
-                                    background: rgba(0,0,0,0.7);
+                                    background: rgba(0,0,0,0.8);
                                     transform: scale(1.1);
                                 }
                                 .modal-nav-btn:disabled {
@@ -529,16 +544,17 @@
                                 
                                 /* Contador de imagens */
                                 .modal-image-counter {
-                                    position: absolute;
+                                    position: fixed;
                                     bottom: 20px;
                                     left: 50%;
                                     transform: translateX(-50%);
-                                    background: rgba(0,0,0,0.5);
+                                    background: rgba(0,0,0,0.6);
                                     color: white;
                                     padding: 8px 16px;
                                     border-radius: 20px;
                                     font-size: 14px;
                                     z-index: 2201;
+                                    user-select: none;
                                 }
                                 
                                 /* Oculta navegação quando há apenas uma imagem */
@@ -759,9 +775,16 @@
                                             currentImageIndex = index;
                                             modalImg.src = allImages[currentImageIndex];
                                             updateNavigationControls();
-                                            // Reset zoom
+                                            // Reset zoom e centralização
                                             currentScale = 1.0;
-                                            applyScale(null, null);
+                                            modalImg.style.transform = 'scale(1)';
+                                            modalImg.style.transformOrigin = '50% 50%';
+                                            
+                                            // Garantir carregamento correto
+                                            modalImg.onload = function() {
+                                                this.style.display = 'block';
+                                                this.style.margin = 'auto';
+                                            };
                                         }
                                     }
 
@@ -792,9 +815,18 @@
                                         
                                         modalImg.src = allImages[currentImageIndex];
                                         updateNavigationControls();
-                                        // Reset zoom
+                                        
+                                        // Reset zoom e centralização
                                         currentScale = 1.0;
-                                        applyScale(null, null);
+                                        modalImg.style.transform = 'scale(1)';
+                                        modalImg.style.transformOrigin = '50% 50%';
+                                        
+                                        // Garantir que a imagem será carregada corretamente
+                                        modalImg.onload = function() {
+                                            // Força centralização após carregamento
+                                            this.style.display = 'block';
+                                            this.style.margin = 'auto';
+                                        };
                                     };
 
                                     const closeModal = () => {
