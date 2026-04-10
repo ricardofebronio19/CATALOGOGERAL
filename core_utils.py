@@ -8,6 +8,20 @@ from sqlalchemy import func
 from app import db
 from models import Aplicacao, Produto
 
+# Importação do sistema FTS5
+try:
+    from utils.fts_search import get_fts_manager
+    FTS_AVAILABLE = True
+except ImportError:
+    FTS_AVAILABLE = False
+
+# Importação do sistema de cache
+try:
+    from utils.cache_system import cache_static_data, cache_search_results, app_cache
+    CACHE_AVAILABLE = True
+except ImportError:
+    CACHE_AVAILABLE = False
+
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
 
 
@@ -54,9 +68,27 @@ def _apply_db_normalization(column):
 def _build_search_query(
     termo, codigo_produto, montadora, aplicacao_termo, grupo, medidas,
     largura=None, altura=None, comprimento=None, diametro_externo=None, 
-    diametro_interno=None, elo=None, estrias_internas=None, estrias_externas=None
+    diametro_interno=None, elo=None, estrias_internas=None, estrias_externas=None,
+    use_fts=True
 ):
-    """Constrói a query de busca de produtos com base nos filtros fornecidos."""
+    """
+    Constrói a query de busca de produtos com base nos filtros fornecidos.
+    
+    Args:
+        termo: Termo geral de busca
+        use_fts: Se True, usa FTS5 quando disponível para termo geral
+        ... outros parâmetros de filtro
+    """
+    
+    # Se FTS5 disponível e termo geral informado, usa busca full-text
+    if FTS_AVAILABLE and use_fts and termo and not any([
+        codigo_produto, montadora, aplicacao_termo, grupo, medidas,
+        largura, altura, comprimento, diametro_externo, diametro_interno, elo,
+        estrias_internas, estrias_externas
+    ]):
+        return _build_fts_query(termo)
+    
+    # Busca tradicional para casos específicos ou quando FTS5 não disponível
     query = Produto.query
 
     if termo:
@@ -396,4 +428,92 @@ def _parsear_medidas_para_dict(medidas_str: str | None) -> dict:
         resultado['medidas_adicionais'] = '\n'.join(adicionais_lines)
     
     return resultado
+
+
+def _build_fts_query(termo: str):
+    """
+    Constrói uma query usando Full-Text Search (FTS5) para busca otimizada.
+    
+    Args:
+        termo: Termo de busca a ser usado no FTS5
+        
+    Returns:
+        Query SQLAlchemy com resultados ordenados por relevância
+    """
+    if not FTS_AVAILABLE or not termo:
+        return Produto.query.filter(False)  # Query vazia se FTS não disponível
+    
+    try:
+        # Busca usando FTS5
+        fts_results = get_fts_manager().search(termo, limit=1000)  # Busca ampla para filtros posteriores
+        
+        if not fts_results:
+            return Produto.query.filter(False)  # Query vazia se nenhum resultado
+        
+        # Extrai IDs dos produtos encontrados
+        produto_ids = [result['produto_id'] for result in fts_results]
+        
+        # Cria query SQLAlchemy com os IDs encontrados pelo FTS5
+        # Ordena pela ordem de relevância do FTS5
+        query = Produto.query.filter(Produto.id.in_(produto_ids))
+        
+        # Ordena baseado na relevância do FTS5 (menor score = mais relevante no BM25)
+        id_to_rank = {result['produto_id']: idx for idx, result in enumerate(fts_results)}
+        
+        # SQLAlchemy não aceita ORDER BY customizado facilmente, então fazemos ordenação em Python
+        # na função que chama esta query
+        query._fts_order = id_to_rank
+        
+        return query
+        
+    except Exception as e:
+        from app import get_logger
+        logger = get_logger('fts')
+        logger.error(f"Erro na busca FTS5: {str(e)}")
+        # Fallback para busca tradicional
+        return Produto.query.filter(
+            db.or_(
+                Produto.nome.ilike(f"%{termo}%"),
+                Produto.codigo.ilike(f"%{termo}%"),
+                Produto.fornecedor.ilike(f"%{termo}%")
+            )
+        )
+
+
+def get_fts_suggestions(query: str, limit: int = 5):
+    """
+    Retorna sugestões de busca usando FTS5 se disponível.
+    
+    Args:
+        query: Termo parcial para sugestões
+        limit: Número máximo de sugestões
+        
+    Returns:
+        Lista de strings com sugestões
+    """
+    if not FTS_AVAILABLE or not query:
+        return []
+    
+    try:
+        return get_fts_manager().get_search_suggestions(query, limit)
+    except Exception:
+        return []
+
+
+def init_fts_system():
+    """
+    Inicializa o sistema FTS5 se estiver disponível.
+    
+    Returns:
+        bool: True se FTS5 foi inicializado com sucesso, False caso contrário
+    """
+    if not FTS_AVAILABLE:
+        return False
+    
+    try:
+        from utils.fts_search import init_fts
+        from flask import current_app
+        return init_fts(current_app)
+    except Exception:
+        return False
 

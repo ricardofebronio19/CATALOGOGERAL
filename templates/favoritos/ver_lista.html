@@ -1,0 +1,914 @@
+{% extends "base.html" %}
+{% block title %}{{ lista.nome }} - Lista de Favoritos{% endblock %}
+
+{% block content %}
+<div class="ver-lista-container">
+    <!-- Header da Lista -->
+    <div class="lista-header-section">
+        <div class="lista-info">
+            <div class="lista-title">
+                <span class="lista-icone" style="color: {{ lista.cor }};">{{ lista.icone }}</span>
+                <h1>{{ lista.nome }}</h1>
+                {% if lista.publica %}
+                    <span class="badge badge-info">Pública</span>
+                {% endif %}
+            </div>
+            
+            {% if lista.descricao %}
+                <p class="lista-descricao">{{ lista.descricao }}</p>
+            {% endif %}
+            
+            <div class="lista-stats">
+                <span class="stat">
+                    <i class="fas fa-items"></i> {{ itens|length }} produtos
+                </span>
+                <span class="stat">
+                    <i class="fas fa-calendar"></i> Criada em {{ lista.criada_em.strftime('%d/%m/%Y') }}
+                </span>
+                <span class="stat">
+                    <i class="fas fa-clock"></i> Atualizada {{ lista.atualizada_em.strftime('%d/%m/%Y às %H:%M') }}
+                </span>
+            </div>
+        </div>
+        
+        <div class="lista-actions">
+            <button class="btn btn-primary" onclick="abrirBuscaProduto()">
+                <i class="fas fa-plus"></i> Adicionar Produto
+            </button>
+            
+            {% if lista.user_id == current_user.id %}
+                <div class="dropdown">
+                    <button class="btn btn-outline-secondary dropdown-toggle" 
+                            type="button" data-toggle="dropdown">
+                        <i class="fas fa-cog"></i> Opções
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-right">
+                        <a class="dropdown-item" 
+                           href="{{ url_for('favorites.editar_lista', lista_id=lista.id) }}">
+                            <i class="fas fa-edit"></i> Editar Lista
+                        </a>
+                        <a class="dropdown-item" 
+                           href="{{ url_for('favorites.compartilhar_lista', lista_id=lista.id) }}">
+                            <i class="fas fa-share"></i> Compartilhar
+                        </a>
+                        <div class="dropdown-divider"></div>
+                        <button class="dropdown-item text-danger" 
+                                onclick="excluirLista()">
+                            <i class="fas fa-trash"></i> Excluir Lista
+                        </button>
+                    </div>
+                </div>
+            {% endif %}
+            
+            <a href="{{ url_for('favorites.index') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Voltar
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtros e Ordenação -->
+    <div class="filtros-section">
+        <div class="filtros-group">
+            <div class="search-box">
+                <input type="text" 
+                       id="searchInput" 
+                       class="form-control" 
+                       placeholder="Buscar produtos nesta lista...">
+                <i class="fas fa-search"></i>
+            </div>
+            
+            <div class="sort-options">
+                <select id="sortSelect" class="form-control">
+                    <option value="ordem">Ordenação manual</option>
+                    <option value="codigo">Código</option>
+                    <option value="descricao">Descrição</option>
+                    <option value="adicionado">Data de adição</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="view-options">
+            <div class="btn-group" role="group">
+                <button type="button" 
+                        class="btn btn-outline-secondary active" 
+                        id="viewCards" 
+                        data-view="cards">
+                    <i class="fas fa-th"></i>
+                </button>
+                <button type="button" 
+                        class="btn btn-outline-secondary" 
+                        id="viewList" 
+                        data-view="list">
+                    <i class="fas fa-list"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de Produtos -->
+    {% if itens %}
+        <div class="produtos-container" id="produtosContainer">
+            <div class="produtos-grid" id="produtosGrid">
+                {% for item in itens %}
+                <div class="produto-card" 
+                     data-codigo="{{ item.produto.codigo }}" 
+                     data-descricao="{{ item.produto.descricao }}" 
+                     data-ordem="{{ item.ordem }}"
+                     data-adicionado="{{ item.adicionado_em.timestamp() }}">
+                    
+                    <div class="card-header">
+                        <div class="produto-codigo">{{ item.produto.codigo }}</div>
+                        <div class="card-actions">
+                            {% if lista.user_id == current_user.id %}
+                                <button class="btn-icon" 
+                                        onclick="editarObservacao({{ item.id }})" 
+                                        title="Editar observação">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn-icon btn-danger" 
+                                        onclick="removerDaLista({{ item.produto.id }})" 
+                                        title="Remover da lista">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            {% endif %}
+                            <button class="btn-icon" 
+                                    onclick="abrirModalAdicionar({{ item.produto.id }})" 
+                                    title="Adicionar a outra lista">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card-image">
+                        {% if item.produto.imagem_principal %}
+                            <img src="/uploads/{{ item.produto.imagem_principal.nome_arquivo }}" 
+                                 alt="{{ item.produto.descricao }}"
+                                 onclick="window.location.href='{{ url_for('detalhe_peca', id=item.produto.id) }}'">
+                        {% else %}
+                            <div class="sem-imagem" 
+                                 onclick="window.location.href='{{ url_for('detalhe_peca', id=item.produto.id) }}'">
+                                <i class="fas fa-image"></i>
+                                <span>Sem imagem</span>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="card-content">
+                        <h3 class="produto-descricao">{{ item.produto.descricao }}</h3>
+                        
+                        <div class="produto-info">
+                            <span class="grupo">{{ item.produto.grupo }}</span>
+                            <span class="fornecedor">{{ item.produto.fornecedor }}</span>
+                        </div>
+                        
+                        {% if item.observacoes %}
+                        <div class="observacoes">
+                            <i class="fas fa-comment"></i>
+                            <span>{{ item.observacoes }}</span>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="card-footer">
+                            <small class="adicionado">
+                                Adicionado {{ item.adicionado_em.strftime('%d/%m/%Y') }}
+                            </small>
+                            <a href="{{ url_for('detalhe_peca', id=item.produto.id) }}" 
+                               class="btn btn-sm btn-outline-primary">
+                                Ver Detalhes
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <i class="fas fa-heart-broken"></i>
+            <h3>Lista vazia</h3>
+            <p>Esta lista ainda não tem produtos. Clique no botão "Adicionar Produto" para começar!</p>
+            <button class="btn btn-primary btn-lg" onclick="abrirBuscaProduto()">
+                <i class="fas fa-plus"></i> Adicionar Primeiro Produto
+            </button>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Modal de Busca de Produto -->
+<div class="modal fade" id="modalBuscaProduto" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Adicionar Produto à Lista</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="produto-search">
+                    <input type="text" 
+                           id="produtoSearchInput" 
+                           class="form-control" 
+                           placeholder="Digite código, descrição ou grupo do produto...">
+                </div>
+                <div class="search-results" id="searchResults">
+                    <div class="search-placeholder">
+                        <i class="fas fa-search"></i>
+                        <p>Digite para buscar produtos</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Adicionar a Outras Listas -->
+<div class="modal fade" id="modalAdicionarLista" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <!-- Conteúdo carregado via AJAX -->
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Observação -->
+<div class="modal fade" id="modalObservacao" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Editar Observação</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <textarea id="observacaoText" 
+                          class="form-control" 
+                          rows="3" 
+                          placeholder="Adicione suas observações sobre este produto..."></textarea>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="salvarObservacao()">Salvar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.ver-lista-container {
+    padding: 20px;
+}
+
+.lista-header-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 30px;
+    background: white;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    gap: 20px;
+}
+
+.lista-info {
+    flex: 1;
+}
+
+.lista-title {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+
+.lista-icone {
+    font-size: 2.5rem;
+}
+
+.lista-title h1 {
+    margin: 0;
+    color: #333;
+    font-size: 2rem;
+}
+
+.lista-descricao {
+    color: #666;
+    font-size: 1.1rem;
+    margin-bottom: 15px;
+    line-height: 1.5;
+}
+
+.lista-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.stat {
+    color: #666;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.lista-actions {
+    display: flex;
+    gap: 10px;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+    align-items: flex-start;
+}
+
+.filtros-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.filtros-group {
+    display: flex;
+    gap: 15px;
+    flex: 1;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.search-box {
+    position: relative;
+    min-width: 300px;
+}
+
+.search-box input {
+    padding-right: 40px;
+}
+
+.search-box i {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #666;
+}
+
+.sort-options select {
+    min-width: 150px;
+}
+
+.view-options .btn-group .btn {
+    padding: 8px 12px;
+}
+
+.produtos-container {
+    min-height: 400px;
+}
+
+.produtos-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 25px;
+}
+
+.produtos-grid.list-view {
+    grid-template-columns: 1fr;
+}
+
+.produto-card {
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+    border-left: 4px solid {{ lista.cor }};
+}
+
+.produto-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.produto-codigo {
+    font-weight: 700;
+    color: #333;
+    font-size: 1.1rem;
+}
+
+.card-actions {
+    display: flex;
+    gap: 5px;
+}
+
+.btn-icon {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: transparent;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: #666;
+}
+
+.btn-icon:hover {
+    background: rgba(0,0,0,0.1);
+    color: #333;
+}
+
+.btn-icon.btn-danger:hover {
+    background: rgba(220, 53, 69, 0.1);
+    color: #dc3545;
+}
+
+.card-image {
+    height: 200px;
+    overflow: hidden;
+    position: relative;
+    cursor: pointer;
+}
+
+.card-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s;
+}
+
+.card-image:hover img {
+    transform: scale(1.05);
+}
+
+.sem-imagem {
+    width: 100%;
+    height: 100%;
+    background: #f8f9fa;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #999;
+    transition: background 0.2s;
+}
+
+.sem-imagem:hover {
+    background: #e9ecef;
+}
+
+.sem-imagem i {
+    font-size: 3rem;
+    margin-bottom: 10px;
+}
+
+.card-content {
+    padding: 20px;
+}
+
+.produto-descricao {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 10px;
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.produto-info {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+}
+
+.grupo, .fornecedor {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.grupo {
+    background: rgba(255, 102, 0, 0.1);
+    color: #e65100;
+}
+
+.fornecedor {
+    background: rgba(0, 123, 255, 0.1);
+    color: #0056b3;
+}
+
+.observacoes {
+    margin-bottom: 15px;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border-left: 3px solid #17a2b8;
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+}
+
+.observacoes i {
+    color: #17a2b8;
+    margin-top: 2px;
+}
+
+.observacoes span {
+    color: #495057;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 15px;
+    border-top: 1px solid #e9ecef;
+}
+
+.adicionado {
+    color: #999;
+    font-size: 0.8rem;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 80px 20px;
+    color: #666;
+}
+
+.empty-state i {
+    font-size: 5rem;
+    margin-bottom: 25px;
+    color: #ddd;
+}
+
+.empty-state h3 {
+    margin-bottom: 15px;
+    color: #333;
+    font-size: 1.8rem;
+}
+
+.empty-state p {
+    margin-bottom: 30px;
+    font-size: 1.2rem;
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.produto-search {
+    margin-bottom: 20px;
+}
+
+.search-results {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.search-placeholder {
+    text-align: center;
+    padding: 60px 20px;
+    color: #999;
+}
+
+.search-placeholder i {
+    font-size: 3rem;
+    margin-bottom: 15px;
+}
+
+.produto-resultado {
+    display: flex;
+    align-items: center;
+    padding: 15px;
+    border-bottom: 1px solid #e9ecef;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.produto-resultado:hover {
+    background: #f8f9fa;
+}
+
+.produto-resultado:last-child {
+    border-bottom: none;
+}
+
+.produto-resultado-info {
+    flex: 1;
+}
+
+.produto-resultado-codigo {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 3px;
+}
+
+.produto-resultado-desc {
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.produto-resultado-meta {
+    font-size: 0.8rem;
+    color: #999;
+    margin-top: 3px;
+}
+
+@media (max-width: 1200px) {
+    .produtos-grid {
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    }
+}
+
+@media (max-width: 768px) {
+    .lista-header-section {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .lista-title {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .lista-title h1 {
+        font-size: 1.6rem;
+    }
+    
+    .lista-stats {
+        justify-content: center;
+    }
+    
+    .filtros-section {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .filtros-group {
+        justify-content: center;
+    }
+    
+    .search-box {
+        min-width: auto;
+        width: 100%;
+    }
+    
+    .produtos-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .lista-actions {
+        justify-content: center;
+        width: 100%;
+    }
+}
+</style>
+
+<script>
+let listaId = {{ lista.id }};
+let currentItemId = null;
+
+// Busca de produtos
+let produtoSearchTimeout;
+document.getElementById('produtoSearchInput').addEventListener('input', function(e) {
+    clearTimeout(produtoSearchTimeout);
+    const query = this.value.trim();
+    
+    if (query.length < 2) {
+        document.getElementById('searchResults').innerHTML = `
+            <div class="search-placeholder">
+                <i class="fas fa-search"></i>
+                <p>Digite pelo menos 2 caracteres</p>
+            </div>
+        `;
+        return;
+    }
+    
+    produtoSearchTimeout = setTimeout(() => {
+        buscarProdutos(query);
+    }, 300);
+});
+
+function buscarProdutos(query) {
+    fetch(`{{ url_for('favorites.buscar_produto') }}?q=${encodeURIComponent(query)}`)
+        .then(response => response.json())
+        .then(data => {
+            const resultsContainer = document.getElementById('searchResults');
+            
+            if (data.produtos && data.produtos.length > 0) {
+                resultsContainer.innerHTML = data.produtos.map(produto => `
+                    <div class="produto-resultado" onclick="adicionarProdutoNaLista(${produto.id})">
+                        <div class="produto-resultado-info">
+                            <div class="produto-resultado-codigo">${produto.codigo}</div>
+                            <div class="produto-resultado-desc">${produto.descricao}</div>
+                            <div class="produto-resultado-meta">${produto.grupo} • ${produto.fornecedor}</div>
+                        </div>
+                        <button class="btn btn-sm btn-primary">
+                            <i class="fas fa-plus"></i> Adicionar
+                        </button>
+                    </div>
+                `).join('');
+            } else {
+                resultsContainer.innerHTML = `
+                    <div class="search-placeholder">
+                        <i class="fas fa-search"></i>
+                        <p>Nenhum produto encontrado</p>
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('Erro na busca:', error);
+            UXManager.showToast('Erro ao buscar produtos', 'error');
+        });
+}
+
+function adicionarProdutoNaLista(produtoId) {
+    fetch('{{ url_for("favorites.adicionar_produto") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            lista_id: listaId,
+            produto_id: produtoId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            UXManager.showToast(data.message, 'success');
+            $('#modalBuscaProduto').modal('hide');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            UXManager.showToast(data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        UXManager.showToast('Erro ao adicionar produto', 'error');
+    });
+}
+
+function removerDaLista(produtoId) {
+    if (!confirm('Tem certeza que deseja remover este produto da lista?')) {
+        return;
+    }
+    
+    fetch('{{ url_for("favorites.remover_produto") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            lista_id: listaId,
+            produto_id: produtoId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            UXManager.showToast(data.message, 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            UXManager.showToast(data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        UXManager.showToast('Erro ao remover produto', 'error');
+    });
+}
+
+function editarObservacao(itemId) {
+    currentItemId = itemId;
+    // Busca observação atual (implementar se necessário)
+    $('#modalObservacao').modal('show');
+}
+
+function salvarObservacao() {
+    const observacao = document.getElementById('observacaoText').value;
+    
+    // Implementar salvamento de observação via AJAX
+    console.log('Salvando observação:', observacao);
+    
+    $('#modalObservacao').modal('hide');
+}
+
+function abrirBuscaProduto() {
+    $('#modalBuscaProduto').modal('show');
+    setTimeout(() => {
+        document.getElementById('produtoSearchInput').focus();
+    }, 500);
+}
+
+function abrirModalAdicionar(produtoId) {
+    fetch(`{{ url_for('favorites.modal_adicionar') }}?produto_id=${produtoId}`)
+        .then(response => response.text())
+        .then(html => {
+            document.querySelector('#modalAdicionarLista .modal-content').innerHTML = html;
+            $('#modalAdicionarLista').modal('show');
+        })
+        .catch(error => {
+            console.error('Erro ao carregar modal:', error);
+            UXManager.showToast('Erro ao carregar modal de favoritos', 'error');
+        });
+}
+
+function excluirLista() {
+    if (confirm('Tem certeza que deseja excluir esta lista?\n\nEsta ação não pode ser desfeita.')) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `{{ url_for('favorites.excluir_lista', lista_id=lista.id) }}`;
+        
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+// Filtros e ordenação
+document.getElementById('searchInput').addEventListener('input', function(e) {
+    filtrarProdutos();
+});
+
+document.getElementById('sortSelect').addEventListener('change', function(e) {
+    ordenarProdutos();
+});
+
+// View toggles
+document.getElementById('viewCards').addEventListener('click', function() {
+    document.getElementById('produtosGrid').className = 'produtos-grid';
+    this.classList.add('active');
+    document.getElementById('viewList').classList.remove('active');
+});
+
+document.getElementById('viewList').addEventListener('click', function() {
+    document.getElementById('produtosGrid').className = 'produtos-grid list-view';
+    this.classList.add('active');
+    document.getElementById('viewCards').classList.remove('active');
+});
+
+function filtrarProdutos() {
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const cards = document.querySelectorAll('.produto-card');
+    
+    cards.forEach(card => {
+        const codigo = card.dataset.codigo.toLowerCase();
+        const descricao = card.dataset.descricao.toLowerCase();
+        
+        if (codigo.includes(searchTerm) || descricao.includes(searchTerm)) {
+            card.style.display = 'block';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+}
+
+function ordenarProdutos() {
+    const sortBy = document.getElementById('sortSelect').value;
+    const grid = document.getElementById('produtosGrid');
+    const cards = Array.from(grid.querySelectorAll('.produto-card'));
+    
+    cards.sort((a, b) => {
+        switch (sortBy) {
+            case 'codigo':
+                return a.dataset.codigo.localeCompare(b.dataset.codigo);
+            case 'descricao':
+                return a.dataset.descricao.localeCompare(b.dataset.descricao);
+            case 'adicionado':
+                return parseFloat(b.dataset.adicionado) - parseFloat(a.dataset.adicionado);
+            case 'ordem':
+            default:
+                return parseInt(a.dataset.ordem) - parseInt(b.dataset.ordem);
+        }
+    });
+    
+    cards.forEach(card => grid.appendChild(card));
+}
+</script>
+{% endblock %}

@@ -13,6 +13,9 @@ from flask_sqlalchemy import SQLAlchemy
 from markupsafe import Markup
 from packaging import version as pkg_version
 
+# Importa o sistema de logging estruturado
+from utils.logging_config import setup_logging, get_logger, PerformanceLogger
+
 # Inicializa extensões sem associá-las a um app ainda
 db = SQLAlchemy()
 login_manager = LoginManager()
@@ -119,6 +122,14 @@ def carregar_config_aparencia():
             # Cores específicas para colunas em 'Detalhes do Produto'
             config.setdefault("cor_coluna_conversoes", "#fff3cd")
             config.setdefault("cor_coluna_medidas", "#d1ecf1")
+            # Configurações de plano de fundo
+            config.setdefault("background_tipo", "cor")  # "cor" ou "imagem"
+            config.setdefault("background_cor", "#ffffff")
+            config.setdefault("background_imagem", None)
+            config.setdefault("background_repeat", "no-repeat")  # repeat, no-repeat, repeat-x, repeat-y
+            config.setdefault("background_position", "center center")  # center, top, bottom, left, right
+            config.setdefault("background_size", "cover")  # cover, contain, auto
+            config.setdefault("background_opacity", 1.0)  # 0.0 a 1.0
             return config
     except (FileNotFoundError, json.JSONDecodeError):
         # Retorna um dicionário padrão se o arquivo não existir ou ser inválido
@@ -129,6 +140,13 @@ def carregar_config_aparencia():
             "pesquisa_externa_ativa": False,
             "cor_coluna_conversoes": "#fff3cd",
             "cor_coluna_medidas": "#d1ecf1",
+            "background_tipo": "cor",
+            "background_cor": "#ffffff",
+            "background_imagem": None,
+            "background_repeat": "no-repeat",
+            "background_position": "center center",
+            "background_size": "cover",
+            "background_opacity": 1.0,
         }
 
 
@@ -203,6 +221,18 @@ def create_app():
         # Não falhar na criação de pastas durante import (tests podem manipular paths)
         pass
 
+    # --- Configuração do Sistema de Logging ---
+    try:
+        app_logger = setup_logging(APP_DATA_PATH)
+        app.logger = app_logger
+        app_logger.info(f"Aplicação CGI inicializada - Versão {_carregar_versao()}")
+        app_logger.info(f"Ambiente: {config_name}")
+        app_logger.info(f"APP_DATA_PATH: {APP_DATA_PATH}")
+    except Exception as e:
+        print(f"Erro ao configurar logging: {e}")
+        # Fallback para logging básico
+        logging.basicConfig(level=logging.INFO)
+
     # Desenvolvimento: se o banco de dados no APP_DATA_PATH não existir, mas
     # houver um `data/catalogo.db` presente no repositório (útil ao rodar
     # localmente a partir do código), copiamos esse arquivo para o diretório
@@ -225,12 +255,35 @@ def create_app():
     db.init_app(app)
     login_manager.init_app(app)
 
+    # --- Inicialização do Sistema FTS5 ---
+    try:
+        from core_utils import init_fts_system
+        if init_fts_system():
+            app_logger.info("Sistema Full-Text Search (FTS5) inicializado com sucesso")
+        else:
+            app_logger.warning("Sistema FTS5 não pôde ser inicializado - usando busca tradicional")
+    except Exception as e:
+        app_logger.error(f"Erro ao inicializar FTS5: {str(e)}")
+
+    # --- Inicialização do Sistema de Cache ---
+    try:
+        from utils.cache_system import init_cache_system, warm_up_cache
+        init_cache_system(app)
+        warm_up_cache()
+        app_logger.info("Sistema de cache em memória inicializado com sucesso")
+    except Exception as e:
+        app_logger.error(f"Erro ao inicializar sistema de cache: {str(e)}")
+
     # --- Registro de Blueprints (Rotas) ---
     from routes import admin_bp, auth_bp, main_bp
+    from api_routes import api_bp
+    from routes_favoritos import favorites_bp
 
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(admin_bp)
+    app.register_blueprint(api_bp) 
+    app.register_blueprint(favorites_bp)
 
     # --- Filtros e Context Processors do Jinja2 ---
     register_jinja_helpers(app)
@@ -434,8 +487,16 @@ def inicializar_banco(app, reset=False):
             db.drop_all()
 
         from models import User  # Importa aqui para evitar importação circular
+        from models_favoritos import (
+            ListaFavoritos, ItemListaFavoritos, HistoricoVisualizacao, 
+            ProdutoRecomendado, CompartilhamentoLista, add_user_favorites_methods,
+            criar_lista_default
+        )
 
         db.create_all()
+        
+        # Adiciona métodos relacionados a favoritos ao modelo User existente
+        add_user_favorites_methods()
 
         # Cria um usuário 'admin' se não existir, com uma senha aleatória segura.
         if User.query.filter_by(username="admin").first() is None:

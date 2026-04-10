@@ -57,6 +57,83 @@
                         <p style="margin-top: 10px;">Logo atual: <img src="{{ url_for('uploaded_file', filename=config.logo_path) }}" alt="Logo Atual" style="max-height: 40px; vertical-align: middle; background: #f0f0f0; padding: 5px;"></p>
                         {% endif %}
                     </div>
+
+                    <!-- Configurações de Plano de Fundo -->
+                    <div style="border-top: 1px solid #e9ecef; margin: 20px 0; padding-top: 20px;">
+                        <h3 style="margin: 0 0 15px 0; color: #495057;">🖼️ Plano de Fundo</h3>
+                        
+                        <div class="search-field">
+                            <label for="background_tipo">Tipo de Plano de Fundo:</label>
+                            <select id="background_tipo" name="background_tipo" onchange="toggleBackgroundOptions()">
+                                <option value="cor" {% if config.background_tipo == 'cor' %}selected{% endif %}>Cor Sólida</option>
+                                <option value="imagem" {% if config.background_tipo == 'imagem' %}selected{% endif %}>Imagem</option>
+                            </select>
+                        </div>
+
+                        <div id="background_cor_section" class="search-field" style="{% if config.background_tipo == 'imagem' %}display: none;{% endif %}">
+                            <label for="background_cor">Cor de Fundo:</label>
+                            <input type="color" id="background_cor" name="background_cor" value="{{ config.background_cor|default('#ffffff') }}">
+                        </div>
+
+                        <div id="background_imagem_section" style="{% if config.background_tipo != 'imagem' %}display: none;{% endif %}">
+                            <div class="search-field">
+                                <label for="background_imagem">Imagem de Fundo:</label>
+                                <input type="file" id="background_imagem" name="background_imagem" accept="image/*">
+                                {% if config.background_imagem %}
+                                <p style="margin-top: 10px;">
+                                    Imagem atual: 
+                                    <img src="{{ url_for('uploaded_file', filename=config.background_imagem) }}" alt="Fundo Atual" style="max-height: 80px; max-width: 120px; vertical-align: middle; background: #f0f0f0; padding: 5px; border-radius: 4px;">
+                                </p>
+                                {% endif %}
+                            </div>
+
+                            <div class="search-field">
+                                <label for="background_repeat">Repetição:</label>
+                                <select id="background_repeat" name="background_repeat">
+                                    <option value="no-repeat" {% if config.background_repeat == 'no-repeat' %}selected{% endif %}>Sem Repetição</option>
+                                    <option value="repeat" {% if config.background_repeat == 'repeat' %}selected{% endif %}>Repetir</option>
+                                    <option value="repeat-x" {% if config.background_repeat == 'repeat-x' %}selected{% endif %}>Repetir Horizontalmente</option>
+                                    <option value="repeat-y" {% if config.background_repeat == 'repeat-y' %}selected{% endif %}>Repetir Verticalmente</option>
+                                </select>
+                            </div>
+
+                            <div class="search-field">
+                                <label for="background_position">Posição:</label>
+                                <select id="background_position" name="background_position">
+                                    <option value="center center" {% if config.background_position == 'center center' %}selected{% endif %}>Centro</option>
+                                    <option value="top center" {% if config.background_position == 'top center' %}selected{% endif %}>Topo</option>
+                                    <option value="bottom center" {% if config.background_position == 'bottom center' %}selected{% endif %}>Parte Inferior</option>
+                                    <option value="left center" {% if config.background_position == 'left center' %}selected{% endif %}>Esquerda</option>
+                                    <option value="right center" {% if config.background_position == 'right center' %}selected{% endif %}>Direita</option>
+                                    <option value="top left" {% if config.background_position == 'top left' %}selected{% endif %}>Topo Esquerdo</option>
+                                    <option value="top right" {% if config.background_position == 'top right' %}selected{% endif %}>Topo Direito</option>
+                                    <option value="bottom left" {% if config.background_position == 'bottom left' %}selected{% endif %}>Inferior Esquerdo</option>
+                                    <option value="bottom right" {% if config.background_position == 'bottom right' %}selected{% endif %}>Inferior Direito</option>
+                                </select>
+                            </div>
+
+                            <div class="search-field">
+                                <label for="background_size">Tamanho:</label>
+                                <select id="background_size" name="background_size">
+                                    <option value="cover" {% if config.background_size == 'cover' %}selected{% endif %}>Cobrir (Cover)</option>
+                                    <option value="contain" {% if config.background_size == 'contain' %}selected{% endif %}>Conter (Contain)</option>
+                                    <option value="auto" {% if config.background_size == 'auto' %}selected{% endif %}>Tamanho Original</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="search-field">
+                            <label for="background_opacity">Opacidade do Fundo:</label>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <input type="range" id="background_opacity" name="background_opacity" 
+                                       min="0" max="1" step="0.1" value="{{ config.background_opacity|default(1.0) }}" 
+                                       oninput="document.getElementById('opacity_value').textContent = this.value">
+                                <span id="opacity_value">{{ config.background_opacity|default(1.0) }}</span>
+                            </div>
+                            <small style="color: #666;">0.0 = Totalmente transparente, 1.0 = Totalmente opaco</small>
+                        </div>
+                    </div>
+
                     <button type="submit" class="button">Salvar Aparência</button>
                 </form>
 
@@ -398,6 +475,26 @@ function showCatalogLoading(event) {
                     });
                 }
             });
+        });
+
+        // Função para controlar a exibição das opções de plano de fundo
+        function toggleBackgroundOptions() {
+            const tipo = document.getElementById('background_tipo').value;
+            const corSection = document.getElementById('background_cor_section');
+            const imagemSection = document.getElementById('background_imagem_section');
+            
+            if(tipo === 'cor') {
+                corSection.style.display = 'block';
+                imagemSection.style.display = 'none';
+            } else {
+                corSection.style.display = 'none';
+                imagemSection.style.display = 'block';
+            }
+        }
+
+        // Inicializar as opções ao carregar a página
+        document.addEventListener('DOMContentLoaded', function() {
+            toggleBackgroundOptions();
         });
     })();
 </script>

@@ -983,6 +983,21 @@ mark {
     justify-content: center; /* Centraliza o conteúdo dentro deste grupo */
     align-items: center;
     gap: 20px; /* Espaço entre a busca e os botões */
+    flex-wrap: nowrap; /* Evita quebra de linha */
+    white-space: nowrap; /* Evita quebra de texto */
+}
+
+.nav-right {
+    display: flex;
+    align-items: center;
+    gap: 8px; /* Espaço menor entre botões */
+    flex-wrap: nowrap; /* Evita quebra de linha */
+}
+
+.nav-center {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0; /* Não permite encolher */
 }
 
 /* Estilos específicos para o formulário de busca na barra superior */

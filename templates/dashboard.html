@@ -1,0 +1,554 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard Analytics - Catálogo de Peças{% endblock %}
+
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+.dashboard-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.stat-card {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border-left: 4px solid var(--cor-principal, #ff6600);
+}
+
+.stat-number {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--cor-principal, #ff6600);
+    margin-bottom: 8px;
+}
+
+.stat-label {
+    color: #666;
+    font-size: 0.9rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.stat-change {
+    font-size: 0.8rem;
+    margin-top: 8px;
+}
+
+.stat-change.positive {
+    color: #28a745;
+}
+
+.stat-change.negative {
+    color: #dc3545;
+}
+
+.charts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.chart-card {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.chart-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-bottom: 20px;
+    color: #333;
+}
+
+.table-card {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+
+.analytics-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+
+.analytics-table th,
+.analytics-table td {
+    text-align: left;
+    padding: 12px;
+    border-bottom: 1px solid #eee;
+}
+
+.analytics-table th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    color: #555;
+}
+
+.analytics-table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.refresh-button {
+    background-color: var(--cor-principal, #ff6600);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    margin-bottom: 20px;
+    transition: filter 0.2s;
+}
+
+.refresh-button:hover {
+    filter: brightness(0.9);
+}
+
+.loading {
+    display: none;
+    text-align: center;
+    padding: 20px;
+    color: #666;
+}
+
+.metric-trend {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.trend-up {
+    background-color: rgba(40, 167, 69, 0.1);
+    color: #28a745;
+}
+
+.trend-down {
+    background-color: rgba(220, 53, 69, 0.1);
+    color: #dc3545;
+}
+
+.trend-stable {
+    background-color: rgba(108, 117, 125, 0.1);
+    color: #6c757d;
+}
+
+/* Mobile responsivo */
+@media (max-width: 768px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+    
+    .charts-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+    
+    .chart-card {
+        padding: 15px;
+    }
+    
+    .stat-card {
+        padding: 15px;
+    }
+    
+    .dashboard-container {
+        padding: 10px;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <header style="margin-bottom: 30px;">
+        <h1 style="color: #333; margin-bottom: 10px;">📊 Dashboard Analytics</h1>
+        <p style="color: #666; margin-bottom: 20px;">Visão geral do sistema de catálogo de peças</p>
+        <button id="refresh-btn" class="refresh-button">🔄 Atualizar Dados</button>
+        <span class="loading" id="loading">Carregando...</span>
+    </header>
+
+    <!-- Estatísticas Principais -->
+    <div class="stats-grid" id="stats-grid">
+        <div class="stat-card">
+            <div class="stat-number" id="total-produtos">{{ stats.produtos.total }}</div>
+            <div class="stat-label">Total de Produtos</div>
+            <div class="stat-change positive">{{ stats.produtos.crescimento_texto }}</div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-number" id="total-aplicacoes">{{ stats.aplicacoes.total }}</div>
+            <div class="stat-label">Aplicações Cadastradas</div>
+            <div class="stat-change positive">{{ stats.aplicacoes.crescimento_texto }}</div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-number" id="total-fornecedores">{{ stats.fornecedores.total }}</div>
+            <div class="stat-label">Fornecedores Únicos</div>
+            <div class="stat-change stable">{{ stats.fornecedores.crescimento_texto }}</div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-number" id="total-imagens">{{ stats.imagens.total }}</div>
+            <div class="stat-label">Imagens Carregadas</div>
+            <div class="stat-change positive">{{ stats.imagens.crescimento_texto }}</div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-number" id="cache-hit-rate">{{ stats.cache.hit_rate }}%</div>
+            <div class="stat-label">Taxa de Acerto Cache</div>
+            <div class="stat-change positive">Performance otimizada</div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-number" id="fts-status">{{ "✅" if stats.fts.ativo else "❌" }}</div>
+            <div class="stat-label">Full-Text Search</div>
+            <div class="stat-change {{ 'positive' if stats.fts.ativo else 'negative' }}">
+                {{ "Ativo" if stats.fts.ativo else "Inativo" }}
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficos -->
+    <div class="charts-grid">
+        <div class="chart-card">
+            <div class="chart-title">Produtos por Fornecedor (Top 10)</div>
+            <canvas id="fornecedoresChart" width="400" height="300"></canvas>
+        </div>
+        
+        <div class="chart-card">
+            <div class="chart-title">Aplicações por Montadora (Top 10)</div>
+            <canvas id="montadorasChart" width="400" height="300"></canvas>
+        </div>
+        
+        <div class="chart-card">
+            <div class="chart-title">Produtos por Grupo</div>
+            <canvas id="gruposChart" width="400" height="300"></canvas>
+        </div>
+        
+        <div class="chart-card">
+            <div class="chart-title">Distribuição de Imagens</div>
+            <canvas id="imagensChart" width="400" height="300"></canvas>
+        </div>
+    </div>
+
+    <!-- Tabelas de Dados -->
+    <div class="table-card">
+        <h3 class="chart-title">📋 Produtos Mais Populares (Mais Aplicações)</h3>
+        <table class="analytics-table">
+            <thead>
+                <tr>
+                    <th>Código</th>
+                    <th>Nome</th>
+                    <th>Fornecedor</th>
+                    <th>Aplicações</th>
+                    <th>Imagens</th>
+                    <th>Similares</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for produto in stats.produtos_populares %}
+                <tr>
+                    <td><a href="{{ url_for('main.detalhe_peca', id=produto.id) }}" style="color: var(--cor-principal, #ff6600);">{{ produto.codigo }}</a></td>
+                    <td>{{ produto.nome|truncate(40) }}</td>
+                    <td>{{ produto.fornecedor }}</td>
+                    <td><span class="metric-trend trend-up">{{ produto.total_aplicacoes }}</span></td>
+                    <td>{{ produto.total_imagens }}</td>
+                    <td>{{ produto.total_similares }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="table-card">
+        <h3 class="chart-title">🚗 Montadoras com Mais Aplicações</h3>
+        <table class="analytics-table">
+            <thead>
+                <tr>
+                    <th>Montadora</th>
+                    <th>Total de Aplicações</th>
+                    <th>Produtos Únicos</th>
+                    <th>Percentual</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in stats.montadoras_ranking %}
+                <tr>
+                    <td><strong>{{ item.montadora }}</strong></td>
+                    <td><span class="metric-trend trend-up">{{ item.total_aplicacoes }}</span></td>
+                    <td>{{ item.produtos_unicos }}</td>
+                    <td>{{ "%.1f"|format(item.percentual) }}%</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Status do Sistema -->
+    <div class="table-card">
+        <h3 class="chart-title">⚙️ Status do Sistema</h3>
+        <table class="analytics-table">
+            <thead>
+                <tr>
+                    <th>Componente</th>
+                    <th>Status</th>
+                    <th>Detalhes</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Banco de Dados</strong></td>
+                    <td><span class="metric-trend trend-up">✅ Conectado</span></td>
+                    <td>SQLite - {{ stats.db_size_mb }} MB</td>
+                </tr>
+                <tr>
+                    <td><strong>Sistema de Cache</strong></td>
+                    <td><span class="metric-trend trend-up">✅ Ativo</span></td>
+                    <td>{{ stats.cache.hit_rate }}% hit rate - {{ stats.cache.total_keys }} chaves</td>
+                </tr>
+                <tr>
+                    <td><strong>Full-Text Search</strong></td>
+                    <td><span class="metric-trend {{ 'trend-up' if stats.fts.ativo else 'trend-down' }}">
+                        {{ "✅ Ativo" if stats.fts.ativo else "❌ Inativo" }}
+                    </span></td>
+                    <td>{{ stats.fts.total_records }} registros indexados</td>
+                </tr>
+                <tr>
+                    <td><strong>API REST</strong></td>
+                    <td><span class="metric-trend trend-up">✅ Disponível</span></td>
+                    <td>v1.0.0 - /api/v1/</td>
+                </tr>
+                <tr>
+                    <td><strong>Interface Responsiva</strong></td>
+                    <td><span class="metric-trend trend-up">✅ Ativado</span></td>
+                    <td>Mobile-First Design</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Footer com timestamp -->
+    <div style="text-align: center; color: #666; font-size: 0.8rem; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+        Última atualização: {{ stats.timestamp.strftime('%d/%m/%Y às %H:%M:%S') }}
+    </div>
+</div>
+
+<script>
+// Dados dos gráficos passados do backend
+const chartData = {{ chart_data|tojson }};
+
+// Configuração de cores
+const colors = {
+    primary: getComputedStyle(document.documentElement).getPropertyValue('--cor-principal') || '#ff6600',
+    secondary: '#36A2EB',
+    success: '#4BC0C0',
+    warning: '#FFCE56',
+    danger: '#FF6384',
+    info: '#9966FF'
+};
+
+// Paleta de cores para gráficos
+const colorPalette = [
+    colors.primary,
+    colors.secondary, 
+    colors.success,
+    colors.warning,
+    colors.danger,
+    colors.info,
+    '#FF9F40',
+    '#C9CBCF',
+    '#4BC0C0',
+    '#FF6384'
+];
+
+// Gráfico de Fornecedores
+const ctx1 = document.getElementById('fornecedoresChart').getContext('2d');
+new Chart(ctx1, {
+    type: 'bar',
+    data: {
+        labels: chartData.fornecedores.labels,
+        datasets: [{
+            label: 'Produtos',
+            data: chartData.fornecedores.data,
+            backgroundColor: colors.primary,
+            borderColor: colors.primary,
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: false
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    stepSize: 1
+                }
+            }
+        }
+    }
+});
+
+// Gráfico de Montadoras 
+const ctx2 = document.getElementById('montadorasChart').getContext('2d');
+new Chart(ctx2, {
+    type: 'doughnut',
+    data: {
+        labels: chartData.montadoras.labels,
+        datasets: [{
+            data: chartData.montadoras.data,
+            backgroundColor: colorPalette.slice(0, chartData.montadoras.labels.length),
+            borderWidth: 2,
+            borderColor: '#fff'
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    }
+});
+
+// Gráfico de Grupos
+const ctx3 = document.getElementById('gruposChart').getContext('2d');
+new Chart(ctx3, {
+    type: 'bar',
+    data: {
+        labels: chartData.grupos.labels,
+        datasets: [{
+            label: 'Produtos',
+            data: chartData.grupos.data,
+            backgroundColor: colors.secondary,
+            borderColor: colors.secondary,
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        indexAxis: 'y',
+        plugins: {
+            legend: {
+                display: false
+            }
+        },
+        scales: {
+            x: {
+                beginAtZero: true,
+                ticks: {
+                    stepSize: 1
+                }
+            }
+        }
+    }
+});
+
+// Gráfico de Distribuição de Imagens
+const ctx4 = document.getElementById('imagensChart').getContext('2d');
+new Chart(ctx4, {
+    type: 'pie',
+    data: {
+        labels: chartData.imagens.labels,
+        datasets: [{
+            data: chartData.imagens.data,
+            backgroundColor: [
+                colors.success,
+                colors.warning,
+                colors.danger,
+                colors.info,
+                colors.primary
+            ],
+            borderWidth: 2,
+            borderColor: '#fff'
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    }
+});
+
+// Função de atualização via AJAX
+document.getElementById('refresh-btn').addEventListener('click', function() {
+    const loading = document.getElementById('loading');
+    const button = this;
+    
+    button.disabled = true;
+    button.textContent = 'Atualizando...';
+    loading.style.display = 'block';
+    
+    fetch('/admin/dashboard/refresh', {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if(data.success) {
+            // Atualizar números
+            document.getElementById('total-produtos').textContent = data.stats.produtos.total;
+            document.getElementById('total-aplicacoes').textContent = data.stats.aplicacoes.total;
+            document.getElementById('total-fornecedores').textContent = data.stats.fornecedores.total;
+            document.getElementById('total-imagens').textContent = data.stats.imagens.total;
+            document.getElementById('cache-hit-rate').textContent = data.stats.cache.hit_rate + '%';
+            
+            // Mostrar mensagem de sucesso
+            alert('Dados atualizados com sucesso!');
+        } else {
+            alert('Erro ao atualizar dados: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        alert('Erro na comunicação com o servidor');
+    })
+    .finally(() => {
+        button.disabled = false;
+        button.textContent = '🔄 Atualizar Dados';
+        loading.style.display = 'none';
+    });
+});
+
+// Auto-refresh a cada 5 minutos (opcional)
+// setInterval(() => {
+//     document.getElementById('refresh-btn').click();
+// }, 300000); // 5 minutos
+</script>
+{% endblock %}

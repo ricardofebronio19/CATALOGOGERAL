@@ -299,6 +299,15 @@ def detalhe_peca(id):
         flash("Produto não encontrado.", "danger")
         return redirect(url_for("main.index"))
 
+    # Registra visualização no histórico de favoritos (se usuário autenticado)
+    if current_user.is_authenticated:
+        try:
+            from routes_favoritos import registrar_visualizacao
+            registrar_visualizacao(produto.id, origem='web')
+        except Exception as e:
+            # Log error silently but don't break page
+            current_app.logger.warning(f"Erro ao registrar visualização: {str(e)}")
+
     aplicacoes_agrupadas = collections.defaultdict(list)
     sorted_aplicacoes = sorted(
         produto.aplicacoes, key=lambda app: (app.montadora or "ZZZ", app.veiculo or "")
@@ -1078,6 +1087,20 @@ def configuracoes():
         config["cor_coluna_conversoes"] = request.form.get("cor_coluna_conversoes", config.get("cor_coluna_conversoes", "#fff3cd"))
         config["cor_coluna_medidas"] = request.form.get("cor_coluna_medidas", config.get("cor_coluna_medidas", "#d1ecf1"))
         
+        # Configurações de plano de fundo
+        config["background_tipo"] = request.form.get("background_tipo", "cor")
+        config["background_cor"] = request.form.get("background_cor", "#ffffff")
+        config["background_repeat"] = request.form.get("background_repeat", "no-repeat")
+        config["background_position"] = request.form.get("background_position", "center center")
+        config["background_size"] = request.form.get("background_size", "cover")
+        
+        # Opacidade do plano de fundo
+        try:
+            opacity = float(request.form.get("background_opacity", 1.0))
+            config["background_opacity"] = max(0.0, min(1.0, opacity))
+        except (ValueError, TypeError):
+            config["background_opacity"] = 1.0
+        
         # Pesquisa externa desabilitada permanentemente
         config["pesquisa_externa_ativa"] = False
 
@@ -1088,6 +1111,14 @@ def configuracoes():
                 logo_filename = "logo" + os.path.splitext(file.filename)[1]
                 file.save(os.path.join(APP_DATA_PATH, "uploads", logo_filename))
                 config["logo_path"] = logo_filename
+
+        # Imagem de plano de fundo
+        if "background_imagem" in request.files:
+            file = request.files["background_imagem"]
+            if file and file.filename != "" and allowed_file(file.filename):
+                bg_filename = "background" + os.path.splitext(file.filename)[1]
+                file.save(os.path.join(APP_DATA_PATH, "uploads", bg_filename))
+                config["background_imagem"] = bg_filename
 
         # Upload de ícones por montadora (inputs com nome: icon_<slug>)
         # Slug padrão: montadora em minúsculas, espaços -> '-', remover duplos '--'
@@ -1131,8 +1162,16 @@ def restaurar_cores_padrao():
     config["cor_principal"] = "#ff6600"
     config["cor_coluna_conversoes"] = "#fff3cd"
     config["cor_coluna_medidas"] = "#d1ecf1"
+    # Restaura configurações de plano de fundo para o padrão
+    config["background_tipo"] = "cor"
+    config["background_cor"] = "#ffffff"
+    config["background_imagem"] = None
+    config["background_repeat"] = "no-repeat"
+    config["background_position"] = "center center"
+    config["background_size"] = "cover"
+    config["background_opacity"] = 1.0
     salvar_config_aparencia(config)
-    flash("Cores restauradas para o padrão com sucesso!", "success")
+    flash("Cores e configurações de aparência restauradas para o padrão com sucesso!", "success")
     return redirect(url_for("admin.configuracoes"))
 
 @admin_bp.route("/catalogo/pdf")
@@ -2244,3 +2283,245 @@ def carrinho_pdf():
         
         flash(f'Erro ao gerar PDF: {str(e)}', 'danger')
         return redirect(url_for('main.visualizar_carrinho'))
+
+
+# ==================== ROTAS DO DASHBOARD ANALYTICS ====================
+
+@admin_bp.route("/dashboard")
+@login_required
+def dashboard():
+    """Dashboard de analytics e estatísticas do sistema"""
+    try:
+        # Coleta estatísticas
+        stats_data = collect_dashboard_stats()
+        chart_data = prepare_chart_data()
+        
+        return render_template('dashboard.html', 
+                             stats=stats_data, 
+                             chart_data=chart_data)
+                             
+    except Exception as e:
+        flash(f'Erro ao carregar dashboard: {str(e)}', 'danger')
+        return redirect(url_for('main.index'))
+
+
+@admin_bp.route("/dashboard/refresh")
+@login_required
+def dashboard_refresh():
+    """Endpoint AJAX para atualizar dados do dashboard"""
+    try:
+        stats_data = collect_dashboard_stats()
+        
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({
+                'success': True,
+                'stats': stats_data,
+                'timestamp': datetime.now().isoformat()
+            })
+        else:
+            return redirect(url_for('admin.dashboard'))
+            
+    except Exception as e:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            }), 500
+        else:
+            flash(f'Erro ao atualizar dados: {str(e)}', 'danger')
+            return redirect(url_for('admin.dashboard'))
+
+
+def collect_dashboard_stats():
+    """Coleta todas as estatísticas para o dashboard"""
+    from datetime import datetime, timedelta
+    
+    stats = {
+        'timestamp': datetime.now(),
+        'produtos': {},
+        'aplicacoes': {},
+        'fornecedores': {},
+        'imagens': {},
+        'cache': {},
+        'fts': {},
+        'db_size_mb': 0,
+        'produtos_populares': [],
+        'montadoras_ranking': []
+    }
+    
+    # Estatísticas de produtos
+    total_produtos = Produto.query.count()
+    stats['produtos'] = {
+        'total': total_produtos,
+        'crescimento_texto': 'Catálogo completo'
+    }
+    
+    # Estatísticas de aplicações
+    total_aplicacoes = Aplicacao.query.count()
+    stats['aplicacoes'] = {
+        'total': total_aplicacoes,
+        'crescimento_texto': 'Aplicações compatíveis'
+    }
+    
+    # Estatísticas de fornecedores
+    total_fornecedores = db.session.query(Produto.fornecedor).distinct().count()
+    stats['fornecedores'] = {
+        'total': total_fornecedores,
+        'crescimento_texto': 'Fornecedores cadastrados'
+    }
+    
+    # Estatísticas de imagens
+    total_imagens = ImagemProduto.query.count()
+    stats['imagens'] = {
+        'total': total_imagens,
+        'crescimento_texto': 'Imagens no catálogo'
+    }
+    
+    # Estatísticas de cache (se disponível)
+    try:
+        from utils.cache_system import get_cache_stats
+        cache_stats = get_cache_stats()
+        stats['cache'] = {
+            'hit_rate': cache_stats['app_cache']['hit_rate'],
+            'total_keys': cache_stats['app_cache']['size']
+        }
+    except (ImportError, Exception):
+        stats['cache'] = {
+            'hit_rate': 0,
+            'total_keys': 0
+        }
+    
+    # Estatísticas FTS5 (se disponível) 
+    try:
+        from utils.fts_search import get_fts_manager
+        fts_manager = get_fts_manager()
+        fts_stats = fts_manager.get_stats()
+        stats['fts'] = {
+            'ativo': fts_stats['exists'],
+            'total_records': fts_stats['total_records']
+        }
+    except (ImportError, Exception):
+        stats['fts'] = {
+            'ativo': False,
+            'total_records': 0
+        }
+    
+    # Tamanho do banco de dados
+    try:
+        import os
+        from app import APP_DATA_PATH
+        db_path = os.path.join(APP_DATA_PATH, 'catalogo.db')
+        if os.path.exists(db_path):
+            size_bytes = os.path.getsize(db_path)
+            stats['db_size_mb'] = round(size_bytes / (1024 * 1024), 1)
+    except Exception:
+        stats['db_size_mb'] = 0
+    
+    # Produtos mais populares (por número de aplicações)
+    produtos_populares = db.session.query(
+        Produto,
+        func.count(Aplicacao.id).label('total_aplicacoes'),
+        func.count(ImagemProduto.id).label('total_imagens'),
+        func.count(similares_association.c.similar_id).label('total_similares')
+    ).outerjoin(Aplicacao).outerjoin(ImagemProduto).outerjoin(
+        similares_association, Produto.id == similares_association.c.produto_id
+    ).group_by(Produto.id).order_by(
+        func.count(Aplicacao.id).desc()
+    ).limit(10).all()
+    
+    stats['produtos_populares'] = produtos_populares
+    
+    # Ranking de montadoras
+    montadoras_stats = db.session.query(
+        Aplicacao.montadora,
+        func.count(Aplicacao.id).label('total_aplicacoes'),
+        func.count(func.distinct(Aplicacao.produto_id)).label('produtos_unicos')
+    ).filter(
+        Aplicacao.montadora.isnot(None),
+        Aplicacao.montadora != ''
+    ).group_by(Aplicacao.montadora).order_by(
+        func.count(Aplicacao.id).desc()
+    ).limit(10).all()
+    
+    # Calcula percentuais
+    total_apps = sum(m[1] for m in montadoras_stats)
+    montadoras_ranking = []
+    for nome, total_apps_montadora, produtos_unicos in montadoras_stats:
+        percentual = (total_apps_montadora / total_apps * 100) if total_apps > 0 else 0
+        montadoras_ranking.append({
+            'montadora': nome,
+            'total_aplicacoes': total_apps_montadora,
+            'produtos_unicos': produtos_unicos,
+            'percentual': percentual
+        })
+    
+    stats['montadoras_ranking'] = montadoras_ranking
+    
+    return stats
+
+
+def prepare_chart_data():
+    """Prepara dados para os gráficos no dashboard"""
+    chart_data = {
+        'fornecedores': {'labels': [], 'data': []},
+        'montadoras': {'labels': [], 'data': []},
+        'grupos': {'labels': [], 'data': []},
+        'imagens': {'labels': [], 'data': []}
+    }
+    
+    # Top 10 fornecedores por número de produtos
+    fornecedores_data = db.session.query(
+        Produto.fornecedor,
+        func.count(Produto.id).label('total')
+    ).filter(
+        Produto.fornecedor.isnot(None),
+        Produto.fornecedor != ''
+    ).group_by(Produto.fornecedor).order_by(
+        func.count(Produto.id).desc()
+    ).limit(10).all()
+    
+    chart_data['fornecedores']['labels'] = [f[0] for f in fornecedores_data]
+    chart_data['fornecedores']['data'] = [f[1] for f in fornecedores_data]
+    
+    # Top 10 montadoras por número de aplicações
+    montadoras_data = db.session.query(
+        Aplicacao.montadora,
+        func.count(Aplicacao.id).label('total')
+    ).filter(
+        Aplicacao.montadora.isnot(None),
+        Aplicacao.montadora != ''
+    ).group_by(Aplicacao.montadora).order_by(
+        func.count(Aplicacao.id).desc()
+    ).limit(10).all()
+    
+    chart_data['montadoras']['labels'] = [m[0] for m in montadoras_data]
+    chart_data['montadoras']['data'] = [m[1] for m in montadoras_data]
+    
+    # Grupos de produtos
+    grupos_data = db.session.query(
+        Produto.grupo,
+        func.count(Produto.id).label('total')
+    ).filter(
+        Produto.grupo.isnot(None),
+        Produto.grupo != ''
+    ).group_by(Produto.grupo).order_by(
+        func.count(Produto.id).desc()
+    ).limit(10).all()
+    
+    chart_data['grupos']['labels'] = [g[0] for g in grupos_data]
+    chart_data['grupos']['data'] = [g[1] for g in grupos_data]
+    
+    # Distribuição de imagens por produto
+    imgs_distribution = db.session.query(
+        func.count(ImagemProduto.id).label('num_imagens'),
+        func.count(func.distinct(ImagemProduto.produto_id)).label('num_produtos')
+    ).join(Produto).group_by(ImagemProduto.produto_id).subquery()
+    
+    # Simplificado: produtos com/sem imagens
+    produtos_com_img = db.session.query(func.count(func.distinct(ImagemProduto.produto_id))).scalar() or 0
+    produtos_sem_img = Produto.query.count() - produtos_com_img
+    
+    chart_data['imagens']['labels'] = ['Com Imagens', 'Sem Imagens']
+    chart_data['imagens']['data'] = [produtos_com_img, produtos_sem_img]
+    
+    return chart_data
