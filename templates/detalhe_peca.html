@@ -387,50 +387,32 @@
                                     <button id="zoomOutBtn" class="button" style="padding:6px 8px; font-size:14px;">−</button>
                                     <button id="zoomResetBtn" class="button" style="padding:6px 8px; font-size:12px;">Reset</button>
                                 </div>
-                <!-- Setas de navegação -->
-                <div class="modal-nav-controls">
-                    <button id="prevImageBtn" class="modal-nav-btn modal-nav-prev" title="Imagem anterior (←)">
-                        <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
-                            <path fill-rule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z"/>
-                        </svg>
-                    </button>
-                    <button id="nextImageBtn" class="modal-nav-btn modal-nav-next" title="Próxima imagem (→)">
-                        <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
-                            <path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
-                        </svg>
-                    </button>
-                </div>
-                <div class="modal-image-counter">
-                    <span id="imageCounter">1 / 1</span>
-                </div>
+                                <!-- Setas de navegação -->
+                                <div class="modal-nav-controls">
+                                    <button id="prevImageBtn" class="modal-nav-btn modal-nav-prev" title="Imagem anterior (←)">
+                                        <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+                                            <path fill-rule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z"/>
+                                        </svg>
+                                    </button>
+                                    <button id="nextImageBtn" class="modal-nav-btn modal-nav-next" title="Próxima imagem (→)">
+                                        <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+                                            <path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                                <div class="modal-image-counter">
+                                    <span id="imageCounter">1 / 1</span>
+                                </div>
+                            </div>
+
+                            <style>
+                                .badge-similar {
+                                    padding: 2px 6px;
+                                    font-size: 10px;
+                                    border-radius: 12px;
                                     font-weight: bold;
                                     color: white;
-                                }
-                                .badge-manual { background-color: #6c757d; } /* Cinza */
-                                .badge-auto { background-color: #17a2b8; } /* Ciano */
-
-                                .application-row.active-filter {
-                                    background-color: #fff3cd !important; /* Amarelo claro para destacar */
-                                    font-weight: bold;
-                                }
-                                .no-results-row td {
-                                    text-align: center;
-                                    padding: 20px;
-                                    color: #666;
-                                    font-style: italic;
-                                }
-                                .filter-help-text {
-                                    display: flex;
-                                    align-items: center;
-                                    gap: 8px;
-                                    padding: 8px 15px;
-                                    background-color: #f8f9fa;
-                                    font-size: 0.9em;
-                                    color: #555;
-                                }
-                                .filter-help-text img { width: 16px; height: 16px; }
-                                .similar-applications {
-                                    font-size: 0.9em;
+                            </div>
                                     max-height: 80px;
                                     overflow-y: auto;
                                     padding-right: 5px;
@@ -562,6 +544,39 @@
                                 .image-modal.single-image .modal-image-counter {
                                     display: none;
                                 }
+
+                                /* Estilos adicionais */
+                                .badge-similar {
+                                    padding: 2px 6px;
+                                    font-size: 10px;
+                                    border-radius: 12px;
+                                    font-weight: bold;
+                                    color: white;
+                                }
+                                .badge-manual { background-color: #6c757d; }
+                                .badge-auto { background-color: #17a2b8; }
+
+                                .application-row.active-filter {
+                                    background-color: #fff3cd !important;
+                                    font-weight: bold;
+                                }
+                                .no-results-row td {
+                                    text-align: center;
+                                    padding: 20px;
+                                    color: #666;
+                                    font-style: italic;
+                                }
+                                .filter-help-text {
+                                    display: flex;
+                                    align-items: center;
+                                    gap: 8px;
+                                    padding: 8px 15px;
+                                    background-color: #f8f9fa;
+                                    font-size: 0.9em;
+                                    color: #555;
+                                }
+                                .filter-help-text img { width: 16px; height: 16px; }
+                                .similar-applications { font-size: 0.9em; }
                             </style>
 
                     {% endblock %}
@@ -722,6 +737,7 @@
                                  * Configura a funcionalidade do modal de imagem (zoom).
                                  */
                                 function setupImageModal() {
+                                    console.log('Iniciando configuração do modal de imagem...');
                                     const modal = document.getElementById("imageModal");
                                     const mainImg = document.getElementById("mainProductImage");
                                     const modalImg = document.getElementById("modalImage");
@@ -730,7 +746,12 @@
                                     const nextBtn = document.getElementById("nextImageBtn");
                                     const imageCounter = document.getElementById("imageCounter");
 
-                                    if (!modal || !mainImg || !modalImg || !closeSpan) return;
+                                    console.log('Elementos encontrados:', { modal, mainImg, modalImg, closeSpan });
+                                    
+                                    if (!modal || !mainImg || !modalImg || !closeSpan) {
+                                        console.error('Elementos essenciais do modal não encontrados!');
+                                        return;
+                                    }
 
                                     // Coletar todas as imagens do produto
                                     const thumbnailImages = document.querySelectorAll('.thumbnail-image');
@@ -803,6 +824,7 @@
                                     }
 
                                     const openModal = (imageSrc = null) => {
+                                        console.log('Abrindo modal com imagem:', imageSrc);
                                         modal.style.display = "flex";
                                         
                                         // Determinar qual imagem mostrar
@@ -826,6 +848,7 @@
                                             // Força centralização após carregamento
                                             this.style.display = 'block';
                                             this.style.margin = 'auto';
+                                            console.log('Imagem carregada no modal:', this.src);
                                         };
                                     };
 
@@ -834,7 +857,11 @@
                                     };
 
                                     // Event listeners
-                                    mainImg.addEventListener('click', () => openModal(mainImg.src));
+                                    console.log('Adicionando event listeners do modal...');
+                                    mainImg.addEventListener('click', () => {
+                                        console.log('Imagem principal clicada!');
+                                        openModal(mainImg.src);
+                                    });
                                     closeSpan.addEventListener('click', closeModal);
                                     modal.addEventListener('click', (e) => {
                                         if (e.target === modal) closeModal(); // Fecha se clicar fora da imagem
@@ -1144,10 +1171,14 @@
                                 }
 
                                 // Inicializa todos os módulos da página
-                                setupImageModal();
-                                setupInteractiveConversions();
-                                setupSimilarFiltering();
-                                setupApplicationSearch();
+                                document.addEventListener('DOMContentLoaded', function() {
+                                    console.log('DOM carregado, inicializando módulos...');
+                                    setupImageModal();
+                                    setupInteractiveConversions();
+                                    setupSimilarFiltering();
+                                    setupApplicationSearch();
+                                    console.log('Todos os módulos inicializados.');
+                                });
 
                                 // --- Remoção de similar via AJAX ---
                                 document.addEventListener('click', function(e) {

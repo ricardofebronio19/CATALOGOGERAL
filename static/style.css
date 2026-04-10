@@ -255,10 +255,11 @@ main.container { padding-bottom: 30px; }
     object-fit: cover;
     border-radius: 4px;
     transition: transform 0.3s ease;
+    cursor: pointer;
 }
 
 .product-detail-image:hover {
-    cursor: pointer;
+    transform: scale(1.05);
 }
 
 .thumbnail-container {
