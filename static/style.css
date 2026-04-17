@@ -360,8 +360,8 @@ body.modal-open .product-detail-image {
 }
 
 .info-section-lateral {
-    flex: 0 0 180px;
-    max-width: 220px;
+    flex: 0 0 198px;
+    max-width: 242px;
     min-width: 120px;
     border: 1px solid #ddd;
     border-radius: 5px;
