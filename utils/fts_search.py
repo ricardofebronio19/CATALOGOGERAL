@@ -324,10 +324,7 @@ class FullTextSearch:
         """Retorna estatísticas da tabela FTS5"""
         try:
             with self._get_connection() as conn:
-                cursor = conn.execute(f"SELECT COUNT(*) as total FROM {self.fts_table};")
-                total = cursor.fetchone()['total']
-                
-                # Verifica se a tabela existe
+                # Verifica se a tabela existe ANTES de consultar
                 cursor = conn.execute("""
                     SELECT name FROM sqlite_master 
                     WHERE type='table' AND name=?;
@@ -335,9 +332,14 @@ class FullTextSearch:
                 
                 exists = cursor.fetchone() is not None
                 
+                total = 0
+                if exists:
+                    cursor = conn.execute(f"SELECT COUNT(*) as total FROM {self.fts_table};")
+                    total = cursor.fetchone()['total']
+                
                 return {
                     'exists': exists,
-                    'total_records': total if exists else 0,
+                    'total_records': total,
                     'table_name': self.fts_table
                 }
                 

@@ -1,5 +1,13 @@
 # Changelog
 
+## v2.0.7 - 2026-04-15
+
+### 🛠️ Correções e Melhorias
+- Correções de bugs reportados pelos usuários
+- Melhorias de estabilidade e performance geral
+- Otimizações no carregamento de dados
+- Ajustes de interface e experiência do usuário
+
 ## v2.0.4 - 2026-04-09
 
 ### ✨ Navegação de Imagens

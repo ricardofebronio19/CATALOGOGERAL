@@ -7,7 +7,6 @@ from flask import Blueprint, render_template, request, jsonify, redirect, url_fo
 from flask_login import login_required, current_user
 from datetime import datetime
 import secrets
-import uuid
 
 from app import db
 from models_favoritos import (
@@ -416,10 +415,9 @@ def buscar_produto():
     produtos = Produto.query.filter(
         db.or_(
             Produto.codigo.ilike(f'%{query}%'),
-            Produto.descricao.ilike(f'%{query}%'),
+            Produto.nome.ilike(f'%{query}%'),
             Produto.grupo.ilike(f'%{query}%'),
-            Produto.codigo_normalizado.ilike(f'%{normalized_query}%'),
-            Produto.descricao_normalizada.ilike(f'%{normalized_query}%')
+            Produto.fornecedor.ilike(f'%{query}%')
         )
     ).limit(10).all()
     
@@ -427,7 +425,7 @@ def buscar_produto():
         'produtos': [{
             'id': p.id,
             'codigo': p.codigo,
-            'descricao': p.descricao,
+            'nome': p.nome,
             'grupo': p.grupo,
             'fornecedor': p.fornecedor
         } for p in produtos]

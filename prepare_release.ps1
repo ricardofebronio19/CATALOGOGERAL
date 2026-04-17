@@ -1,5 +1,5 @@
 #!/usr/bin/env powershell
-# Script para preparar release v2.0.4
+# Script para preparar release v2.0.7
 
 param(
     [switch]$BuildOnly,
@@ -7,7 +7,7 @@ param(
     [switch]$SkipBuild
 )
 
-Write-Host "=== Preparando Release v2.0.4 ===" -ForegroundColor Green
+Write-Host "=== Preparando Release v2.0.7 ===" -ForegroundColor Green
 
 # 1. Verificar se estamos no diretório correto
 if (!(Test-Path "build.bat")) {
@@ -49,7 +49,7 @@ if ($BuildOnly) {
 }
 
 # 4. Verificar se o instalador foi criado
-$installerPath = "Output\instalador_CatalogoDePecas_v2.0.4.exe"
+$installerPath = "Output\instalador_CatalogoDePecas_v2.0.7.exe"
 if (!(Test-Path $installerPath)) {
     Write-Error "Instalador não encontrado em: $installerPath"
     exit 1
@@ -58,26 +58,18 @@ if (!(Test-Path $installerPath)) {
 Write-Host "Instalador criado: $installerPath" -ForegroundColor Green
 
 # 5. Preparar informações do release
-$tagName = "v2.0.4"
-$releaseName = "CatalogoDePecas v2.0.4"
+$tagName = "v2.0.7"
+$releaseName = "CatalogoDePecas v2.0.7"
 $releaseNotes = @"
-# 🚀 Catálogo de Peças v2.0.4
+# 🚀 Catálogo de Peças v2.0.7
 
 ## Melhorias desta Versão
 
-### ✨ Navegação de Imagens
-- Navegação por setas no modal de imagens com controles de teclado
-- Contador visual "X de Y" para múltiplas imagens
-- Auto-detecção e sincronização entre thumbnail e modal
-- Reset de zoom automático ao trocar imagem
-
-### 🔍 Busca Aprimorada  
-- Melhorias na busca FTS com normalização avançada de caracteres
-- Otimização nas conversões SQL com CAST apropriados
-- Correções na interface de resultados com melhor responsividade
-- Ajustes na performance de queries complexas
-
-### 🎨 Melhorias UX
+### 🛠️ Correções e Melhorias
+- Correções de bugs reportados pelos usuários
+- Melhorias de estabilidade e performance geral
+- Otimizações no carregamento de dados
+- Ajustes de interface e experiência do usuário
 - Interface de busca responsiva com melhor layout
 - Feedback visual aprimorado nos resultados
 - Otimizações de CSS para diferentes tamanhos de tela
@@ -102,11 +94,11 @@ $releaseNotes = @"
 
 ## 📋 Arquivos de Release
 
-- **instalador_CatalogoDePecas_v2.0.4.exe** - Instalador completo (~35MB)
+- **instalador_CatalogoDePecas_v2.0.7.exe** - Instalador completo (~35MB)
 
 ---
 **Compatibilidade:** Windows 10/11
-**Data:** 09/04/2026
+**Data:** 15/04/2026
 "@
 
 # 6. Criar release no GitHub (se solicitado)

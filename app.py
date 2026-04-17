@@ -14,7 +14,7 @@ from markupsafe import Markup
 from packaging import version as pkg_version
 
 # Importa o sistema de logging estruturado
-from utils.logging_config import setup_logging, get_logger, PerformanceLogger
+from utils.logging_config import setup_logging, get_logger
 
 # Inicializa extensões sem associá-las a um app ainda
 db = SQLAlchemy()
@@ -489,8 +489,7 @@ def inicializar_banco(app, reset=False):
         from models import User  # Importa aqui para evitar importação circular
         from models_favoritos import (
             ListaFavoritos, ItemListaFavoritos, HistoricoVisualizacao, 
-            ProdutoRecomendado, CompartilhamentoLista, add_user_favorites_methods,
-            criar_lista_default
+            ProdutoRecomendado, CompartilhamentoLista, add_user_favorites_methods
         )
 
         db.create_all()

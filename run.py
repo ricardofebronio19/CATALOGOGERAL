@@ -15,12 +15,12 @@ except Exception:
 else:
     _WAITRESS_MISSING = False
 
-def _fallback_serve(app, host, port, max_request_body_size=None):
+def _fallback_serve(app, host, port, _max_request_body_size=None):
     # Fallback simples para desenvolvimento quando waitress não está instalado.
     # Usa Flask dev server em modo threaded não é recomendado para produção.
+    # Nota: _max_request_body_size é ignorado — parâmetro mantido para compatibilidade de assinatura com waitress.serve()
     print("Aviso: pacote 'waitress' não encontrado. Usando servidor de desenvolvimento Flask como fallback.")
     print("Para instalar o Waitress (recomendado para produção): pip install waitress")
-    # Flask's run aceita host/port; ignora max_request_body_size
     try:
         app.run(host=host, port=port, threaded=True)
     except Exception as e:
@@ -284,7 +284,7 @@ def iniciar_servidor(app_instance, host, port, abrir_navegador):
     # pode ser sobrescrito pela variável de ambiente `MAX_REQUEST_BODY_SIZE`.
     max_body = int(os.getenv("MAX_REQUEST_BODY_SIZE", 536870912))
     if _WAITRESS_MISSING or serve is None:
-        _fallback_serve(app_instance, host, port, max_request_body_size=max_body)
+        _fallback_serve(app_instance, host, port, _max_request_body_size=max_body)
     else:
         try:
             serve(app_instance, host=host, port=port, max_request_body_size=max_body)  # type: ignore

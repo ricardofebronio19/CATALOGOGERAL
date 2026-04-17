@@ -98,6 +98,15 @@ body:hover::after {
     opacity: 0.3;
 }
 
+/* Desabilita hover effects quando modal está ativo - usa classe aplicada via JS */
+body.modal-open::after {
+    display: none !important;
+}
+
+body.modal-open:hover::after {
+    display: none !important;
+}
+
 /* Transições suaves ao navegar */
 .fade-enter {
     opacity: 0;
@@ -132,14 +141,17 @@ select:focus {
     outline: none;
 }
 
-/* Botões mais modernos */
-button, input[type="submit"], input[type="button"], .btn {
+/* Botões mais modernos - exclui botões dentro do modal de imagem */
+button:not(.image-modal button):not(.zoom-btn):not(.modal-nav-btn):not(.modal-close-btn):not(.carousel-prev):not(.carousel-next),
+input[type="submit"], input[type="button"], .btn:not(.zoom-btn):not(.modal-nav-btn) {
     position: relative;
     overflow: hidden;
     cursor: pointer;
 }
 
-button::before, input[type="submit"]::before, input[type="button"]::before, .btn::before {
+button:not(.image-modal button):not(.zoom-btn):not(.modal-nav-btn):not(.modal-close-btn):not(.carousel-prev):not(.carousel-next)::before,
+input[type="submit"]::before, input[type="button"]::before,
+.btn:not(.zoom-btn):not(.modal-nav-btn)::before {
     content: '';
     position: absolute;
     top: 50%;
@@ -152,7 +164,8 @@ button::before, input[type="submit"]::before, input[type="button"]::before, .btn
     transition: width 0.6s, height 0.6s;
 }
 
-button:active::before, input[type="submit"]:active::before, .btn:active::before {
+button:not(.image-modal button):not(.zoom-btn):not(.modal-nav-btn):not(.modal-close-btn):not(.carousel-prev):not(.carousel-next):active::before,
+input[type="submit"]:active::before, .btn:not(.zoom-btn):not(.modal-nav-btn):active::before {
     width: 300px;
     height: 300px;
 }

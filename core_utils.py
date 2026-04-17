@@ -15,13 +15,6 @@ try:
 except ImportError:
     FTS_AVAILABLE = False
 
-# Importação do sistema de cache
-try:
-    from utils.cache_system import cache_static_data, cache_search_results, app_cache
-    CACHE_AVAILABLE = True
-except ImportError:
-    CACHE_AVAILABLE = False
-
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
 
 
@@ -100,28 +93,13 @@ def _apply_code_normalization(column):
 def _build_search_query(
     termo, codigo_produto, montadora, aplicacao_termo, grupo, medidas,
     largura=None, altura=None, comprimento=None, diametro_externo=None, 
-    diametro_interno=None, elo=None, estrias_internas=None, estrias_externas=None,
-    use_fts=True
+    diametro_interno=None, elo=None, estrias_internas=None, estrias_externas=None
 ):
     """
     Constrói a query de busca de produtos com base nos filtros fornecidos.
-    
-    Args:
-        termo: Termo geral de busca
-        use_fts: Se True, usa FTS5 quando disponível para termo geral
-        ... outros parâmetros de filtro
     """
     
-    # Se FTS5 disponível e termo geral informado, usa busca full-text
-    # TEMPORARIAMENTE DESABILITADO - problema com códigos que contém pontos
-    if False and FTS_AVAILABLE and use_fts and termo and not any([
-        codigo_produto, montadora, aplicacao_termo, grupo, medidas,
-        largura, altura, comprimento, diametro_externo, diametro_interno, elo,
-        estrias_internas, estrias_externas
-    ]):
-        return _build_fts_query(termo)
-    
-    # Busca tradicional para casos específicos ou quando FTS5 não disponível
+    # Busca tradicional
     query = Produto.query
 
     if termo:

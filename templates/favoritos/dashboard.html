@@ -139,7 +139,7 @@
                 <div class="recomendacao-item">
                     <div class="produto-info">
                         <strong>{{ rec.produto.codigo }}</strong>
-                        <span class="produto-desc">{{ rec.produto.descricao }}</span>
+                        <span class="produto-desc">{{ rec.produto.nome }}</span>
                         <div class="score">
                             Confiança: {{ "%.0f"|format(rec.score * 100) }}%
                         </div>
@@ -149,7 +149,7 @@
                                 onclick="abrirModalAdicionar({{ rec.produto.id }})">
                             <i class="fas fa-heart"></i> Favoritar
                         </button>
-                        <a href="{{ url_for('detalhe_peca', id=rec.produto.id) }}" 
+                        <a href="{{ url_for('main.detalhe_peca', id=rec.produto.id) }}" 
                            class="btn btn-sm btn-outline-secondary">
                             Ver Detalhes
                         </a>
@@ -176,7 +176,7 @@
                 <div class="historico-item">
                     <div class="produto-info">
                         <strong>{{ view.produto.codigo }}</strong>
-                        <span class="produto-desc">{{ view.produto.descricao }}</span>
+                        <span class="produto-desc">{{ view.produto.nome }}</span>
                         <small class="tempo">
                             {{ view.visualizado_em.strftime('%d/%m/%Y às %H:%M') }}
                         </small>
@@ -186,7 +186,7 @@
                                 onclick="abrirModalAdicionar({{ view.produto.id }})">
                             <i class="fas fa-heart"></i>
                         </button>
-                        <a href="{{ url_for('detalhe_peca', id=view.produto.id) }}" 
+                        <a href="{{ url_for('main.detalhe_peca', id=view.produto.id) }}" 
                            class="btn btn-sm btn-outline-secondary">
                             <i class="fas fa-eye"></i>
                         </a>
