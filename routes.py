@@ -27,7 +27,7 @@ from flask import (
     url_for,
 )
 from flask_login import current_user, login_required, login_user, logout_user
-from sqlalchemy import func, or_
+from sqlalchemy import func, or_, text
 from sqlalchemy.orm import selectinload
 from werkzeug.utils import secure_filename
 
@@ -43,6 +43,7 @@ from core_utils import (
     _processar_medidas_estruturadas,
     _parsear_medidas_para_dict,
 )
+from utils.cache_system import invalidate_search_cache
 from utils.image_utils import download_image_from_url
 from utils.cart_utils import (
     add_to_cart,
@@ -232,6 +233,7 @@ def buscar():
         diametro_externo=diametro_externo, diametro_interno=diametro_interno,
         elo=elo, estrias_internas=estrias_internas, estrias_externas=estrias_externas
     )
+    query = query.options(selectinload(Produto.aplicacoes), selectinload(Produto.imagens))
 
     # Define a coluna de ordenação
     order_column = Produto.codigo
@@ -654,6 +656,7 @@ def adicionar_peca():
                     db.session.add(Aplicacao(produto=novo_produto, **filtered))
 
             db.session.commit()
+            invalidate_search_cache()
             flash("Produto adicionado com sucesso!", "success")
             return redirect(url_for("main.detalhe_peca", id=novo_produto.id))
         except Exception as e:
@@ -805,6 +808,7 @@ def editar_peca(id):
                     nova_img.ordem = i
 
             db.session.commit()
+            invalidate_search_cache()
             flash("Produto atualizado com sucesso!", "success")
             return redirect(url_for("main.detalhe_peca", id=produto.id))
         except Exception as e:
@@ -870,6 +874,7 @@ def clonar_peca(id):
 
     db.session.add(novo_produto)
     db.session.commit()
+    invalidate_search_cache()
 
     flash(
         "Produto clonado com sucesso! Por favor, revise o código e os outros dados.",
@@ -910,6 +915,7 @@ def excluir_peca(id):
 
     db.session.delete(produto)
     db.session.commit()
+    invalidate_search_cache()
 
     flash("Produto excluído com sucesso.", "success")
     return redirect(url_for("main.index"))
@@ -939,6 +945,7 @@ def remover_similar(produto_id, similar_id):
             similar.similares.remove(produto)
 
         db.session.commit()
+        invalidate_search_cache()
 
         if request.method == "DELETE":
             return {"success": True, "message": "Similar removido com sucesso."}
@@ -968,6 +975,7 @@ def excluir_imagem(id):
     filename = imagem.filename
     db.session.delete(imagem)
     db.session.commit()
+    invalidate_search_cache()
 
     if ImagemProduto.query.filter_by(filename=filename).count() == 0:
         filepath = os.path.join(APP_DATA_PATH, "uploads", filename)
@@ -1104,20 +1112,56 @@ def excluir_aplicacao(id):
 
 @admin_bp.route("/gerenciar_usuarios")
 def gerenciar_usuarios():
-    usuarios = User.query.order_by(User.id).all()
+    _repair_null_user_ids()
+    usuarios = User.query.filter(User.id.isnot(None)).order_by(User.id).all()
     return render_template("gerenciar_usuarios.html", usuarios=usuarios)
+
+
+def _repair_null_user_ids():
+    """Corrige IDs nulos de usuários em bancos legados mal migrados.
+
+    Em algumas bases antigas, a coluna `user.id` ficou sem PK/auto incremento,
+    permitindo inserções com `id` nulo. Isso quebra templates/rotas que dependem
+    de `user.id`. Esta rotina atribui IDs sequenciais para registros nulos.
+    """
+    with db.engine.begin() as connection:
+        missing_rows = connection.execute(
+            text('SELECT rowid FROM "user" WHERE id IS NULL ORDER BY rowid')
+        ).fetchall()
+
+        if not missing_rows:
+            return
+
+        max_id = connection.execute(
+            text('SELECT COALESCE(MAX(id), 0) FROM "user"')
+        ).scalar() or 0
+
+        for row in missing_rows:
+            max_id += 1
+            connection.execute(
+                text('UPDATE "user" SET id = :new_id WHERE rowid = :row_id'),
+                {"new_id": max_id, "row_id": row[0]},
+            )
 
 
 @admin_bp.route("/adicionar_usuario", methods=["POST"])
 def adicionar_usuario():
-    username = request.form.get("username")
-    password = request.form.get("password")
+    _repair_null_user_ids()
+    username = (request.form.get("username") or "").strip()
+    password = request.form.get("password") or ""
+
+    if not username or not password:
+        flash("Nome de usuário e senha são obrigatórios.", "danger")
+        return redirect(url_for("admin.gerenciar_usuarios"))
 
     if User.query.filter_by(username=username).first():
         flash(f'O nome de usuário "{username}" já existe.', "danger")
     else:
+        next_user_id = (db.session.query(func.max(User.id)).scalar() or 0) + 1
         new_user = User(
-            username=username, is_admin=request.form.get("is_admin") == "on"
+            id=next_user_id,
+            username=username,
+            is_admin=request.form.get("is_admin") == "on",
         )
         new_user.set_password(password)
         db.session.add(new_user)

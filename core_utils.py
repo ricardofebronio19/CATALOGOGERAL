@@ -103,29 +103,33 @@ def _build_search_query(
     query = Produto.query
 
     if termo:
-        query = query.join(
-            Aplicacao, Produto.id == Aplicacao.produto_id, isouter=True
-        ).distinct()
-        for palavra in termo.strip().split():
-            # Usa busca com ilike que é case-insensitive e funciona bem com acentos no SQLite
-            palavra_normalizada = _normalize_for_search(palavra)
-            palavra_codigo_normalizada = _normalize_code_for_search(palavra)
-            query = query.filter(
-                db.or_(
-                    Produto.nome.ilike(f"%{palavra}%"),
-                    Produto.codigo.ilike(f"%{palavra}%"),
-                    Produto.fornecedor.ilike(f"%{palavra}%"),
-                    Aplicacao.veiculo.ilike(f"%{palavra}%"),
-                    Aplicacao.motor.ilike(f"%{palavra}%"),
-                    Aplicacao.conf_mtr.ilike(f"%{palavra}%"),
-                    # Busca normal em conversões
-                    Produto.conversoes.ilike(f"%{palavra}%"),
-                    # Busca normalizada geral em conversões
-                    _apply_db_normalization(Produto.conversoes).contains(palavra_normalizada),
-                    # Busca normalizada específica para códigos em conversões
-                    _apply_code_normalization(Produto.conversoes).contains(palavra_codigo_normalizada),
+        fts_query = _build_fts_query(termo)
+        if fts_query is not None:
+            query = fts_query
+        else:
+            query = query.join(
+                Aplicacao, Produto.id == Aplicacao.produto_id, isouter=True
+            ).distinct()
+            for palavra in termo.strip().split():
+                # Usa busca com ilike que é case-insensitive e funciona bem com acentos no SQLite
+                palavra_normalizada = _normalize_for_search(palavra)
+                palavra_codigo_normalizada = _normalize_code_for_search(palavra)
+                query = query.filter(
+                    db.or_(
+                        Produto.nome.ilike(f"%{palavra}%"),
+                        Produto.codigo.ilike(f"%{palavra}%"),
+                        Produto.fornecedor.ilike(f"%{palavra}%"),
+                        Aplicacao.veiculo.ilike(f"%{palavra}%"),
+                        Aplicacao.motor.ilike(f"%{palavra}%"),
+                        Aplicacao.conf_mtr.ilike(f"%{palavra}%"),
+                        # Busca normal em conversões
+                        Produto.conversoes.ilike(f"%{palavra}%"),
+                        # Busca normalizada geral em conversões
+                        _apply_db_normalization(Produto.conversoes).contains(palavra_normalizada),
+                        # Busca normalizada específica para códigos em conversões
+                        _apply_code_normalization(Produto.conversoes).contains(palavra_codigo_normalizada),
+                    )
                 )
-            )
 
     if codigo_produto:
         query = query.filter(Produto.codigo.ilike(f"%{codigo_produto}%"))
@@ -446,7 +450,7 @@ def _parsear_medidas_para_dict(medidas_str: str | None) -> dict:
     return resultado
 
 
-def _build_fts_query(termo: str):
+def _build_fts_query(termo: str, _allow_repair: bool = True):
     """
     Constrói uma query usando Full-Text Search (FTS5) para busca otimizada.
     
@@ -457,11 +461,40 @@ def _build_fts_query(termo: str):
         Query SQLAlchemy com resultados ordenados por relevância
     """
     if not FTS_AVAILABLE or not termo:
-        return Produto.query.filter(False)  # Query vazia se FTS não disponível
+        return None
     
     try:
-        # Busca usando FTS5
-        fts_results = get_fts_manager().search(termo, limit=1000)  # Busca ampla para filtros posteriores
+        from utils.cache_system import cache_key_for_search, search_cache
+        from app import get_logger
+
+        logger = get_logger('fts')
+
+        cache_key = cache_key_for_search({"fts_termo": termo.strip().lower()})
+        fts_results = search_cache.get(cache_key)
+        if fts_results is None:
+            # Busca usando FTS5
+            fts_results = get_fts_manager().search(termo, limit=1000)  # Busca ampla para filtros posteriores
+            search_cache.set(cache_key, fts_results, ttl=120)
+
+        valid_fts_results = [
+            result for result in (fts_results or []) if result.get('produto_id') is not None
+        ]
+
+        if fts_results and not valid_fts_results:
+            logger.warning(
+                "Cache/retorno FTS sem produto_id válido detectado; refazendo busca e caindo para SQL se necessário"
+            )
+            search_cache.delete(cache_key)
+            fts_results = get_fts_manager().search(termo, limit=1000)
+            search_cache.set(cache_key, fts_results, ttl=120)
+            valid_fts_results = [
+                result for result in (fts_results or []) if result.get('produto_id') is not None
+            ]
+
+            if not valid_fts_results:
+                return None
+        else:
+            fts_results = valid_fts_results if valid_fts_results else fts_results
         
         if not fts_results:
             return Produto.query.filter(False)  # Query vazia se nenhum resultado
@@ -485,15 +518,22 @@ def _build_fts_query(termo: str):
     except Exception as e:
         from app import get_logger
         logger = get_logger('fts')
-        logger.error(f"Erro na busca FTS5: {str(e)}")
-        # Fallback para busca tradicional
-        return Produto.query.filter(
-            db.or_(
-                Produto.nome.ilike(f"%{termo}%"),
-                Produto.codigo.ilike(f"%{termo}%"),
-                Produto.fornecedor.ilike(f"%{termo}%")
-            )
-        )
+        error_text = str(e)
+        logger.error(f"Erro na busca FTS5: {error_text}")
+
+        # Auto-reparo: se a tabela virtual ainda não existe, tenta inicializar FTS e refaz uma vez.
+        if _allow_repair and "no such table: produtos_fts" in error_text.lower():
+            try:
+                from flask import current_app
+                from utils.fts_search import init_fts
+
+                if init_fts(current_app):
+                    return _build_fts_query(termo, _allow_repair=False)
+            except Exception as repair_err:
+                logger.error(f"Falha no auto-reparo do FTS5: {repair_err}")
+
+        # Sinaliza para o chamador seguir com busca tradicional
+        return None
 
 
 def get_fts_suggestions(query: str, limit: int = 5):

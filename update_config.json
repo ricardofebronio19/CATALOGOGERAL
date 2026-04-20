@@ -1,6 +1,6 @@
 {
-  "latest_version": "2.0.7",
-  "download_url": "https://github.com/ricardofebronio19/CATALOGOGERAL/releases/download/v2.0.7/instalador_CatalogoDePecas_v2.0.7.exe",
-  "release_notes": "v2.0.7 — Correções e melhorias gerais\n\n🛠️ CORREÇÕES E MELHORIAS:\n- Correções de bugs reportados pelos usuários\n- Melhorias de estabilidade e performance geral\n- Otimizações no carregamento de dados\n- Ajustes de interface e experiência do usuário",
+  "latest_version": "2.0.8",
+  "download_url": "https://github.com/ricardofebronio19/CATALOGOGERAL/releases/download/v2.0.8/instalador_CatalogoDePecas_v2.0.8.exe",
+  "release_notes": "v2.0.8 — Dados do veículo no envio por WhatsApp\n\n✨ NOVIDADES:\n- Opção de informar Modelo, Ano e Motor do veículo ao enviar o carrinho via WhatsApp\n- Dados do veículo são exibidos como cabeçalho antes da lista de peças na mensagem",
   "size_mb": "37"
 }
