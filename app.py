@@ -14,7 +14,7 @@ from markupsafe import Markup
 from packaging import version as pkg_version
 
 # Importa o sistema de logging estruturado
-from utils.logging_config import setup_logging, get_logger, PerformanceLogger
+from utils.logging_config import setup_logging, get_logger
 
 # Inicializa extensões sem associá-las a um app ainda
 db = SQLAlchemy()
@@ -269,7 +269,8 @@ def create_app():
     try:
         from utils.cache_system import init_cache_system, warm_up_cache
         init_cache_system(app)
-        warm_up_cache()
+        with app.app_context():
+            warm_up_cache()
         app_logger.info("Sistema de cache em memória inicializado com sucesso")
     except Exception as e:
         app_logger.error(f"Erro ao inicializar sistema de cache: {str(e)}")
@@ -489,11 +490,29 @@ def inicializar_banco(app, reset=False):
         from models import User  # Importa aqui para evitar importação circular
         from models_favoritos import (
             ListaFavoritos, ItemListaFavoritos, HistoricoVisualizacao, 
-            ProdutoRecomendado, CompartilhamentoLista, add_user_favorites_methods,
-            criar_lista_default
+            ProdutoRecomendado, CompartilhamentoLista, add_user_favorites_methods
         )
 
         db.create_all()
+
+        # Índices adicionais para manter performance de busca/joins em bases grandes.
+        try:
+            with db.engine.begin() as connection:
+                connection.execute(db.text("CREATE INDEX IF NOT EXISTS idx_aplicacao_produto_id ON aplicacao(produto_id);"))
+                connection.execute(db.text("CREATE INDEX IF NOT EXISTS idx_aplicacao_montadora ON aplicacao(montadora);"))
+                connection.execute(db.text("CREATE INDEX IF NOT EXISTS idx_aplicacao_veiculo ON aplicacao(veiculo);"))
+                connection.execute(db.text("CREATE INDEX IF NOT EXISTS idx_aplicacao_motor ON aplicacao(motor);"))
+                connection.execute(db.text("CREATE INDEX IF NOT EXISTS idx_imagem_produto_produto_id ON imagem_produto(produto_id);"))
+                connection.execute(db.text("CREATE INDEX IF NOT EXISTS idx_produto_nome ON produto(nome);"))
+        except Exception as e:
+            logging.warning(f"Falha ao criar índices de performance: {e}")
+
+        # Garante a estrutura do FTS5 após as tabelas principais existirem.
+        try:
+            from core_utils import init_fts_system
+            init_fts_system()
+        except Exception as e:
+            logging.warning(f"Falha ao inicializar FTS5 na etapa de bootstrap do banco: {e}")
         
         # Adiciona métodos relacionados a favoritos ao modelo User existente
         add_user_favorites_methods()

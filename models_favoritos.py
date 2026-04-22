@@ -124,7 +124,7 @@ class CompartilhamentoLista(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     lista_id = db.Column(db.Integer, db.ForeignKey('lista_favoritos.id'), nullable=False)
     compartilhado_por = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    compartilhado_com = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False) 
+    compartilhado_com = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)  # None = link público
     permissao = db.Column(db.String(20), default='read')  # read, write
     token_publico = db.Column(db.String(32), nullable=True, unique=True)  # Para links públicos
     criado_em = db.Column(db.DateTime, default=datetime.utcnow)

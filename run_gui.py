@@ -6,8 +6,15 @@ import os
 import sys
 import threading
 import time
-import webview
-from webview.menu import Menu, MenuAction, MenuSeparator
+
+try:
+    import webview  # type: ignore[reportMissingImports]
+    from webview.menu import Menu, MenuAction, MenuSeparator  # type: ignore[reportMissingImports]
+    WEBVIEW_IMPORT_ERROR = None
+except ModuleNotFoundError as exc:
+    webview = None
+    Menu = MenuAction = MenuSeparator = None
+    WEBVIEW_IMPORT_ERROR = exc
 
 from waitress import serve
 
@@ -31,6 +38,17 @@ except Exception:
     pass
 
 app = create_app()
+
+
+def garantir_dependencias_gui():
+    """Interrompe a inicializacao da GUI quando o pywebview nao esta instalado."""
+    if WEBVIEW_IMPORT_ERROR is None:
+        return
+
+    print("[GUI] Dependencia ausente: pywebview")
+    print("[GUI] Instale no ambiente virtual do projeto com:")
+    print("[GUI] .\\.venv\\Scripts\\python.exe -m pip install pywebview")
+    raise SystemExit(1)
 
 
 class API:
@@ -119,6 +137,7 @@ class API:
 
 def criar_menu():
     """Cria o menu nativo da aplicação."""
+    garantir_dependencias_gui()
     menu_items = [
         Menu(
             'Arquivo',
@@ -275,6 +294,7 @@ def criar_splash_screen():
 
 def criar_janela_principal(host="127.0.0.1", port=8000):
     """Cria a janela principal do aplicativo."""
+    garantir_dependencias_gui()
     url = f"http://{host}:{port}"
     
     # Configurações da janela principal
@@ -300,6 +320,7 @@ def criar_janela_principal(host="127.0.0.1", port=8000):
 
 def main():
     """Ponto de entrada principal para a versão GUI."""
+    garantir_dependencias_gui()
     print("=" * 60)
     print(f"Catálogo de Peças v{VERSION} - Versão Desktop")
     print("=" * 60)

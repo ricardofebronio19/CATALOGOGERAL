@@ -53,7 +53,12 @@
                                 <!-- Galeria de Imagens -->
                                 <div class="image-gallery">
                                     <div class="main-image-container">
-                                        <img id="mainProductImage" src="{% if produto.imagens %}{{ url_for('uploaded_file', filename=produto.imagens[0].filename) }}{% else %}https://via.placeholder.com/250x250/eee/aaa?text=Sem+Imagem{% endif %}" alt="Imagem do Produto" class="product-detail-image" title="Clique para ampliar">
+                                        <img id="mainProductImage" 
+                                             src="{% if produto.imagens %}{{ url_for('uploaded_file', filename=produto.imagens[0].filename) }}{% else %}https://via.placeholder.com/250x250/eee/aaa?text=Sem+Imagem{% endif %}" 
+                                             alt="Imagem do Produto" 
+                                             class="product-detail-image" 
+                                             title="Clique para ampliar"
+                                             style="cursor: pointer; user-select: none;">
                                     </div>
                                     {% if produto.imagens|length > 1 %}
                                     <div class="thumbnail-container">
@@ -74,6 +79,26 @@
                                     }
                                     .info-section-lateral.conversoes { background-color: var(--cor-coluna-conversoes); padding: 10px; border-radius: 6px; }
                                     .info-section-lateral.medidas { background-color: var(--cor-coluna-medidas); padding: 10px; border-radius: 6px; }
+                                    
+                                    /* Estilos para aplicações priorizadas da busca */
+                                    .application-row.prioritized-vehicle {
+                                        background-color: #d4febf !important;
+                                        border-left: 4px solid #28a745 !important;
+                                        font-weight: 600 !important;
+                                    }
+                                    
+                                    .application-row.prioritized-brand {
+                                        background-color: #e3f2fd !important;
+                                        border-left: 4px solid #2196f3 !important;
+                                        font-weight: 500 !important;
+                                    }
+                                    
+                                    .application-row.prioritized-vehicle:hover,
+                                    .application-row.prioritized-brand:hover {
+                                        transform: scale(1.02);
+                                        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+                                        transition: all 0.2s ease;
+                                    }
                                 </style>
                                 <!-- Seção de Conversões (Esquerda) -->
                                 {% if produto.conversoes %}
@@ -109,6 +134,22 @@
                                         <span style="font-size: 1.2em; margin-right: 5px;">ℹ️</span>
                                         <span>Clique em uma aplicação para filtrar os produtos similares.</span>
                                     </div>
+                                    
+                                    {# Mensagem de contexto quando há priorização ativa #}
+                                    {% if veiculo_context or montadora_context %}
+                                        <div style="background-color: #e8f5e8; border: 1px solid #b8dab8; color: #2d5116; padding: 8px 12px; border-radius: 6px; margin: 10px 0; font-size: 0.9em;">
+                                            <strong>🎯 Resultados priorizados:</strong>
+                                            {% if veiculo_context and montadora_context %}
+                                                Exibindo primeiro as aplicações para <strong>{{ montadora_context }} {{ veiculo_context }}</strong>
+                                            {% elif veiculo_context %}
+                                                Exibindo primeiro as aplicações para o veículo <strong>{{ veiculo_context }}</strong>
+                                            {% elif montadora_context %}
+                                                Exibindo primeiro as aplicações da montadora <strong>{{ montadora_context }}</strong>
+                                            {% endif %}
+                                            (baseado na sua busca anterior).
+                                        </div>
+                                    {% endif %}
+                                    
                                     <div id="applicationSearchCount" style="margin-bottom: 10px; font-size: 11px; color: #6c757d; font-style: italic; text-align: right;">
                                         <!-- Contador será preenchido via JavaScript -->
                                     </div>
@@ -132,13 +173,34 @@
                                                     </tr>
                                                     <!-- Linhas das aplicações para este fabricante -->
                                                     {% for aplicacao in lista_aplicacoes %}
-                                                        <tr class="application-row" 
+                                                        {% set is_prioritized = false %}
+                                                        {% set destaque_class = "" %}
+                                                        {% set titulo_extra = "" %}
+                                                        
+                                                        {# Verifica se esta aplicação corresponde ao contexto da busca (contém, não exato) #}
+                                                        {% set v_app = (aplicacao.veiculo or '')|lower %}
+                                                        {% set v_ctx = veiculo_context|lower %}
+                                                        {% set m_app = (aplicacao.montadora or '')|lower %}
+                                                        {% set m_ctx = montadora_context|lower %}
+                                                        {% if veiculo_context and (v_ctx in v_app or v_app in v_ctx) %}
+                                                            {% set is_prioritized = true %}
+                                                            {% set destaque_class = " prioritized-vehicle" %}
+                                                            {% set titulo_extra = " (Veículo pesquisado)" %}
+                                                        {% elif montadora_context and (m_ctx in m_app or m_app in m_ctx) %}
+                                                            {% set is_prioritized = true %}
+                                                            {% set destaque_class = " prioritized-brand" %}
+                                                            {% set titulo_extra = " (Montadora pesquisada)" %}
+                                                        {% endif %}
+                                                        
+                                                        <tr class="application-row{{ destaque_class }}" 
                                                             data-veiculo="{{ aplicacao.veiculo or '' }}" 
                                                             data-ano="{{ aplicacao.ano or '' }}" 
                                                             data-motor="{{ aplicacao.motor or '' }}"
-                                                            title="Clique para filtrar similares por esta aplicação"
+                                                            title="Clique para filtrar similares por esta aplicação{{ titulo_extra }}"
                                                             style="cursor: pointer;">
-                                                            <td>{{ (aplicacao.veiculo or '') | highlight(termo) }}</td>
+                                                            <td>
+                                                                {% if is_prioritized %}🎯 {% endif %}{{ (aplicacao.veiculo or '') | highlight(termo) }}
+                                                            </td>
                                                             <td>{{ (aplicacao.ano or '') | highlight(termo) }}</td>
                                                             <td>{{ (aplicacao.motor or '') | highlight(termo) }}</td>
                                                             <td>{{ (aplicacao.conf_mtr or '') | highlight(termo) }}</td>
@@ -378,44 +440,59 @@
 
                             <!-- Seção de Produtos Similares (MANUAL) -->
 
-                            <!-- O Modal/Popup da Imagem -->
+                            <!-- Modal de Imagem Refatorado -->
                             <div id="imageModal" class="image-modal">
-                                <span class="modal-close">&times;</span>
-                                <img id="modalImage" class="modal-content" alt="Imagem ampliada">
-                                <div class="modal-zoom-controls" style="position:absolute; right:18px; top:18px; display:flex; flex-direction:column; gap:6px; z-index:2200">
-                                    <button id="zoomInBtn" class="button" style="padding:6px 8px; font-size:14px;">+</button>
-                                    <button id="zoomOutBtn" class="button" style="padding:6px 8px; font-size:14px;">−</button>
-                                    <button id="zoomResetBtn" class="button" style="padding:6px 8px; font-size:12px;">Reset</button>
+                                <!-- Botão fechar -->
+                                <button id="closeModalBtn" class="button modal-close-btn" type="button" title="Fechar (Esc)">&times;</button>
+                                
+                                <!-- Container da imagem -->
+                                <div class="modal-image-container">
+                                    <img id="modalImage" class="modal-image" alt="Imagem ampliada">
                                 </div>
-                                <!-- Setas de navegação -->
+                                
+                                <!-- Controles de zoom -->
+                                <div class="modal-zoom-controls">
+                                    <button id="zoomInBtn" class="button zoom-btn" type="button" title="Zoom In (+)">+</button>
+                                    <button id="zoomOutBtn" class="button zoom-btn" type="button" title="Zoom Out (−)">−</button>
+                                    <button id="zoomResetBtn" class="button zoom-btn" type="button" title="Reset Zoom (0)">⌂</button>
+                                </div>
+                                
+                                <!-- Navegação entre imagens -->
                                 <div class="modal-nav-controls">
-                                    <button id="prevImageBtn" class="modal-nav-btn modal-nav-prev" title="Imagem anterior (←)">
-                                        <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
-                                            <path fill-rule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z"/>
+                                    <button id="prevImageBtn" class="button modal-nav-btn nav-prev" type="button" title="Imagem anterior (←)">
+                                        <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                                            <path d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z"/>
                                         </svg>
                                     </button>
-                                    <button id="nextImageBtn" class="modal-nav-btn modal-nav-next" title="Próxima imagem (→)">
-                                        <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
-                                            <path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
+                                    <button id="nextImageBtn" class="button modal-nav-btn nav-next" type="button" title="Próxima imagem (→)">
+                                        <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                                            <path d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
                                         </svg>
                                     </button>
                                 </div>
-                                <div class="modal-image-counter">
+                                
+                                <!-- Contador de imagens -->
+                                <div class="modal-counter">
                                     <span id="imageCounter">1 / 1</span>
                                 </div>
                             </div>
 
                             <style>
+                                /* Badges de similares */
                                 .badge-similar {
                                     padding: 2px 6px;
                                     font-size: 10px;
                                     border-radius: 12px;
                                     font-weight: bold;
                                     color: white;
-                            </div>
+                                }
+                                .badge-manual { background-color: #6c757d; }
+                                .badge-auto { background-color: #17a2b8; }
+                                .similar-applications {
                                     max-height: 80px;
                                     overflow-y: auto;
                                     padding-right: 5px;
+                                    font-size: 0.9em;
                                 }
                                 .similar-applications div {
                                     display: flex;
@@ -427,135 +504,6 @@
                                     color: #555;
                                     font-style: italic;
                                 }
-
-                            </style>
-
-                            <style>
-                                /* Estilos do modal de imagem (centralizado fullscreen) */
-                                .image-modal {
-                                    position: fixed;
-                                    top: 0;
-                                    left: 0;
-                                    width: 100%;
-                                    height: 100%;
-                                    display: none;
-                                    justify-content: center;
-                                    align-items: center;
-                                    background: rgba(0,0,0,0.75);
-                                    z-index: 2000;
-                                    overflow: auto;
-                                }
-                                .image-modal .modal-close {
-                                    position: fixed;
-                                    top: 18px;
-                                    right: 18px;
-                                    font-size: 28px;
-                                    color: white;
-                                    cursor: pointer;
-                                    background: rgba(0,0,0,0.6);
-                                    padding: 8px 12px;
-                                    border-radius: 6px;
-                                    z-index: 2201;
-                                    user-select: none;
-                                    line-height: 1;
-                                }
-                                .image-modal .modal-close:hover {
-                                    background: rgba(0,0,0,0.8);
-                                }
-                                .image-modal .modal-content {
-                                    display: block;
-                                    margin: auto;
-                                    max-width: 90vw;
-                                    max-height: 90vh;
-                                    min-width: 300px;
-                                    min-height: 200px;
-                                    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-                                    border-radius: 4px;
-                                    transition: transform 160ms cubic-bezier(.2,.8,.2,1);
-                                    cursor: zoom-in;
-                                    will-change: transform;
-                                    backface-visibility: hidden;
-                                    -webkit-backface-visibility: hidden;
-                                    transform: translateZ(0);
-                                    -webkit-transform: translate3d(0,0,0);
-                                    position: relative;
-                                    object-fit: contain;
-                                }
-                                
-                                /* Estilos das setas de navegação */
-                                .modal-nav-controls {
-                                    position: fixed;
-                                    top: 50%;
-                                    left: 0;
-                                    right: 0;
-                                    display: flex;
-                                    justify-content: space-between;
-                                    padding: 0 20px;
-                                    pointer-events: none;
-                                    z-index: 2201;
-                                    transform: translateY(-50%);
-                                }
-                                .modal-nav-btn {
-                                    pointer-events: all;
-                                    background: rgba(0,0,0,0.6);
-                                    border: none;
-                                    color: white;
-                                    padding: 12px;
-                                    border-radius: 50%;
-                                    cursor: pointer;
-                                    transition: all 0.2s ease;
-                                    display: flex;
-                                    align-items: center;
-                                    justify-content: center;
-                                    width: 50px;
-                                    height: 50px;
-                                    user-select: none;
-                                }
-                                .modal-nav-btn:hover {
-                                    background: rgba(0,0,0,0.8);
-                                    transform: scale(1.1);
-                                }
-                                .modal-nav-btn:disabled {
-                                    opacity: 0.3;
-                                    cursor: not-allowed;
-                                    transform: none;
-                                }
-                                .modal-nav-btn svg {
-                                    flex-shrink: 0;
-                                }
-                                
-                                /* Contador de imagens */
-                                .modal-image-counter {
-                                    position: fixed;
-                                    bottom: 20px;
-                                    left: 50%;
-                                    transform: translateX(-50%);
-                                    background: rgba(0,0,0,0.6);
-                                    color: white;
-                                    padding: 8px 16px;
-                                    border-radius: 20px;
-                                    font-size: 14px;
-                                    z-index: 2201;
-                                    user-select: none;
-                                }
-                                
-                                /* Oculta navegação quando há apenas uma imagem */
-                                .image-modal.single-image .modal-nav-controls,
-                                .image-modal.single-image .modal-image-counter {
-                                    display: none;
-                                }
-
-                                /* Estilos adicionais */
-                                .badge-similar {
-                                    padding: 2px 6px;
-                                    font-size: 10px;
-                                    border-radius: 12px;
-                                    font-weight: bold;
-                                    color: white;
-                                }
-                                .badge-manual { background-color: #6c757d; }
-                                .badge-auto { background-color: #17a2b8; }
-
                                 .application-row.active-filter {
                                     background-color: #fff3cd !important;
                                     font-weight: bold;
@@ -576,13 +524,17 @@
                                     color: #555;
                                 }
                                 .filter-help-text img { width: 16px; height: 16px; }
-                                .similar-applications { font-size: 0.9em; }
                             </style>
 
                     {% endblock %}
 
                     {% block scripts %}
                         {{ super() }}
+                        <script>
+                            // Variáveis de contexto da pesquisa (passadas pelo servidor)
+                            var VEICULO_CONTEXT = {{ (veiculo_context or '')|tojson }};
+                            var MONTADORA_CONTEXT = {{ (montadora_context or '')|tojson }};
+                        </script>
                         {% raw %}
                         <script>
                             // Função para trocar a imagem principal na galeria
@@ -648,19 +600,25 @@
                                 // Inicializar contador
                                 updateCounter(applicationRows.length, applicationRows.length);
 
-                                // Função de filtro
+                                // Função de filtro aprimorada
                                 function filterApplications() {
                                     const searchTerm = searchInput.value.toLowerCase().trim();
+                                    console.log('🔍 Filtrando aplicações com termo:', searchTerm);
                 
                                     if (!searchTerm) {
                                         // Mostrar todas as linhas
-                                        allRows.forEach(row => row.style.display = '');
+                                        allRows.forEach(row => {
+                                            row.style.display = '';
+                                            row.style.backgroundColor = '';
+                                        });
                                         updateCounter(applicationRows.length, applicationRows.length);
+                                        console.log('✅ Filtro limpo - todas aplicações visíveis');
                                         return;
                                     }
 
                                     let visibleCount = 0;
                                     const visibleFabricantes = new Set();
+                                    const searchTermNormalized = searchTerm.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
                                     // Filtrar aplicações
                                     applicationRows.forEach(row => {
@@ -669,32 +627,42 @@
                                         const motor = (row.getAttribute('data-motor') || '').toLowerCase();
                                         const cells = Array.from(row.cells);
                                         const configuracao = cells.length > 3 ? (cells[3].textContent || '').toLowerCase() : '';
+                                        
+                                        // Normaliza todos os campos para busca
+                                        const veiculoNorm = veiculo.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                                        const motorNorm = motor.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                                        const confNorm = configuracao.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
-                                        const matches = veiculo.includes(searchTerm) || 
+                                        const matches = veiculoNorm.includes(searchTermNormalized) || 
+                                                       veiculo.includes(searchTerm) ||
                                                        ano.includes(searchTerm) || 
-                                                       motor.includes(searchTerm) || 
+                                                       motorNorm.includes(searchTermNormalized) ||
+                                                       motor.includes(searchTerm) ||
+                                                       confNorm.includes(searchTermNormalized) ||
                                                        configuracao.includes(searchTerm);
 
                                         if (matches) {
                                             row.style.display = '';
+                                            row.style.backgroundColor = '#fff3cd'; // Destaque visual
                                             visibleCount++;
-                                            // Identificar fabricante desta aplicação
-                                            const fabricanteRow = row.previousElementSibling;
-                                            if (fabricanteRow && fabricanteRow.classList.contains('fabricante-header')) {
-                                                visibleFabricantes.add(fabricanteRow);
-                                            } else {
-                                                // Procurar para trás até encontrar o cabeçalho do fabricante
-                                                let current = row.previousElementSibling;
-                                                while (current) {
-                                                    if (current.classList.contains('fabricante-header')) {
-                                                        visibleFabricantes.add(current);
-                                                        break;
-                                                    }
-                                                    current = current.previousElementSibling;
+                                            console.log('✅ Aplicação encontrada:', {
+                                                veiculo: row.getAttribute('data-veiculo'),
+                                                ano: row.getAttribute('data-ano'),
+                                                motor: row.getAttribute('data-motor')
+                                            });
+                                            
+                                            // Identificar fabricante desta aplicação com busca mais robusta
+                                            let current = row;
+                                            while (current && current.previousElementSibling) {
+                                                current = current.previousElementSibling;
+                                                if (current.classList.contains('fabricante-header')) {
+                                                    visibleFabricantes.add(current);
+                                                    break;
                                                 }
                                             }
                                         } else {
                                             row.style.display = 'none';
+                                            row.style.backgroundColor = '';
                                         }
                                     });
 
@@ -708,15 +676,30 @@
                                     });
 
                                     updateCounter(visibleCount, applicationRows.length);
+                                    console.log(`📊 Filtro aplicado: ${visibleCount} de ${applicationRows.length} aplicações visíveis`);
                                 }
 
-                                // Event listener para busca em tempo real
-                                searchInput.addEventListener('input', filterApplications);
+                                // Event listener para busca em tempo real com debounce
+                                let searchTimeout;
+                                searchInput.addEventListener('input', function() {
+                                    clearTimeout(searchTimeout);
+                                    searchTimeout = setTimeout(() => {
+                                        filterApplications();
+                                    }, 150); // Debounce de 150ms para melhor performance
+                                });
             
                                 // Event listener para Enter
                                 searchInput.addEventListener('keypress', function(e) {
                                     if (e.key === 'Enter') {
+                                        clearTimeout(searchTimeout);
                                         filterApplications();
+                                    }
+                                });
+                                
+                                // Event listener para teclas Escape (limpar filtro)
+                                searchInput.addEventListener('keydown', function(e) {
+                                    if (e.key === 'Escape') {
+                                        clearSearch();
                                     }
                                 });
             
@@ -733,254 +716,247 @@
                             // --- Lógica Principal da Página ---
                             document.addEventListener('DOMContentLoaded', function() {
 
-                                /**
-                                 * Configura a funcionalidade do modal de imagem (zoom).
-                                 */
+                                // ============== SISTEMA DE MODAL DE IMAGEM ==============
                                 function setupImageModal() {
-                                    console.log('Iniciando configuração do modal de imagem...');
-                                    const modal = document.getElementById("imageModal");
-                                    const mainImg = document.getElementById("mainProductImage");
-                                    const modalImg = document.getElementById("modalImage");
-                                    const closeSpan = document.getElementsByClassName("modal-close")[0];
-                                    const prevBtn = document.getElementById("prevImageBtn");
-                                    const nextBtn = document.getElementById("nextImageBtn");
-                                    const imageCounter = document.getElementById("imageCounter");
-
-                                    console.log('Elementos encontrados:', { modal, mainImg, modalImg, closeSpan });
-                                    
-                                    if (!modal || !mainImg || !modalImg || !closeSpan) {
-                                        console.error('Elementos essenciais do modal não encontrados!');
-                                        return;
-                                    }
-
-                                    // Coletar todas as imagens do produto
-                                    const thumbnailImages = document.querySelectorAll('.thumbnail-image');
-                                    const allImages = [];
-                                    
-                                    // Adicionar primeira imagem principal
-                                    allImages.push(mainImg.src);
-                                    
-                                    // Adicionar imagens dos thumbnails
-                                    thumbnailImages.forEach(thumb => {
-                                        if (!allImages.includes(thumb.src)) {
-                                            allImages.push(thumb.src);
-                                        }
-                                    });
-
-                                    let currentImageIndex = 0;
-
-                                    // Atualizar contador e botões de navegação
-                                    function updateNavigationControls() {
-                                        if (imageCounter) {
-                                            imageCounter.textContent = `${currentImageIndex + 1} / ${allImages.length}`;
-                                        }
-                                        
-                                        // Aplicar classe single-image se necessário
-                                        if (allImages.length <= 1) {
-                                            modal.classList.add('single-image');
-                                        } else {
-                                            modal.classList.remove('single-image');
-                                        }
-
-                                        if (prevBtn) {
-                                            prevBtn.disabled = currentImageIndex === 0;
-                                        }
-                                        if (nextBtn) {
-                                            nextBtn.disabled = currentImageIndex === allImages.length - 1;
-                                        }
-                                    }
-
-                                    // Navegar para uma imagem específica
-                                    function goToImage(index) {
-                                        if (index >= 0 && index < allImages.length) {
-                                            currentImageIndex = index;
-                                            modalImg.src = allImages[currentImageIndex];
-                                            updateNavigationControls();
-                                            // Reset zoom e centralização
-                                            currentScale = 1.0;
-                                            modalImg.style.transform = 'scale(1)';
-                                            modalImg.style.transformOrigin = '50% 50%';
-                                            
-                                            // Garantir carregamento correto
-                                            modalImg.onload = function() {
-                                                this.style.display = 'block';
-                                                this.style.margin = 'auto';
-                                            };
-                                        }
-                                    }
-
-                                    // Navegar para próxima imagem
-                                    function nextImage() {
-                                        if (currentImageIndex < allImages.length - 1) {
-                                            goToImage(currentImageIndex + 1);
-                                        }
-                                    }
-
-                                    // Navegar para imagem anterior
-                                    function prevImage() {
-                                        if (currentImageIndex > 0) {
-                                            goToImage(currentImageIndex - 1);
-                                        }
-                                    }
-
-                                    const openModal = (imageSrc = null) => {
-                                        console.log('Abrindo modal com imagem:', imageSrc);
-                                        modal.style.display = "flex";
-                                        
-                                        // Determinar qual imagem mostrar
-                                        if (imageSrc) {
-                                            const imageIndex = allImages.indexOf(imageSrc);
-                                            if (imageIndex >= 0) {
-                                                currentImageIndex = imageIndex;
-                                            }
-                                        }
-                                        
-                                        modalImg.src = allImages[currentImageIndex];
-                                        updateNavigationControls();
-                                        
-                                        // Reset zoom e centralização
-                                        currentScale = 1.0;
-                                        modalImg.style.transform = 'scale(1)';
-                                        modalImg.style.transformOrigin = '50% 50%';
-                                        
-                                        // Garantir que a imagem será carregada corretamente
-                                        modalImg.onload = function() {
-                                            // Força centralização após carregamento
-                                            this.style.display = 'block';
-                                            this.style.margin = 'auto';
-                                            console.log('Imagem carregada no modal:', this.src);
-                                        };
-                                    };
-
-                                    const closeModal = () => {
-                                        modal.style.display = "none";
-                                    };
-
-                                    // Event listeners
-                                    console.log('Adicionando event listeners do modal...');
-                                    mainImg.addEventListener('click', () => {
-                                        console.log('Imagem principal clicada!');
-                                        openModal(mainImg.src);
-                                    });
-                                    closeSpan.addEventListener('click', closeModal);
-                                    modal.addEventListener('click', (e) => {
-                                        if (e.target === modal) closeModal(); // Fecha se clicar fora da imagem
-                                    });
-
-                                    // Botões de navegação
-                                    if (prevBtn) {
-                                        prevBtn.addEventListener('click', prevImage);
-                                    }
-                                    if (nextBtn) {
-                                        nextBtn.addEventListener('click', nextImage);
-                                    }
-
-                                    // Atualizar thumbnails para abrir modal na imagem correta
-                                    thumbnailImages.forEach(thumb => {
-                                        thumb.addEventListener('click', () => {
-                                            openModal(thumb.src);
-                                        });
-                                    });
-
-                                    // Zoom control: use mouse wheel + buttons. Remove hover-based zoom.
-                                    modalImg.style.transition = 'transform 160ms cubic-bezier(.2,.8,.2,1)';
-                                    let currentScale = 1.0;
-                                    const minScale = 1.0;
-                                    const maxScale = 6.0;
-                                    const step = 0.25;
-
-                                    function applyScale(originXPercent, originYPercent) {
-                                        modalImg.style.transformOrigin = (originXPercent != null && originYPercent != null) ? `${originXPercent}% ${originYPercent}%` : '50% 50%';
-                                        modalImg.style.transform = `translate3d(0,0,0) scale(${currentScale})`;
-                                    }
-
-                                    // Wheel to zoom (Ctrl + wheel is common; we respect plain wheel here per request)
-                                    modalImg.addEventListener('wheel', function(e){
-                                        if (modal.style.display !== 'flex') return;
-                                        e.preventDefault();
-                                        const rect = modalImg.getBoundingClientRect();
-                                        const x = Math.round(((e.clientX - rect.left) / rect.width) * 100);
-                                        const y = Math.round(((e.clientY - rect.top) / rect.height) * 100);
-                                        if (e.deltaY < 0) {
-                                            currentScale = Math.min(maxScale, +(currentScale + step).toFixed(2));
-                                        } else {
-                                            currentScale = Math.max(minScale, +(currentScale - step).toFixed(2));
-                                        }
-                                        applyScale(x, y);
-                                    }, { passive: false });
-
-                                    // Zoom buttons
+                                    const modal = document.getElementById('imageModal');
+                                    const modalImage = document.getElementById('modalImage');
+                                    const closeBtn = document.getElementById('closeModalBtn');
+                                    const prevBtn = document.getElementById('prevImageBtn');
+                                    const nextBtn = document.getElementById('nextImageBtn');
                                     const zoomInBtn = document.getElementById('zoomInBtn');
                                     const zoomOutBtn = document.getElementById('zoomOutBtn');
                                     const zoomResetBtn = document.getElementById('zoomResetBtn');
+                                    const counter = document.getElementById('imageCounter');
+                                    const mainImg = document.getElementById('mainProductImage');
 
-                                    if (zoomInBtn) zoomInBtn.addEventListener('click', function(){
-                                        currentScale = Math.min(maxScale, +(currentScale + step).toFixed(2));
-                                        applyScale(null, null);
-                                    });
-                                    if (zoomOutBtn) zoomOutBtn.addEventListener('click', function(){
-                                        currentScale = Math.max(minScale, +(currentScale - step).toFixed(2));
-                                        applyScale(null, null);
-                                    });
-                                    if (zoomResetBtn) zoomResetBtn.addEventListener('click', function(){
-                                        currentScale = 1.0;
-                                        applyScale(null, null);
+                                    if (!modal || !modalImage) return;
+
+                                    let images = [];
+                                    let currentIndex = 0;
+                                    let currentZoom = 1;
+                                    let imageOffset = { x: 0, y: 0 };
+                                    let isDragging = false;
+                                    let dragStart = { x: 0, y: 0 };
+
+                                    function collectImages() {
+                                        images = [];
+                                        if (mainImg && !mainImg.src.includes('placeholder')) {
+                                            images.push(mainImg.src);
+                                        }
+                                        document.querySelectorAll('.thumbnail-image').forEach(function(t) {
+                                            if (images.indexOf(t.src) === -1) images.push(t.src);
+                                        });
+                                    }
+
+                                    function openModal(index) {
+                                        collectImages();
+                                        if (images.length === 0) return;
+                                        currentIndex = (index >= 0 && index < images.length) ? index : 0;
+                                        document.body.classList.add('modal-open');
+                                        modal.style.display = 'flex';
+                                        showImage();
+                                    }
+
+                                    function closeModal() {
+                                        document.body.classList.remove('modal-open');
+                                        modal.style.display = 'none';
+                                        resetZoom();
+                                    }
+
+                                    function showImage() {
+                                        modalImage.src = images[currentIndex];
+                                        resetZoom();
+                                        updateUI();
+                                    }
+
+                                    function goToImage(index) {
+                                        if (index < 0 || index >= images.length) return;
+                                        currentIndex = index;
+                                        showImage();
+                                    }
+
+                                    function nextImage() {
+                                        if (currentIndex < images.length - 1) {
+                                            currentIndex++;
+                                            showImage();
+                                        }
+                                    }
+
+                                    function previousImage() {
+                                        if (currentIndex > 0) {
+                                            currentIndex--;
+                                            showImage();
+                                        }
+                                    }
+
+                                    function zoomIn() {
+                                        setZoom(currentZoom + 0.25);
+                                    }
+
+                                    function zoomOut() {
+                                        setZoom(currentZoom - 0.25);
+                                    }
+
+                                    function setZoom(zoom) {
+                                        currentZoom = Math.max(0.5, Math.min(zoom, 5));
+                                        applyTransform();
+                                    }
+
+                                    function resetZoom() {
+                                        currentZoom = 1;
+                                        imageOffset = { x: 0, y: 0 };
+                                        applyTransform();
+                                    }
+
+                                    function applyTransform() {
+                                        var transform = 'translate(' + imageOffset.x + 'px, ' + imageOffset.y + 'px) scale(' + currentZoom + ')';
+                                        modalImage.style.setProperty('transform', transform, 'important');
+                                        modalImage.style.setProperty('transform-origin', 'center center', 'important');
+                                        modalImage.style.cursor = currentZoom > 1 ? 'move' : 'default';
+                                    }
+
+                                    function updateUI() {
+                                        if (counter) {
+                                            counter.textContent = (currentIndex + 1) + ' / ' + images.length;
+                                        }
+                                        if (prevBtn) {
+                                            prevBtn.disabled = currentIndex === 0;
+                                            prevBtn.style.opacity = currentIndex === 0 ? '0.3' : '1';
+                                        }
+                                        if (nextBtn) {
+                                            nextBtn.disabled = currentIndex === images.length - 1;
+                                            nextBtn.style.opacity = currentIndex === images.length - 1 ? '0.3' : '1';
+                                        }
+                                        var showNav = images.length > 1;
+                                        if (prevBtn) prevBtn.style.display = showNav ? 'inline-flex' : 'none';
+                                        if (nextBtn) nextBtn.style.display = showNav ? 'inline-flex' : 'none';
+                                    }
+
+                                    // --- Drag/Pan ---
+                                    function startDrag(e) {
+                                        if (currentZoom <= 1) return;
+                                        isDragging = true;
+                                        dragStart = { x: e.clientX - imageOffset.x, y: e.clientY - imageOffset.y };
+                                        e.preventDefault();
+                                    }
+                                    function onDrag(e) {
+                                        if (!isDragging) return;
+                                        imageOffset = { x: e.clientX - dragStart.x, y: e.clientY - dragStart.y };
+                                        applyTransform();
+                                    }
+                                    function endDrag() { isDragging = false; }
+
+                                    // --- Event Listeners ---
+                                    if (mainImg) {
+                                        mainImg.addEventListener('click', function(e) {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            openModal(0);
+                                        });
+                                    }
+
+                                    document.querySelectorAll('.thumbnail-image').forEach(function(thumb, index) {
+                                        thumb.addEventListener('click', function(e) {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            collectImages();
+                                            var idx = images.indexOf(thumb.src);
+                                            openModal(idx >= 0 ? idx : 0);
+                                        });
                                     });
 
-                                    // Listener de 'keydown' para controles de teclado
-                                    document.addEventListener('keydown', (event) => {
-                                        if (modal.style.display === "flex") {
-                                            event.stopImmediatePropagation();
-                                            
-                                            switch(event.key) {
-                                                case "Escape":
-                                                    closeModal();
-                                                    break;
-                                                case "ArrowLeft":
-                                                    event.preventDefault();
-                                                    prevImage();
-                                                    break;
-                                                case "ArrowRight":
-                                                    event.preventDefault();
-                                                    nextImage();
-                                                    break;
-                                                case "Home":
-                                                    event.preventDefault();
-                                                    goToImage(0);
-                                                    break;
-                                                case "End":
-                                                    event.preventDefault();
-                                                    goToImage(allImages.length - 1);
-                                                    break;
-                                            }
+                                    if (closeBtn) closeBtn.addEventListener('click', closeModal);
+                                    modal.addEventListener('click', function(e) { if (e.target === modal) closeModal(); });
+
+                                    if (prevBtn) prevBtn.addEventListener('click', function(e) { e.stopPropagation(); previousImage(); });
+                                    if (nextBtn) nextBtn.addEventListener('click', function(e) { e.stopPropagation(); nextImage(); });
+                                    if (zoomInBtn) zoomInBtn.addEventListener('click', function(e) { e.stopPropagation(); zoomIn(); });
+                                    if (zoomOutBtn) zoomOutBtn.addEventListener('click', function(e) { e.stopPropagation(); zoomOut(); });
+                                    if (zoomResetBtn) zoomResetBtn.addEventListener('click', function(e) { e.stopPropagation(); resetZoom(); });
+
+                                    // Mouse wheel zoom
+                                    modalImage.addEventListener('wheel', function(e) {
+                                        if (modal.style.display !== 'flex') return;
+                                        e.preventDefault();
+                                        if (e.deltaY < 0) zoomIn(); else zoomOut();
+                                    }, { passive: false });
+
+                                    // Drag to pan
+                                    modalImage.addEventListener('mousedown', startDrag);
+                                    document.addEventListener('mousemove', onDrag);
+                                    document.addEventListener('mouseup', endDrag);
+
+                                    // Keyboard shortcuts
+                                    document.addEventListener('keydown', function(e) {
+                                        if (modal.style.display !== 'flex') return;
+                                        switch (e.key) {
+                                            case 'Escape': closeModal(); break;
+                                            case 'ArrowLeft': e.preventDefault(); previousImage(); break;
+                                            case 'ArrowRight': e.preventDefault(); nextImage(); break;
+                                            case '+': case '=': e.preventDefault(); zoomIn(); break;
+                                            case '-': e.preventDefault(); zoomOut(); break;
+                                            case '0': e.preventDefault(); resetZoom(); break;
+                                            case 'Home': e.preventDefault(); goToImage(0); break;
+                                            case 'End': e.preventDefault(); goToImage(images.length - 1); break;
                                         }
                                     });
+
+                                    collectImages();
                                 }
 
                                 /**
                                  * Transforma a seção de conversões em elementos clicáveis.
                                  */
                                 function setupInteractiveConversions() {
+                                    console.log('🔄 Iniciando setupInteractiveConversions...');
                                     const container = document.getElementById('conversoes-content');
-                                    if (!container) return;
+                                    if (!container) {
+                                        console.log('❌ Container conversoes-content não encontrado!');
+                                        return;
+                                    }
 
-                                    const rawText = container.innerText;
+                                    const rawText = container.innerText || container.textContent;
+                                    console.log('📝 Texto original das conversões:', rawText);
+                                    
+                                    if (!rawText || rawText.trim() === '') {
+                                        console.log('⚠️ Texto de conversões está vazio');
+                                        return;
+                                    }
+                                    
                                     const lines = rawText.split('\n').filter(line => line.trim() !== '');
+                                    console.log('📋 Linhas processadas:', lines.length);
 
-                                    const newHtml = lines.map(line => {
+                                    const newHtml = lines.map((line) => {
                                         const trimmedLine = line.trim();
-                                        // Heurística: uma linha é marca se for maiúscula e não contiver números.
-                                        const isLikelyBrand = /^[A-Z\s]+$/.test(trimmedLine) && !/\d/.test(trimmedLine);
+                                        
+                                        // Regra simples e confiável:
+                                        // Tem dígito → é código. Sem dígito → é fabricante.
+                                        const hasDigit = /\d/.test(trimmedLine);
+                                        const isLikelyBrand = !hasDigit;
 
                                         if (isLikelyBrand) {
-                                            return `<span class="conversion-brand">${trimmedLine}</span>`;
+                                            const safe = trimmedLine.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                                            return `<div class="conversion-brand" title="Fabricante: ${safe}"><span class="brand-label">🏭</span><strong>${safe}</strong></div>`;
                                         } else {
-                                            // Adiciona a funcionalidade de clique para copiar
-                                            return `<span class="conversion-code" title="Clique para copiar: ${trimmedLine}" onclick="copyToClipboard('${trimmedLine}', 'Código de conversão')">${trimmedLine}</span>`;
+                                            const safe = trimmedLine.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                                            const escapedCode = trimmedLine.replace(/'/g, "\\'");
+                                            return `<div class="conversion-code" title="Clique para copiar: ${safe}" onclick="copyToClipboard('${escapedCode}', 'Código'); this.classList.add('copied'); setTimeout(() => this.classList.remove('copied'), 1000);"><span class="code-label">📋</span><span class="code-text">${safe}</span></div>`;
                                         }
-                                    }).join('\n');
+                                    }).join('');
 
                                     container.innerHTML = newHtml;
+                                    console.log('✅ Conversões processadas com sucesso!');
+                                    console.log('🎨 Total de elementos criados:', lines.length);
+                                    
+                                    // Força refresh visual e aplica estilos
+                                    container.style.display = 'none';
+                                    container.offsetHeight; // trigger reflow
+                                    container.style.display = '';
+                                    
+                                    // Adiciona contador de conversões
+                                    const brandsCount = container.querySelectorAll('.conversion-brand').length;
+                                    const codesCount = container.querySelectorAll('.conversion-code').length;
+                                    console.log(`📊 Resultado: ${brandsCount} fabricantes, ${codesCount} códigos`);
                                 }
 
                                 /**
@@ -1171,14 +1147,201 @@
                                 }
 
                                 // Inicializa todos os módulos da página
-                                document.addEventListener('DOMContentLoaded', function() {
-                                    console.log('DOM carregado, inicializando módulos...');
-                                    setupImageModal();
-                                    setupInteractiveConversions();
-                                    setupSimilarFiltering();
-                                    setupApplicationSearch();
-                                    console.log('Todos os módulos inicializados.');
-                                });
+                                try { setupImageModal(); } catch (e) { console.error('Erro modal:', e); }
+                                try { setupInteractiveConversions(); } catch (e) { console.error('Erro conversões:', e); }
+                                try { setupSimilarFiltering(); } catch (e) { console.error('Erro filtros:', e); }
+                                try { setupApplicationSearch(); } catch (e) { console.error('Erro busca:', e); }
+                                
+                                // === FUNÇÕES DE DEBUG PARA TESTES ===
+                                window.debugApplicationSearch = function() {
+                                    const searchInput = document.getElementById('applicationSearchInput');
+                                    const tableBody = document.getElementById('application-table-body');
+                                    console.log('🔍 Debug da busca de aplicações:');
+                                    console.log('Input encontrado:', !!searchInput);
+                                    console.log('Tabela encontrada:', !!tableBody);
+                                    if (tableBody) {
+                                        const rows = tableBody.querySelectorAll('.application-row');
+                                        console.log('Linhas de aplicação encontradas:', rows.length);
+                                        rows.forEach((row, index) => {
+                                            console.log(`Linha ${index}:`, {
+                                                veiculo: row.getAttribute('data-veiculo'),
+                                                ano: row.getAttribute('data-ano'),
+                                                motor: row.getAttribute('data-motor'),
+                                                visivel: row.style.display !== 'none'
+                                            });
+                                        });
+                                    }
+                                };
+                                
+                                window.debugConversions = function() {
+                                    const container = document.getElementById('conversoes-content');
+                                    console.log('🔄 Debug das conversões:');
+                                    console.log('Container encontrado:', !!container);
+                                    if (container) {
+                                        const brands = container.querySelectorAll('.conversion-brand');
+                                        const codes = container.querySelectorAll('.conversion-code');
+                                        console.log('Marcas encontradas:', brands.length);
+                                        console.log('Códigos encontrados:', codes.length);
+                                        brands.forEach((brand, index) => {
+                                            console.log(`Marca ${index}:`, brand.textContent.trim());
+                                        });
+                                        codes.forEach((code, index) => {
+                                            console.log(`Código ${index}:`, code.textContent.trim());
+                                        });
+                                    }
+                                };
+                                
+                                // Expõe funções para debug no console
+                                console.log('🛠️ Funções de debug disponíveis:');
+                                console.log('- window.debugApplicationSearch()');
+                                console.log('- window.debugConversions()');
+                                
+                                // Valida se tudo foi carregado corretamente
+                                setTimeout(() => {
+                                    const searchInput = document.getElementById('applicationSearchInput');
+                                    const conversionsContainer = document.getElementById('conversoes-content');
+                                    
+                                    if (searchInput) {
+                                        console.log('✅ Sistema de busca de aplicações inicializado');
+                                    } else {
+                                        console.log('⚠️ Campo de busca de aplicações não encontrado');
+                                    }
+                                    
+                                    if (conversionsContainer) {
+                                        const brands = conversionsContainer.querySelectorAll('.conversion-brand');
+                                        const codes = conversionsContainer.querySelectorAll('.conversion-code');
+                                        console.log(`✅ Sistema de conversões inicializado: ${brands.length} marcas, ${codes.length} códigos`);
+                                    } else {
+                                        console.log('ℹ️ Seção de conversões não encontrada (normal se o produto não tem conversões)');
+                                    }
+                                }, 1000);
+
+                                // ============== AUTO-FILTRO BASEADO NO CONTEXTO DA PESQUISA ==============
+                                if (VEICULO_CONTEXT || MONTADORA_CONTEXT) {
+                                console.log('🎯 Aplicando auto-filtro baseado no contexto da pesquisa...');
+                                console.log('Veículo context:', VEICULO_CONTEXT);
+                                console.log('Montadora context:', MONTADORA_CONTEXT);
+
+                                // Aguarda um pequeno delay para garantir que todos os elementos foram criados
+                                setTimeout(function() {
+                                    try {
+                                        const tableBody = document.getElementById('application-table-body');
+                                        if (!tableBody) {
+                                            console.log('❌ Tabela de aplicações não encontrada');
+                                            return;
+                                        }
+
+                                        const applicationRows = tableBody.querySelectorAll('.application-row');
+                                        let matchedRow = null;
+
+                                        // Função para normalizar strings para comparação
+                                        function normalizeForMatch(str) {
+                                            if (!str) return '';
+                                            return str.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                                        }
+
+                                        // Tenta encontrar a aplicação que corresponde ao contexto da pesquisa
+                                        applicationRows.forEach(function(row) {
+                                            if (VEICULO_CONTEXT) {
+                                            const rowVeiculo = normalizeForMatch(row.dataset.veiculo || '');
+                                            const searchVeiculo = normalizeForMatch(VEICULO_CONTEXT);
+                                            
+                                            // Verifica correspondência exata ou inclusão
+                                            if (rowVeiculo === searchVeiculo || rowVeiculo.includes(searchVeiculo) || searchVeiculo.includes(rowVeiculo)) {
+                                                matchedRow = row;
+                                                console.log('✅ Aplicação encontrada por veículo:', row.dataset.veiculo);
+                                                return;
+                                            }
+                                            }
+
+                                            if (MONTADORA_CONTEXT && !VEICULO_CONTEXT) {
+                                            // Se não encontrou por veículo, tenta por montadora
+                                            const fabricanteRow = row.previousElementSibling;
+                                            if (fabricanteRow && fabricanteRow.classList.contains('fabricante-header')) {
+                                                const rowMontadora = normalizeForMatch(fabricanteRow.textContent || '');
+                                                const searchMontadora = normalizeForMatch(MONTADORA_CONTEXT);
+                                                
+                                                if (rowMontadora.includes(searchMontadora) || searchMontadora.includes(rowMontadora)) {
+                                                    if (!matchedRow) { // Só define se ainda não encontrou nenhuma
+                                                        matchedRow = row;
+                                                        console.log('✅ Aplicação encontrada por montadora:', fabricanteRow.textContent);
+                                                    }
+                                                }
+                                            }
+                                            }
+                                        });
+
+                                        // Se encontrou uma correspondência, aplica o filtro automaticamente
+                                        if (matchedRow) {
+                                            console.log('🎯 Aplicando filtro automático para:', {
+                                                veiculo: matchedRow.dataset.veiculo,
+                                                ano: matchedRow.dataset.ano,
+                                                motor: matchedRow.dataset.motor
+                                            });
+
+                                            // Destaca visualmente a aplicação correspondente
+                                            matchedRow.style.backgroundColor = '#fff3cd';
+                                            matchedRow.style.border = '2px solid #ffc107';
+                                            matchedRow.style.borderRadius = '4px';
+                                            
+                                            // Adiciona um tooltip indicando que foi aplicado automaticamente
+                                            matchedRow.title += ' (Filtro aplicado automaticamente baseado na sua pesquisa)';
+                                            
+                                            // Simula o clique na aplicação para aplicar o filtro
+                                            matchedRow.click();
+                                            
+                                            // Mostra notificação amigável ao usuário
+                                            const contextLabel = VEICULO_CONTEXT || MONTADORA_CONTEXT;
+                                            if (typeof ux !== 'undefined' && ux.showToast) {
+                                                ux.showToast(
+                                                    'Filtro aplicado automaticamente baseado na sua pesquisa por "' + contextLabel + '"',
+                                                    'info',
+                                                    '🎯 Filtro Automático',
+                                                    7000
+                                                );
+                                            } else {
+                                                // Fallback para notificação simples
+                                                const notification = document.createElement('div');
+                                                notification.style.cssText = `
+                                                    position: fixed; top: 20px; right: 20px; 
+                                                    background: #d4edda; color: #155724; 
+                                                    padding: 15px 20px; border-radius: 8px; 
+                                                    border: 1px solid #c3e6cb; z-index: 9999;
+                                                    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                                                    font-family: Arial, sans-serif; font-size: 14px;
+                                                    max-width: 350px; line-height: 1.4;
+                                                `;
+                                                notification.innerHTML = '<strong>🎯 Filtro Automático</strong><br>Produtos similares filtrados automaticamente para "<em>' + contextLabel + '</em>"';
+                                                document.body.appendChild(notification);
+                                                
+                                                setTimeout(() => {
+                                                    notification.style.opacity = '0';
+                                                    notification.style.transition = 'opacity 0.5s';
+                                                    setTimeout(() => notification.remove(), 500);
+                                                }, 5000);
+                                            }
+                                            
+                                            // Rola para a seção de aplicações para mostrar o destaque
+                                            setTimeout(function() {
+                                                matchedRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                            }, 500);
+
+                                            // Remove o destaque após alguns segundos para não poluir visualmente
+                                            setTimeout(function() {
+                                                matchedRow.style.backgroundColor = '';
+                                                matchedRow.style.border = '';
+                                                matchedRow.style.borderRadius = '';
+                                            }, 5000);
+
+                                        } else {
+                                            console.log('⚠️ Nenhuma aplicação correspondente encontrada para o contexto da pesquisa');
+                                        }
+                                        
+                                    } catch (e) {
+                                        console.error('❌ Erro ao aplicar auto-filtro:', e);
+                                    }
+                                }, 500);
+                                }
 
                                 // --- Remoção de similar via AJAX ---
                                 document.addEventListener('click', function(e) {

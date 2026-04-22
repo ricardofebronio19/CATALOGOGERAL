@@ -87,6 +87,10 @@
 
     <div class="search-actions" style="width: 100%; display: flex; justify-content: flex-start; align-items: center; gap: 10px; margin-top: 10px;">
         <button type="submit" id="submit-btn">Buscar</button>
+        <!-- Botão alternativo que funciona sem JavaScript -->
+        <noscript>
+            <button type="submit" class="button" style="background-color: #007bff;">Buscar (JS desabilitado)</button>
+        </noscript>
         <button type="button" id="clear-search-btn" class="button" style="background-color: #6c757d;">Limpar Campos</button>
         <button type="button" id="force-refresh-btn" class="button" style="background-color: #28a745;">🔄 Atualizar</button>
         {% if is_admin %}
@@ -98,6 +102,24 @@
 {% block scripts %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        console.log('🔍 Sistema de busca CGI - JavaScript carregado');
+        
+        // Função para debug - disponível no console
+        window.debugBusca = function() {
+            const form = document.getElementById('search-form'); 
+            const inputs = form.querySelectorAll('input[type="text"]');
+            const valores = {};
+            inputs.forEach(input => {
+                if (input.value.trim()) {
+                    valores[input.name] = input.value.trim();
+                }
+            });
+            console.log('Valores do formulário:', valores);
+            console.log('Action do form:', form.action);
+            console.log('Method do form:', form.method);
+            return valores;
+        };
+        
         // Botão de limpar campos
         const clearButton = document.getElementById('clear-search-btn');
         if (clearButton) {
@@ -131,21 +153,12 @@
             });
         }
 
-        // Debug: mostra feedback de busca
+        // Submissão via Enter ou clique no botão Buscar
         const submitButton = document.getElementById('submit-btn');
         if (submitButton) {
             submitButton.addEventListener('click', function() {
-                const termo = document.getElementById('termo').value.trim();
-                if (termo) {
-                    console.log('Buscando por:', termo);
-                    // Adiciona indicador visual
-                    submitButton.textContent = 'Buscando...';
-                    submitButton.disabled = true;
-                    setTimeout(() => {
-                        submitButton.textContent = 'Buscar';
-                        submitButton.disabled = false;
-                    }, 2000);
-                }
+                // Apenas feedback visual — NÃO desabilitar o botão (quebraria o submit)
+                submitButton.textContent = 'Buscando...';
             });
         }
 

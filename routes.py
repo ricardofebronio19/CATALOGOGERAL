@@ -3,6 +3,7 @@ import io
 import json
 import os
 import shutil
+import sqlite3
 
 # --- Gerenciamento de Tarefas em Segundo Plano ---
 import subprocess
@@ -26,7 +27,7 @@ from flask import (
     url_for,
 )
 from flask_login import current_user, login_required, login_user, logout_user
-from sqlalchemy import func, or_
+from sqlalchemy import func, or_, text
 from sqlalchemy.orm import selectinload
 from werkzeug.utils import secure_filename
 
@@ -42,6 +43,7 @@ from core_utils import (
     _processar_medidas_estruturadas,
     _parsear_medidas_para_dict,
 )
+from utils.cache_system import invalidate_search_cache
 from utils.image_utils import download_image_from_url
 from utils.cart_utils import (
     add_to_cart,
@@ -52,7 +54,7 @@ from utils.cart_utils import (
     get_cart_count,
     get_cart_summary
 )
-from models import Aplicacao, ImagemProduto, Produto, User, SugestaoIgnorada, Contato
+from models import Aplicacao, ImagemProduto, Produto, User, SugestaoIgnorada, Contato, similares_association
 
 # Importação da função de busca externa (importada separadamente para debugging)
 # Importações removidas - busca externa desabilitada
@@ -151,6 +153,55 @@ def index():
     )
 
 
+@main_bp.route("/debug_busca")
+def debug_busca():
+    """Rota de debug para verificar se o sistema de busca está funcionando"""
+    if not current_user.is_authenticated or not (hasattr(current_user, 'eh_admin') and current_user.eh_admin):
+        flash("Acesso restrito a administradores", "danger")
+        return redirect(url_for('main.index'))
+    
+    import json
+    from datetime import datetime
+    
+    debug_info = {
+        'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        'status': 'OK'
+    }
+    
+    try:
+        # Testa conexão com banco
+        total_produtos = Produto.query.count()
+        total_aplicacoes = Aplicacao.query.count()
+        debug_info['banco'] = {
+            'produtos': total_produtos,
+            'aplicacoes': total_aplicacoes,
+            'status': 'Conectado'
+        }
+        
+        # Testa função de busca
+        query_teste = _build_search_query('', '', '', '', '', '')
+        resultado_teste = query_teste.limit(1).all()
+        debug_info['busca'] = {
+            'funcional': True,
+            'primeiro_produto': resultado_teste[0].nome if resultado_teste else 'N/A',
+            'function_loaded': '_build_search_query carregada'
+        }
+        
+    except Exception as e:
+        debug_info['status'] = 'ERRO'
+        debug_info['erro'] = str(e)
+    
+    return f"""
+    <html><head><title>Debug Sistema CGI</title></head><body>
+    <h1>🔍 Debug Sistema de Busca CGI</h1>
+    <pre style="background:#f5f5f5;padding:20px;border-radius:5px;font-family:monospace;">
+{json.dumps(debug_info, indent=2, ensure_ascii=False)}
+    </pre>
+    <p><a href="/">← Voltar à página inicial</a></p>
+    </body></html>
+    """
+
+
 @main_bp.route("/buscar")
 def buscar():
     """Página de resultados da busca."""
@@ -182,6 +233,7 @@ def buscar():
         diametro_externo=diametro_externo, diametro_interno=diametro_interno,
         elo=elo, estrias_internas=estrias_internas, estrias_externas=estrias_externas
     )
+    query = query.options(selectinload(Produto.aplicacoes), selectinload(Produto.imagens))
 
     # Define a coluna de ordenação
     order_column = Produto.codigo
@@ -265,6 +317,8 @@ def buscar():
         "resultados.html",
         pagination=pagination,
         termo=termo,
+        montadora=montadora,
+        aplicacao_termo=aplicacao_termo,
         sort_by=sort_by,
         sort_dir=sort_dir,
         resultados_agrupados=resultados_agrupados,
@@ -280,6 +334,11 @@ def buscar():
 @main_bp.route("/peca/<int:id>")
 def detalhe_peca(id):
     """Exibe a página de detalhes de um produto específico."""
+    
+    # Captura contexto da pesquisa para priorizar aplicação
+    veiculo_context = request.args.get("veiculo_context", "")
+    montadora_context = request.args.get("montadora_context", "")
+    
     produto = (
         db.session.query(Produto)
         .options(
@@ -309,9 +368,39 @@ def detalhe_peca(id):
             current_app.logger.warning(f"Erro ao registrar visualização: {str(e)}")
 
     aplicacoes_agrupadas = collections.defaultdict(list)
-    sorted_aplicacoes = sorted(
-        produto.aplicacoes, key=lambda app: (app.montadora or "ZZZ", app.veiculo or "")
-    )
+    
+    # Função de ordenação que prioriza o veículo pesquisado
+    def prioridade_aplicacao(app):
+        # Normaliza para comparação (sem acentos, minúsculas)
+        veiculo_app = _normalize_for_search(app.veiculo or "")
+        montadora_app = _normalize_for_search(app.montadora or "")
+        
+        # Contexto normalizado da pesquisa
+        veiculo_pesquisado = _normalize_for_search(veiculo_context)
+        montadora_pesquisada = _normalize_for_search(montadora_context)
+        
+        # Verificação por contém (não exata): 'gol' bate 'vw gol', 'gol 1.0', etc.
+        def _match(termo, campo):
+            return bool(termo) and bool(campo) and (termo in campo or campo in termo)
+
+        veic_match = _match(veiculo_pesquisado, veiculo_app)
+        monta_match = _match(montadora_pesquisada, montadora_app)
+
+        # Peso de prioridade (menor = maior prioridade)
+        if veic_match and monta_match:
+            peso_prioridade = 0
+        elif veic_match:
+            peso_prioridade = 1
+        elif monta_match:
+            peso_prioridade = 2
+        else:
+            peso_prioridade = 3
+            
+        # Retorna tupla: (peso_prioridade, montadora_ordenacao, veiculo_ordenacao)
+        return (peso_prioridade, app.montadora or "ZZZ", app.veiculo or "")
+    
+    sorted_aplicacoes = sorted(produto.aplicacoes, key=prioridade_aplicacao)
+    
     for aplicacao in sorted_aplicacoes:
         montadora_chave = aplicacao.montadora or "Sem Montadora"
         aplicacoes_agrupadas[montadora_chave].append(aplicacao)
@@ -421,13 +510,8 @@ def detalhe_peca(id):
         aplicacoes_agrupadas=aplicacoes_agrupadas,
         sugestoes_similares=sugestoes_similares,
         voltar_url=voltar_url,
-    )
-    return render_template(
-        "detalhe_peca.html",
-        produto=produto,
-        aplicacoes_agrupadas=aplicacoes_agrupadas,
-        sugestoes_similares=sugestoes_similares,
-        voltar_url=voltar_url,
+        veiculo_context=veiculo_context,
+        montadora_context=montadora_context,
     )
 
 
@@ -572,6 +656,7 @@ def adicionar_peca():
                     db.session.add(Aplicacao(produto=novo_produto, **filtered))
 
             db.session.commit()
+            invalidate_search_cache()
             flash("Produto adicionado com sucesso!", "success")
             return redirect(url_for("main.detalhe_peca", id=novo_produto.id))
         except Exception as e:
@@ -723,6 +808,7 @@ def editar_peca(id):
                     nova_img.ordem = i
 
             db.session.commit()
+            invalidate_search_cache()
             flash("Produto atualizado com sucesso!", "success")
             return redirect(url_for("main.detalhe_peca", id=produto.id))
         except Exception as e:
@@ -788,6 +874,7 @@ def clonar_peca(id):
 
     db.session.add(novo_produto)
     db.session.commit()
+    invalidate_search_cache()
 
     flash(
         "Produto clonado com sucesso! Por favor, revise o código e os outros dados.",
@@ -828,6 +915,7 @@ def excluir_peca(id):
 
     db.session.delete(produto)
     db.session.commit()
+    invalidate_search_cache()
 
     flash("Produto excluído com sucesso.", "success")
     return redirect(url_for("main.index"))
@@ -857,6 +945,7 @@ def remover_similar(produto_id, similar_id):
             similar.similares.remove(produto)
 
         db.session.commit()
+        invalidate_search_cache()
 
         if request.method == "DELETE":
             return {"success": True, "message": "Similar removido com sucesso."}
@@ -886,6 +975,7 @@ def excluir_imagem(id):
     filename = imagem.filename
     db.session.delete(imagem)
     db.session.commit()
+    invalidate_search_cache()
 
     if ImagemProduto.query.filter_by(filename=filename).count() == 0:
         filepath = os.path.join(APP_DATA_PATH, "uploads", filename)
@@ -1022,20 +1112,56 @@ def excluir_aplicacao(id):
 
 @admin_bp.route("/gerenciar_usuarios")
 def gerenciar_usuarios():
-    usuarios = User.query.order_by(User.id).all()
+    _repair_null_user_ids()
+    usuarios = User.query.filter(User.id.isnot(None)).order_by(User.id).all()
     return render_template("gerenciar_usuarios.html", usuarios=usuarios)
+
+
+def _repair_null_user_ids():
+    """Corrige IDs nulos de usuários em bancos legados mal migrados.
+
+    Em algumas bases antigas, a coluna `user.id` ficou sem PK/auto incremento,
+    permitindo inserções com `id` nulo. Isso quebra templates/rotas que dependem
+    de `user.id`. Esta rotina atribui IDs sequenciais para registros nulos.
+    """
+    with db.engine.begin() as connection:
+        missing_rows = connection.execute(
+            text('SELECT rowid FROM "user" WHERE id IS NULL ORDER BY rowid')
+        ).fetchall()
+
+        if not missing_rows:
+            return
+
+        max_id = connection.execute(
+            text('SELECT COALESCE(MAX(id), 0) FROM "user"')
+        ).scalar() or 0
+
+        for row in missing_rows:
+            max_id += 1
+            connection.execute(
+                text('UPDATE "user" SET id = :new_id WHERE rowid = :row_id'),
+                {"new_id": max_id, "row_id": row[0]},
+            )
 
 
 @admin_bp.route("/adicionar_usuario", methods=["POST"])
 def adicionar_usuario():
-    username = request.form.get("username")
-    password = request.form.get("password")
+    _repair_null_user_ids()
+    username = (request.form.get("username") or "").strip()
+    password = request.form.get("password") or ""
+
+    if not username or not password:
+        flash("Nome de usuário e senha são obrigatórios.", "danger")
+        return redirect(url_for("admin.gerenciar_usuarios"))
 
     if User.query.filter_by(username=username).first():
         flash(f'O nome de usuário "{username}" já existe.', "danger")
     else:
+        next_user_id = (db.session.query(func.max(User.id)).scalar() or 0) + 1
         new_user = User(
-            username=username, is_admin=request.form.get("is_admin") == "on"
+            id=next_user_id,
+            username=username,
+            is_admin=request.form.get("is_admin") == "on",
         )
         new_user.set_password(password)
         db.session.add(new_user)
@@ -1426,6 +1552,56 @@ def tarefa_vincular_imagens():
     return redirect(url_for("admin.pagina_tarefas"))
 
 
+def _verificar_foreign_keys_banco(db_path):
+    """Verifica integridade das foreign keys no banco de dados"""
+    try:
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        
+        # Verifica especificamente problemas em compartilhamento_lista
+        cursor.execute("""
+            SELECT COUNT(*) FROM compartilhamento_lista 
+            WHERE compartilhado_por NOT IN (SELECT id FROM user)
+            OR compartilhado_com NOT IN (SELECT id FROM user)
+        """)
+        problemas = cursor.fetchone()[0]
+        
+        conn.close()
+        return problemas == 0, problemas
+    except Exception:
+        return False, 0
+
+def _corrigir_foreign_keys_automatico(db_path):
+    """Correção automática de foreign keys órfãos"""
+    try:
+        print("[BACKUP] Corrigindo foreign keys órfãos automaticamente...")
+        
+        # Faz backup antes da correção
+        backup_path = f"{db_path}.backup_before_fk_fix"
+        import shutil
+        shutil.copy2(db_path, backup_path)
+        
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        
+        # Remove registros órfãos
+        cursor.execute("""
+            DELETE FROM compartilhamento_lista 
+            WHERE compartilhado_por NOT IN (SELECT id FROM user)
+            OR compartilhado_com NOT IN (SELECT id FROM user)
+        """)
+        
+        removidos = cursor.rowcount
+        conn.commit()
+        conn.close()
+        
+        print(f"[BACKUP] ✓ {removidos} registros órfãos removidos")
+        return True
+        
+    except Exception as e:
+        print(f"[BACKUP] ✗ Erro na correção automática: {e}")
+        return False
+
 @admin_bp.route("/backup")
 @login_required
 def backup():
@@ -1440,17 +1616,46 @@ def backup():
         with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
             # Backup do banco de dados como SQL dump
             if os.path.exists(source_db_path):
+                print("[BACKUP] Verificando integridade do banco...")
+                
+                # Verifica foreign keys antes do backup
+                fk_integro, problemas_count = _verificar_foreign_keys_banco(source_db_path)
+                
+                if not fk_integro:
+                    print(f"[BACKUP] ⚠ {problemas_count} problemas de foreign key detectados")
+                    
+                    # Tenta correção automática
+                    if _corrigir_foreign_keys_automatico(source_db_path):
+                        print("[BACKUP] ✓ Foreign keys corrigidos automaticamente")
+                        flash("Problemas de integridade detectados e corrigidos automaticamente durante o backup.", "info")
+                    else:
+                        print("[BACKUP] ✗ Falha na correção automática")
+                        flash("Problemas de integridade detectados. Backup pode falhar.", "warning")
+                
                 print("[BACKUP] Fazendo dump do banco de dados...")
                 import sqlite3
 
-                bck_conn = sqlite3.connect(":memory:")
-                src_conn = sqlite3.connect(f"file:{source_db_path}?mode=ro", uri=True)
-                src_conn.backup(bck_conn)
-                db_dump = "\n".join(bck_conn.iterdump())
-                zf.writestr("catalogo.db.sql", db_dump)
-                src_conn.close()
-                bck_conn.close()
-                print("[BACKUP] ✓ Dump do banco concluído")
+                try:
+                    # Tenta o método normal primeiro
+                    bck_conn = sqlite3.connect(":memory:")
+                    src_conn = sqlite3.connect(f"file:{source_db_path}?mode=ro", uri=True)
+                    src_conn.backup(bck_conn)
+                    db_dump = "\n".join(bck_conn.iterdump())
+                    zf.writestr("catalogo.db.sql", db_dump)
+                    src_conn.close()
+                    bck_conn.close()
+                    print("[BACKUP] ✓ Dump SQL do banco concluído")
+                    
+                except sqlite3.OperationalError as e:
+                    if "foreign key mismatch" in str(e):
+                        print("[BACKUP] ⚠ Erro de foreign key no dump, tentando backup direto do arquivo...")
+                        # Se falhar, faz backup direto do arquivo .db
+                        zf.write(source_db_path, "catalogo.db")
+                        flash("Backup do arquivo de banco criado (SQL dump falhou devido a inconsistências)", "warning")
+                        print("[BACKUP] ✓ Backup direto do arquivo .db concluído")
+                    else:
+                        raise e
+                        
             else:
                 print(f"[BACKUP] ⚠ Banco de dados não encontrado em: {source_db_path}")
 
@@ -1659,29 +1864,6 @@ def get_montadora_for_veiculo():
             .first()
         )
     return {"montadora": aplicacao.montadora if aplicacao else None}
-
-
-# Funcionalidade de pesquisa externa removida permanentemente
-# @main_bp.route("/pesquisa-externa")
-# @login_required
-# def pesquisa_externa():
-#     """Página de pesquisa externa na internet - REMOVIDA."""
-#     flash("Funcionalidade removida do sistema.", "error")
-#     return redirect(url_for("main.index"))
-
-
-# API de busca externa removida
-# @main_bp.route("/api/buscar_externo")
-# @login_required
-# def buscar_externo():
-#     """API para buscar informações de produtos na internet."""
-#     return {"error": "Funcionalidade removida"}, 404
-
-
-# Rota de teste removida
-# @main_bp.route("/teste-busca-externa")
-# def teste_busca_externa():
-#     return {"status": "erro", "erro": "Funcionalidade removida"}, 404
 
 
 # --- Rota de Atualização da Aplicação ---
@@ -2013,6 +2195,28 @@ def limpar_carrinho():
     return redirect(url_for('main.visualizar_carrinho'))
 
 
+@main_bp.route("/carrinho/contatos-whatsapp")
+@login_required
+def carrinho_contatos_whatsapp():
+    """Retorna JSON com contatos que possuem WhatsApp cadastrado"""
+    contatos = Contato.query.filter(
+        Contato.whatsapp.isnot(None),
+        Contato.whatsapp != ''
+    ).order_by(Contato.favorito.desc(), Contato.nome).all()
+    
+    resultado = []
+    for c in contatos:
+        resultado.append({
+            'id': c.id,
+            'nome': c.nome,
+            'empresa': c.empresa or '',
+            'whatsapp': c.whatsapp_formatado,
+            'favorito': c.favorito
+        })
+    
+    return jsonify(resultado)
+
+
 @main_bp.route("/carrinho/pdf")
 @login_required
 def carrinho_pdf():
@@ -2023,7 +2227,7 @@ def carrinho_pdf():
     from reportlab.lib.units import cm
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image as RLImage
     from reportlab.lib import colors
-    from reportlab.lib.enums import TA_CENTER, TA_LEFT
+    from reportlab.lib.enums import TA_CENTER
     import tempfile
     import os
     import threading
@@ -2418,16 +2622,24 @@ def collect_dashboard_stats():
         stats['db_size_mb'] = 0
     
     # Produtos mais populares (por número de aplicações)
-    produtos_populares = db.session.query(
+    produtos_populares_raw = db.session.query(
         Produto,
-        func.count(Aplicacao.id).label('total_aplicacoes'),
-        func.count(ImagemProduto.id).label('total_imagens'),
-        func.count(similares_association.c.similar_id).label('total_similares')
+        func.count(func.distinct(Aplicacao.id)).label('total_aplicacoes'),
+        func.count(func.distinct(ImagemProduto.id)).label('total_imagens'),
+        func.count(func.distinct(similares_association.c.similar_id)).label('total_similares')
     ).outerjoin(Aplicacao).outerjoin(ImagemProduto).outerjoin(
         similares_association, Produto.id == similares_association.c.produto_id
     ).group_by(Produto.id).order_by(
-        func.count(Aplicacao.id).desc()
+        func.count(func.distinct(Aplicacao.id)).desc()
     ).limit(10).all()
+    
+    produtos_populares = []
+    for row in produtos_populares_raw:
+        p = row[0]
+        p.total_aplicacoes = row[1]
+        p.total_imagens = row[2]
+        p.total_similares = row[3]
+        produtos_populares.append(p)
     
     stats['produtos_populares'] = produtos_populares
     
@@ -2510,12 +2722,6 @@ def prepare_chart_data():
     
     chart_data['grupos']['labels'] = [g[0] for g in grupos_data]
     chart_data['grupos']['data'] = [g[1] for g in grupos_data]
-    
-    # Distribuição de imagens por produto
-    imgs_distribution = db.session.query(
-        func.count(ImagemProduto.id).label('num_imagens'),
-        func.count(func.distinct(ImagemProduto.produto_id)).label('num_produtos')
-    ).join(Produto).group_by(ImagemProduto.produto_id).subquery()
     
     # Simplificado: produtos com/sem imagens
     produtos_com_img = db.session.query(func.count(func.distinct(ImagemProduto.produto_id))).scalar() or 0

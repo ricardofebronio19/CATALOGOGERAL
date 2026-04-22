@@ -52,12 +52,25 @@ h1 {
 }
 .aplicacao-bloco {
     width: 100%;
-    padding: 20px;
+    padding: 15px 20px;
     border: 1px solid var(--cor-principal, #ff6600);
     border-radius: 8px;
     display: flex;
     flex-wrap: wrap;
-    gap: 20px;
+    gap: 8px 12px;
+    align-items: flex-end;
+}
+.aplicacao-bloco > .search-field {
+    flex: 1 1 0;
+    min-width: 0;
+}
+.aplicacao-bloco > .search-field label {
+    white-space: nowrap;
+    font-size: 0.85em;
+}
+.aplicacao-bloco > .search-field input {
+    width: 100%;
+    box-sizing: border-box;
 }
 .search-field {
     flex-grow: 1;
@@ -256,10 +269,25 @@ main.container { padding-bottom: 30px; }
     border-radius: 4px;
     transition: transform 0.3s ease;
     cursor: pointer;
+    pointer-events: auto;
+    user-select: none;
+    position: relative;
+    z-index: 1;
 }
 
 .product-detail-image:hover {
     transform: scale(1.05);
+}
+
+/* Desabilita hover da imagem quando modal está aberto */
+body.modal-open .product-detail-image:hover {
+    transform: none !important;
+    transition: none !important;
+}
+
+/* Garante que a imagem principal não interfira com o modal */
+body.modal-open .product-detail-image {
+    pointer-events: none !important;
 }
 
 .thumbnail-container {
@@ -332,8 +360,8 @@ main.container { padding-bottom: 30px; }
 }
 
 .info-section-lateral {
-    flex: 0 0 180px;
-    max-width: 220px;
+    flex: 0 0 198px;
+    max-width: 242px;
     min-width: 120px;
     border: 1px solid #ddd;
     border-radius: 5px;
@@ -386,15 +414,58 @@ main.container { padding-bottom: 30px; }
 
 /* Estilos para a seção de conversões interativa */
 .conversion-brand {
-    font-weight: bold;
-    color: #0056b3; /* Cor de destaque para a marca */
-    display: block;
+    font-weight: bold !important;
+    color: #0066cc !important;
+    display: block !important;
+    margin: 4px 0 2px 0 !important;
+    padding: 3px 6px !important;
+    border-bottom: 1px solid #d0d8e4 !important;
+    background-color: #f0f4fa !important;
+    border-radius: 3px !important;
+    font-size: 0.95em !important;
+}
+
+.conversion-brand .brand-label {
+    font-size: 0.85em !important;
+    margin-right: 4px !important;
+    opacity: 0.7 !important;
 }
 
 .conversion-code {
-    cursor: pointer;
-    color: var(--cor-principal, #ff6600); /* Cor laranja para o código */
-    text-decoration: underline;
+    cursor: pointer !important;
+    color: var(--cor-principal, #c05000) !important;
+    display: block !important;
+    padding: 2px 6px 2px 18px !important;
+    margin: 0 !important;
+    border-radius: 2px !important;
+    transition: background-color 0.15s ease !important;
+    border: none !important;
+    background-color: transparent !important;
+    font-size: 0.9em !important;
+}
+
+.conversion-code .code-label {
+    font-size: 0.75em !important;
+    margin-right: 4px !important;
+    opacity: 0.5 !important;
+}
+
+.conversion-code .code-text {
+    font-family: 'Courier New', monospace !important;
+}
+
+.conversion-code:hover {
+    background-color: #fff0e0 !important;
+    text-decoration: underline !important;
+}
+
+.conversion-code:active {
+    background-color: #ffe0c0 !important;
+}
+
+.conversion-code.copied {
+    background-color: #d4edda !important;
+    color: #155724 !important;
 }
 
 .application-table {
@@ -489,6 +560,21 @@ main.container { padding-bottom: 30px; }
     background-color: #fff3cd !important; /* Amarelo claro para destacar */
     font-weight: bold;
     outline: 3px solid rgba(255,193,7,0.12); /* Evidencia sem desalinho */
+}
+
+/* Estilos para filtragem de aplicações */
+.application-table .application-row.filtered-match {
+    background-color: #fff3cd !important;
+    border-left: 3px solid #ffc107 !important;
+}
+
+.application-table .application-row.filtered-hidden {
+    display: none !important;
+}
+
+/* Animação suave ao filtrar */
+.application-table .application-row {
+    transition: all 0.25s ease !important;
 }
 
 /* Melhoria visual geral da tabela */
@@ -681,41 +767,179 @@ main.container { padding-bottom: 30px; }
 
 /* --- Estilos para o Modal da Imagem --- */
 .image-modal {
-    display: none; /* Escondido por padrão */
-    position: fixed; /* Fica fixo na tela */
-    z-index: 1000; /* Fica na frente de tudo */
+    display: none;
+    position: fixed;
+    z-index: 10000;
     left: 0;
     top: 0;
     width: 100%;
     height: 100%;
-    overflow: auto; /* Permite scroll se a imagem for muito grande */
-    background-color: rgba(0,0,0,0.8); /* Fundo preto semi-transparente */
+    background-color: rgba(0,0,0,0.85);
     justify-content: center;
     align-items: center;
 }
 
-.modal-content {
-    margin: auto;
-    display: block;
-    max-width: 80%;
+.image-modal[style*="display: flex"] {
+    z-index: 10000 !important;
+}
+
+/* Desabilita interação na página sob o modal */
+body.modal-open .product-detail-image,
+body.modal-open .thumbnail-image,
+body.modal-open .image-gallery {
+    pointer-events: none !important;
+}
+
+body.modal-open .image-modal,
+body.modal-open .image-modal * {
+    pointer-events: auto !important;
+}
+
+/* Imagem do modal */
+.modal-image-container {
+    position: relative;
+    text-align: center;
+    z-index: 10001;
+}
+
+.modal-image {
+    max-width: 85vw;
     max-height: 80vh;
+    object-fit: contain;
+    transition: transform 0.15s ease;
+    cursor: default;
 }
 
-.modal-close {
-    position: absolute;
-    top: 15px;
-    right: 35px;
-    color: #f1f1f1;
-    font-size: 40px;
+/* Controles de zoom - centralizado embaixo */
+.modal-zoom-controls {
+    position: fixed;
+    left: 50%;
+    bottom: 20px;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 8px;
+    background: rgba(0, 0, 0, 0.4);
+    padding: 8px 12px;
+    border-radius: 8px;
+    z-index: 10002;
+}
+
+/* Navegação - nas laterais */
+.modal-nav-controls {
+    position: fixed;
+    top: 50%;
+    left: 0;
+    right: 0;
+    transform: translateY(-50%);
+    display: flex;
+    justify-content: space-between;
+    padding: 0 16px;
+    pointer-events: none;
+    z-index: 10002;
+}
+
+/* Contador de imagens - topo central */
+.modal-counter {
+    position: fixed;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    padding: 6px 14px;
+    border-radius: 4px;
     font-weight: bold;
-    transition: 0.3s;
+    font-size: 14px;
+    z-index: 10002;
 }
 
-.modal-close:hover,
-.modal-close:focus {
-    color: #bbb;
-    text-decoration: none;
+/* Botões de navegação (setas) */
+.modal-nav-btn {
+    background: var(--cor-principal, #ff6600);
+    color: white;
+    border: none;
+    padding: 12px;
+    border-radius: 50%;
     cursor: pointer;
+    pointer-events: auto;
+    z-index: 10003;
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: filter 0.15s ease, transform 0.1s ease;
+}
+
+.modal-nav-btn:hover {
+    filter: brightness(85%);
+    transform: scale(1.08);
+}
+
+.modal-nav-btn:active {
+    filter: brightness(75%);
+    transform: scale(0.95);
+}
+
+.modal-nav-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    filter: grayscale(100%);
+}
+
+/* Botão fechar */
+.modal-close-btn {
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 24px;
+    font-weight: bold;
+    pointer-events: auto;
+    z-index: 10004;
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s ease;
+}
+
+.modal-close-btn:hover {
+    background: rgba(220, 0, 0, 0.8);
+}
+
+/* Botões de zoom */
+.zoom-btn {
+    background: var(--cor-principal, #ff6600);
+    color: white;
+    border: none;
+    padding: 10px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 18px;
+    font-weight: 600;
+    pointer-events: auto;
+    z-index: 10003;
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: filter 0.15s ease;
+}
+
+.zoom-btn:hover {
+    filter: brightness(85%);
+}
+
+.zoom-btn:active {
+    filter: brightness(75%);
 }
 
 /* --- Media Queries para Responsividade --- */
@@ -740,6 +964,13 @@ main.container { padding-bottom: 30px; }
     .search-field {
         min-width: 100%; /* Ocupa toda a largura disponível */
         width: 100%;
+    }
+    .aplicacao-bloco > .search-field {
+        flex: 1 1 100%;
+    }
+    .aplicacao-bloco {
+        flex-direction: column;
+        gap: 10px;
     }
     .details-layout-container {
         flex-direction: column;
@@ -991,8 +1222,18 @@ mark {
 .nav-right {
     display: flex;
     align-items: center;
-    gap: 8px; /* Espaço menor entre botões */
-    flex-wrap: nowrap; /* Evita quebra de linha */
+    gap: 8px;
+    flex-wrap: nowrap;
+}
+
+.nav-right .button,
+.nav-right .dropdown .button {
+    padding: 6px 12px;
+    font-size: 0.85em;
+    white-space: nowrap;
+    width: auto;
+    display: inline-flex;
+    align-items: center;
 }
 
 .nav-center {
@@ -1017,14 +1258,21 @@ mark {
 .search-form button {
     background-color: var(--cor-principal, #ff6600);
     color: #fff;
-    padding: 9px 14px;
+    padding: 6px 12px;
     border: none;
     border-radius: 4px;
     font-weight: 600;
     cursor: pointer;
+    font-size: 0.9em;
 }
 .search-form button:hover {
     filter: brightness(90%);
+}
+
+/* Ajustes para tornar o botão "Buscar" mais compacto */
+#submit-btn {
+    padding: 6px 12px !important;
+    font-size: 0.9em !important;
 }
 
 /* Equaliza altura dos botoes na area de acoes da busca */
@@ -1259,6 +1507,7 @@ mark {
     width: 100%;
     height: 100%;
     opacity: 0;
+    pointer-events: none;
     transition: opacity 0.6s ease-in-out;
     display: flex;
     justify-content: center;
@@ -1267,6 +1516,7 @@ mark {
 .carousel-slide.active {
     opacity: 1;
     z-index: 2;
+    pointer-events: auto;
 }
 .carousel-media {
     width: 100%;
@@ -1286,10 +1536,11 @@ mark {
     display: block;
 }
 .carousel-slide video { background-color: #000; }
-.carousel-prev, .carousel-next {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
+.homepage-carousel .carousel-prev,
+.homepage-carousel .carousel-next {
+    position: absolute !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
     background: rgba(0,0,0,0.45);
     color: #fff;
     border: none;
@@ -1301,10 +1552,21 @@ mark {
     justify-content: center;
     cursor: pointer;
     z-index: 10;
+    font-size: 28px;
+    line-height: 1;
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+    text-transform: none;
+    letter-spacing: normal;
+    font-weight: normal;
+    font-family: Arial, sans-serif;
+    transition: background 0.2s ease;
 }
-.carousel-prev { left: 12px; }
-.carousel-next { right: 12px; }
-.carousel-prev:hover, .carousel-next:hover { filter: brightness(1.1); }
+.homepage-carousel .carousel-prev { left: 12px !important; }
+.homepage-carousel .carousel-next { right: 12px !important; }
+.homepage-carousel .carousel-prev:hover,
+.homepage-carousel .carousel-next:hover { background: rgba(0,0,0,0.7); }
 .carousel-indicators {
     position: absolute;
     bottom: 10px;
@@ -1342,7 +1604,8 @@ mark {
 @media (max-width: 768px) {
     .homepage-carousel .carousel-slides { height: 200px; }
     .carousel-slide img, .carousel-slide video { max-height: 200px; }
-    .carousel-prev, .carousel-next { width: 36px; height: 36px; }
+    .homepage-carousel .carousel-prev,
+    .homepage-carousel .carousel-next { width: 36px; height: 36px; font-size: 22px; }
     .carousel-indicator { width: 12px; height: 12px; }
 }
 

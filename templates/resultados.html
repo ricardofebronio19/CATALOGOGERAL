@@ -65,8 +65,8 @@
 
                     {{ sortable_header('codigo', 'Código') }}
                     {{ sortable_header('nome', 'Nome') }}
-                    {{ sortable_header('fornecedor', 'Fornecedor') }}
                     <th>Aplicações</th>
+                    <th>Motor</th>
                     {% if current_user.is_authenticated %}
                         <th style="width: 120px;">Ações</th>
                     {% endif %}
@@ -76,23 +76,37 @@
                 {% for produto in pagination.items %}
                 <tr>
                     <td>
-                        <a href="{{ url_for('main.detalhe_peca', id=produto.id) }}">
+                        {% set link_params = {'id': produto.id} %}
+                        {% if montadora %}{% do link_params.update({'montadora_context': montadora}) %}{% endif %}
+                        {% if aplicacao_termo %}{% do link_params.update({'veiculo_context': aplicacao_termo}) %}{% endif %}
+                        <a href="{{ url_for('main.detalhe_peca', **link_params) }}">
                             <img src="{% if produto.imagens %}{{ url_for('uploaded_file', filename=produto.imagens[0].filename) }}{% else %}https://via.placeholder.com/60x60/eee/aaa?text=N/A{% endif %}" alt="Imagem de {{ produto.nome }}" class="product-image-thumbnail">
                         </a>
                     </td>
                     <td>{{ produto.codigo|highlight(termo) }}</td>
                     <td>
-                        <a href="{{ url_for('main.detalhe_peca', id=produto.id) }}" style="text-decoration: none; color: #0056b3; font-weight: bold;">
+                        {% set link_params = {'id': produto.id} %}
+                        {% if montadora %}{% do link_params.update({'montadora_context': montadora}) %}{% endif %}
+                        {% if aplicacao_termo %}{% do link_params.update({'veiculo_context': aplicacao_termo}) %}{% endif %}
+                        <a href="{{ url_for('main.detalhe_peca', **link_params) }}" style="text-decoration: none; color: #0056b3; font-weight: bold;">
                             {{ produto.nome|highlight(termo) }}
                         </a>
                     </td>
-                    <td>{{ produto.fornecedor|highlight(termo) }}</td>
                     <td>
                         {% for aplicacao in produto.aplicacoes[:2] %}
                             <span class="badge badge-manual">{{ aplicacao.montadora or '' }} {{ aplicacao.veiculo or '' }} {{ aplicacao.ano or '' }}</span><br>
                         {% endfor %}
                         {% if produto.aplicacoes|length > 2 %}
                             <span style="font-size: 0.8em; color: #666;">... e mais {{ produto.aplicacoes|length - 2 }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% set motores = produto.aplicacoes|map(attribute='motor')|select|unique|list %}
+                        {% for motor in motores[:2] %}
+                            <span>{{ motor|highlight(termo) }}</span><br>
+                        {% endfor %}
+                        {% if motores|length > 2 %}
+                            <span style="font-size:0.8em;color:#666;">+{{ motores|length - 2 }}</span>
                         {% endif %}
                     </td>
                     {% if current_user.is_authenticated %}

@@ -5,7 +5,7 @@ Fornece endpoints RESTful para integração externa
 
 from datetime import datetime
 from flask import Blueprint, jsonify, request, current_app
-from flask_login import login_required, current_user
+from flask_login import login_required, login_user, logout_user, current_user
 from sqlalchemy.orm import selectinload
 from sqlalchemy import func, desc
 
@@ -607,6 +607,222 @@ def list_contatos():
             error="Erro interno do servidor",
             status_code=500
         )
+
+# ===== AUTH =====
+
+@api_bp.route('/auth/login', methods=['POST'])
+def api_login():
+    """Login via JSON para clientes mobile/API"""
+    from models import User
+    data = request.get_json()
+    if not data:
+        return api_response(error="JSON body obrigatório", status_code=400)
+
+    username = data.get('username', '').strip()
+    password = data.get('password', '')
+
+    if not username or not password:
+        return api_response(error="Username e senha são obrigatórios", status_code=400)
+
+    user = User.query.filter_by(username=username).first()
+    if user is None or not user.check_password(password):
+        return api_response(error="Usuário ou senha inválidos", status_code=401)
+
+    login_user(user, remember=True)
+    logger.info(f"Login via API: {user.username}")
+
+    return api_response(data={
+        'user': {
+            'id': user.id,
+            'username': user.username,
+            'is_admin': user.is_admin
+        }
+    }, message="Login realizado com sucesso")
+
+
+@api_bp.route('/auth/logout', methods=['POST'])
+@login_required
+def api_logout():
+    """Logout para clientes mobile/API"""
+    logout_user()
+    return api_response(message="Logout realizado com sucesso")
+
+
+@api_bp.route('/auth/me', methods=['GET'])
+@login_required
+def api_me():
+    """Retorna dados do usuário autenticado"""
+    return api_response(data={
+        'user': {
+            'id': current_user.id,
+            'username': current_user.username,
+            'is_admin': current_user.is_admin
+        }
+    })
+
+
+# ===== CONTATOS CRUD =====
+
+@api_bp.route('/contatos/<int:contato_id>', methods=['GET'])
+@login_required
+def get_contato(contato_id):
+    """Retorna detalhes de um contato"""
+    contato = Contato.query.get_or_404(contato_id)
+    return api_response(data={'contato': {
+        'id': contato.id,
+        'nome': contato.nome,
+        'empresa': contato.empresa,
+        'telefone': contato.telefone,
+        'whatsapp': contato.whatsapp,
+        'email': contato.email,
+        'cargo': contato.cargo,
+        'endereco': contato.endereco,
+        'observacoes': contato.observacoes,
+        'favorito': contato.favorito,
+    }})
+
+
+@api_bp.route('/contatos', methods=['POST'])
+@login_required
+def create_contato():
+    """Cria um novo contato"""
+    data = request.get_json()
+    if not data or not data.get('nome'):
+        return api_response(error="Campo 'nome' é obrigatório", status_code=400)
+
+    contato = Contato(
+        nome=data['nome'],
+        empresa=data.get('empresa'),
+        telefone=data.get('telefone'),
+        whatsapp=data.get('whatsapp'),
+        email=data.get('email'),
+        cargo=data.get('cargo'),
+        endereco=data.get('endereco'),
+        observacoes=data.get('observacoes'),
+        favorito=bool(data.get('favorito', False)),
+    )
+    db.session.add(contato)
+    db.session.commit()
+    return api_response(data={'contato': {'id': contato.id, 'nome': contato.nome}},
+                        message="Contato criado com sucesso", status_code=201)
+
+
+@api_bp.route('/contatos/<int:contato_id>', methods=['PUT'])
+@login_required
+def update_contato(contato_id):
+    """Atualiza um contato existente"""
+    contato = Contato.query.get_or_404(contato_id)
+    data = request.get_json()
+    if not data:
+        return api_response(error="JSON body obrigatório", status_code=400)
+
+    if 'nome' in data:
+        contato.nome = data['nome']
+    for field in ('empresa', 'telefone', 'whatsapp', 'email', 'cargo', 'endereco', 'observacoes'):
+        if field in data:
+            setattr(contato, field, data[field])
+    if 'favorito' in data:
+        contato.favorito = bool(data['favorito'])
+
+    db.session.commit()
+    return api_response(data={'contato': {'id': contato.id, 'nome': contato.nome}},
+                        message="Contato atualizado com sucesso")
+
+
+@api_bp.route('/contatos/<int:contato_id>', methods=['DELETE'])
+@login_required
+def delete_contato(contato_id):
+    """Remove um contato"""
+    contato = Contato.query.get_or_404(contato_id)
+    db.session.delete(contato)
+    db.session.commit()
+    return api_response(message="Contato removido com sucesso")
+
+
+# ===== CARRINHO =====
+
+def _cart_response(app_instance):
+    """Helper: retorna estado atual do carrinho como dict"""
+    from utils.cart_utils import get_cart_items, get_cart_count, get_cart_summary
+    items = get_cart_items(app_instance)
+    count = get_cart_count(app_instance)
+    summary = get_cart_summary(app_instance)
+    return {
+        'items': [
+            {
+                'produto_id': item['produto_id'],
+                'codigo': item.get('codigo'),
+                'nome': item.get('nome'),
+                'quantidade': item.get('quantidade', 1),
+                'imagem': item.get('imagem'),
+            }
+            for item in (items or [])
+        ],
+        'total_items': count,
+        'summary': summary,
+    }
+
+
+@api_bp.route('/carrinho', methods=['GET'])
+@login_required
+def api_get_carrinho():
+    """Retorna o carrinho atual"""
+    return api_response(data=_cart_response(current_app._get_current_object()))
+
+
+@api_bp.route('/carrinho/adicionar', methods=['POST'])
+@login_required
+def api_add_carrinho():
+    """Adiciona produto ao carrinho"""
+    from utils.cart_utils import add_to_cart
+    data = request.get_json()
+    produto_id = data.get('produto_id') if data else None
+    quantidade = int(data.get('quantidade', 1)) if data else 1
+    if not produto_id:
+        return api_response(error="produto_id é obrigatório", status_code=400)
+    add_to_cart(current_app._get_current_object(), produto_id, quantidade)
+    return api_response(data=_cart_response(current_app._get_current_object()),
+                        message="Produto adicionado ao carrinho")
+
+
+@api_bp.route('/carrinho/remover', methods=['POST'])
+@login_required
+def api_remove_carrinho():
+    """Remove produto do carrinho"""
+    from utils.cart_utils import remove_from_cart
+    data = request.get_json()
+    produto_id = data.get('produto_id') if data else None
+    if not produto_id:
+        return api_response(error="produto_id é obrigatório", status_code=400)
+    remove_from_cart(current_app._get_current_object(), produto_id)
+    return api_response(data=_cart_response(current_app._get_current_object()),
+                        message="Produto removido do carrinho")
+
+
+@api_bp.route('/carrinho/atualizar', methods=['POST'])
+@login_required
+def api_update_carrinho():
+    """Atualiza quantidade de um item no carrinho"""
+    from utils.cart_utils import update_cart_item
+    data = request.get_json()
+    produto_id = data.get('produto_id') if data else None
+    quantidade = int(data.get('quantidade', 1)) if data else 1
+    if not produto_id:
+        return api_response(error="produto_id é obrigatório", status_code=400)
+    update_cart_item(current_app._get_current_object(), produto_id, quantidade)
+    return api_response(data=_cart_response(current_app._get_current_object()),
+                        message="Carrinho atualizado")
+
+
+@api_bp.route('/carrinho/limpar', methods=['POST'])
+@login_required
+def api_limpar_carrinho():
+    """Limpa o carrinho"""
+    from utils.cart_utils import clear_cart
+    clear_cart(current_app._get_current_object())
+    return api_response(data=_cart_response(current_app._get_current_object()),
+                        message="Carrinho limpo")
+
 
 # ===== TRATAMENTO DE ERROS =====
 

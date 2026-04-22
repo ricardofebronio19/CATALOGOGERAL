@@ -33,6 +33,26 @@ class FullTextSearch:
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row  # Permite acesso por nome da coluna
         return conn
+
+    def _get_existing_table_sql(self, conn: sqlite3.Connection) -> Optional[str]:
+        """Retorna o SQL usado para criar a tabela FTS atual, se existir."""
+        cursor = conn.execute(
+            """
+            SELECT sql
+            FROM sqlite_master
+            WHERE type='table' AND name=?;
+            """,
+            (self.fts_table,),
+        )
+        row = cursor.fetchone()
+        return row["sql"] if row and row["sql"] else None
+
+    def _uses_legacy_contentless_schema(self, table_sql: Optional[str]) -> bool:
+        """Detecta o schema legado contentless que retorna colunas nulas nas leituras."""
+        if not table_sql:
+            return False
+        normalized_sql = table_sql.lower().replace(' ', '')
+        return "content=''" in normalized_sql or 'content=""' in normalized_sql
     
     def create_fts_table(self) -> bool:
         """Cria a tabela FTS5 se não existir"""
@@ -44,6 +64,13 @@ class FullTextSearch:
                 if not any('FTS5' in option for option in options):
                     logger.error("SQLite FTS5 não está disponível nesta instalação")
                     return False
+
+                existing_table_sql = self._get_existing_table_sql(conn)
+                if self._uses_legacy_contentless_schema(existing_table_sql):
+                    logger.warning(
+                        "Schema FTS legado detectado; recriando índice para restaurar leituras válidas"
+                    )
+                    conn.execute(f"DROP TABLE IF EXISTS {self.fts_table};")
                 
                 # Cria tabela FTS5
                 create_sql = f"""
@@ -57,7 +84,6 @@ class FullTextSearch:
                     aplicacoes,
                     medidas,
                     observacoes,
-                    content='',
                     tokenize='porter ascii'
                 );
                 """
@@ -101,6 +127,81 @@ class FullTextSearch:
                 END;
                 """
                 conn.execute(trigger_delete_sql)
+
+                # Mantém o texto consolidado de aplicações sincronizado no FTS
+                trigger_aplicacao_insert_sql = f"""
+                CREATE TRIGGER IF NOT EXISTS produtos_fts_sync_aplicacao_insert
+                AFTER INSERT ON aplicacao BEGIN
+                    UPDATE {self.fts_table}
+                    SET aplicacoes = (
+                        SELECT GROUP_CONCAT(
+                            COALESCE(a.montadora, '') || ' ' ||
+                            COALESCE(a.veiculo, '') || ' ' ||
+                            COALESCE(a.motor, '') || ' ' ||
+                            COALESCE(a.ano, ''),
+                            ' | '
+                        )
+                        FROM aplicacao a
+                        WHERE a.produto_id = NEW.produto_id
+                    )
+                    WHERE produto_id = NEW.produto_id;
+                END;
+                """
+                conn.execute(trigger_aplicacao_insert_sql)
+
+                trigger_aplicacao_update_sql = f"""
+                CREATE TRIGGER IF NOT EXISTS produtos_fts_sync_aplicacao_update
+                AFTER UPDATE ON aplicacao BEGIN
+                    UPDATE {self.fts_table}
+                    SET aplicacoes = (
+                        SELECT GROUP_CONCAT(
+                            COALESCE(a.montadora, '') || ' ' ||
+                            COALESCE(a.veiculo, '') || ' ' ||
+                            COALESCE(a.motor, '') || ' ' ||
+                            COALESCE(a.ano, ''),
+                            ' | '
+                        )
+                        FROM aplicacao a
+                        WHERE a.produto_id = NEW.produto_id
+                    )
+                    WHERE produto_id = NEW.produto_id;
+
+                    UPDATE {self.fts_table}
+                    SET aplicacoes = (
+                        SELECT GROUP_CONCAT(
+                            COALESCE(a.montadora, '') || ' ' ||
+                            COALESCE(a.veiculo, '') || ' ' ||
+                            COALESCE(a.motor, '') || ' ' ||
+                            COALESCE(a.ano, ''),
+                            ' | '
+                        )
+                        FROM aplicacao a
+                        WHERE a.produto_id = OLD.produto_id
+                    )
+                    WHERE produto_id = OLD.produto_id;
+                END;
+                """
+                conn.execute(trigger_aplicacao_update_sql)
+
+                trigger_aplicacao_delete_sql = f"""
+                CREATE TRIGGER IF NOT EXISTS produtos_fts_sync_aplicacao_delete
+                AFTER DELETE ON aplicacao BEGIN
+                    UPDATE {self.fts_table}
+                    SET aplicacoes = (
+                        SELECT GROUP_CONCAT(
+                            COALESCE(a.montadora, '') || ' ' ||
+                            COALESCE(a.veiculo, '') || ' ' ||
+                            COALESCE(a.motor, '') || ' ' ||
+                            COALESCE(a.ano, ''),
+                            ' | '
+                        )
+                        FROM aplicacao a
+                        WHERE a.produto_id = OLD.produto_id
+                    )
+                    WHERE produto_id = OLD.produto_id;
+                END;
+                """
+                conn.execute(trigger_aplicacao_delete_sql)
                 
                 conn.commit()
                 logger.info(f"Tabela FTS5 '{self.fts_table}' criada com sucesso")
@@ -153,7 +254,13 @@ class FullTextSearch:
             logger.error(f"Erro ao popular tabela FTS5: {str(e)}")
             return False
     
-    def search(self, query: str, limit: int = 50, offset: int = 0) -> List[Dict[str, Any]]:
+    def search(
+        self,
+        query: str,
+        limit: int = 50,
+        offset: int = 0,
+        _allow_repair: bool = True,
+    ) -> List[Dict[str, Any]]:
         """
         Realiza busca full-text e retorna resultados ordenados por relevância
         
@@ -210,6 +317,14 @@ class FullTextSearch:
                         'observacoes': row['observacoes'],
                         'relevancia': row['relevancia']
                     })
+
+                if results and all(result['produto_id'] is None for result in results):
+                    logger.warning(
+                        "Busca FTS retornou registros sem produto_id; tentando reconstruir índice"
+                    )
+                    if _allow_repair and self.rebuild_index():
+                        return self.search(query, limit=limit, offset=offset, _allow_repair=False)
+                    return []
                 
                 logger.debug(f"Busca FTS5 '{query}' retornou {len(results)} resultados")
                 return results
@@ -254,14 +369,16 @@ class FullTextSearch:
         if not terms:
             return ''
         
-        # Para busca mais flexível, adiciona * ao final de cada termo
-        # e conecta com OR se há múltiplos termos
+        # Para busca mais flexível, adiciona * ao final de cada termo.
+        # Múltiplos termos usam AND para que o documento precise conter TODOS os
+        # termos (ex: "homocinetica celta" não deve retornar todas as homociné-
+        # ticas, apenas as compatíveis com Celta).
         if len(terms) == 1:
             return f'"{terms[0]}" OR {terms[0]}*'
         else:
-            # Para múltiplos termos, busca com AND e OR
+            # Frase exata OU todos os termos presentes (AND entre wildcards)
             exact_phrase = '"' + ' '.join(terms) + '"'
-            wildcard_terms = ' OR '.join([f'{term}*' for term in terms])
+            wildcard_terms = ' AND '.join([f'{term}*' for term in terms])
             return f'{exact_phrase} OR ({wildcard_terms})'
     
     def get_search_suggestions(self, query: str, limit: int = 5) -> List[str]:
@@ -324,10 +441,7 @@ class FullTextSearch:
         """Retorna estatísticas da tabela FTS5"""
         try:
             with self._get_connection() as conn:
-                cursor = conn.execute(f"SELECT COUNT(*) as total FROM {self.fts_table};")
-                total = cursor.fetchone()['total']
-                
-                # Verifica se a tabela existe
+                # Verifica se a tabela existe ANTES de consultar
                 cursor = conn.execute("""
                     SELECT name FROM sqlite_master 
                     WHERE type='table' AND name=?;
@@ -335,9 +449,14 @@ class FullTextSearch:
                 
                 exists = cursor.fetchone() is not None
                 
+                total = 0
+                if exists:
+                    cursor = conn.execute(f"SELECT COUNT(*) as total FROM {self.fts_table};")
+                    total = cursor.fetchone()['total']
+                
                 return {
                     'exists': exists,
-                    'total_records': total if exists else 0,
+                    'total_records': total,
                     'table_name': self.fts_table
                 }
                 

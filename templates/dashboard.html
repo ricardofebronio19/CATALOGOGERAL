@@ -66,6 +66,20 @@
     border-radius: 8px;
     padding: 20px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.chart-container {
+    position: relative;
+    width: 100%;
+    height: 320px;
+    min-height: 320px;
+}
+
+.chart-container canvas {
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
 }
 
 .chart-title {
@@ -168,6 +182,11 @@
     .chart-card {
         padding: 15px;
     }
+
+    .chart-container {
+        height: 260px;
+        min-height: 260px;
+    }
     
     .stat-card {
         padding: 15px;
@@ -234,22 +253,30 @@
     <div class="charts-grid">
         <div class="chart-card">
             <div class="chart-title">Produtos por Fornecedor (Top 10)</div>
-            <canvas id="fornecedoresChart" width="400" height="300"></canvas>
+            <div class="chart-container">
+                <canvas id="fornecedoresChart"></canvas>
+            </div>
         </div>
         
         <div class="chart-card">
             <div class="chart-title">Aplicações por Montadora (Top 10)</div>
-            <canvas id="montadorasChart" width="400" height="300"></canvas>
+            <div class="chart-container">
+                <canvas id="montadorasChart"></canvas>
+            </div>
         </div>
         
         <div class="chart-card">
             <div class="chart-title">Produtos por Grupo</div>
-            <canvas id="gruposChart" width="400" height="300"></canvas>
+            <div class="chart-container">
+                <canvas id="gruposChart"></canvas>
+            </div>
         </div>
         
         <div class="chart-card">
             <div class="chart-title">Distribuição de Imagens</div>
-            <canvas id="imagensChart" width="400" height="300"></canvas>
+            <div class="chart-container">
+                <canvas id="imagensChart"></canvas>
+            </div>
         </div>
     </div>
 

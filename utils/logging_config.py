@@ -119,7 +119,7 @@ class PerformanceLogger:
         self.logger.debug(f"Iniciando operação: {self.operation_name}")
         return self
     
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type, exc_val, _exc_tb):
         end_time = datetime.now()
         duration = (end_time - self.start_time).total_seconds()
         

@@ -17,7 +17,7 @@ if "%APP_VERSION%"=="" (
     for /f "usebackq delims=" %%i in (`git describe --tags --abbrev^=0 2^>nul`) do set APP_VERSION=%%i
 )
 if "%APP_VERSION%"=="" (
-    set APP_VERSION=2.0.0
+    set APP_VERSION=2.0.7
 )
 set ENTRY_SCRIPT=run.py
 set ICON_FILE=static\favicon.ico
@@ -73,7 +73,13 @@ echo [2/4] Empacotando a aplicacao com PyInstaller (modo --onefile)...
 :: Detecta o Python a ser usado: preferimos .venv se existir, caso contrario usamos 'python' do PATH
 set "PY_CMD=python"
 if exist ".venv\Scripts\python.exe" (
-    set "PY_CMD=.venv\Scripts\python.exe"
+    ".venv\Scripts\python.exe" --version >nul 2>&1
+    if errorlevel 1 (
+        echo [AVISO] Ambiente virtual em .venv detectado, mas parece estar corrompido ou apontando para um local invalido.
+        echo         Usando 'python' do sistema como fallback.
+    ) else (
+        set "PY_CMD=.venv\Scripts\python.exe"
+    )
 )
 
 echo [INFO] Usando launcher Python: %PY_CMD%

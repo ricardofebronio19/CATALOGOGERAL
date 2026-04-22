@@ -206,6 +206,149 @@
             background-color: #c82333;
         }
         
+        .btn-whatsapp {
+            background-color: #25D366;
+            color: white;
+        }
+        
+        .btn-whatsapp:hover {
+            background-color: #1ebe5d;
+            color: white;
+        }
+        
+        /* Modal WhatsApp */
+        #modalWhatsapp {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.55);
+            z-index: 3000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        #modalWhatsapp.ativo {
+            display: flex;
+        }
+        
+        .modal-whatsapp-box {
+            background: white;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 520px;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+            overflow: hidden;
+        }
+        
+        .modal-whatsapp-header {
+            background: #25D366;
+            color: white;
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        
+        .modal-whatsapp-header h3 {
+            margin: 0;
+            font-size: 16px;
+        }
+        
+        .modal-whatsapp-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 22px;
+            cursor: pointer;
+            line-height: 1;
+            padding: 0 4px;
+        }
+        
+        .modal-whatsapp-body {
+            overflow-y: auto;
+            flex: 1;
+            padding: 16px;
+        }
+        
+        .modal-whatsapp-search {
+            width: 100%;
+            padding: 9px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            margin-bottom: 14px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        
+        .contato-whatsapp-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: background 0.15s, border-color 0.15s;
+        }
+        
+        .contato-whatsapp-item:hover {
+            background: #f0fdf4;
+            border-color: #25D366;
+        }
+        
+        .contato-whatsapp-avatar {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background: #25D366;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+        
+        .contato-whatsapp-info {
+            flex: 1;
+        }
+        
+        .contato-whatsapp-nome {
+            font-weight: bold;
+            font-size: 14px;
+            color: #222;
+        }
+        
+        .contato-whatsapp-empresa {
+            font-size: 12px;
+            color: #666;
+            margin-top: 2px;
+        }
+        
+        .contato-whatsapp-fav {
+            color: #ffd700;
+            font-size: 16px;
+        }
+        
+        .modal-whatsapp-empty {
+            text-align: center;
+            color: #888;
+            padding: 30px 0;
+            font-size: 14px;
+        }
+        
+        .modal-whatsapp-loading {
+            text-align: center;
+            padding: 30px 0;
+            color: #666;
+        }
+
         @media (max-width: 768px) {
             .cart-item-row {
                 flex-direction: column;
@@ -410,6 +553,13 @@
                 <button type="button" class="btn btn-secondary" onclick="window.print();">
                     🖨️ Imprimir Página
                 </button>
+
+                <button type="button" class="btn btn-whatsapp" id="btnEnviarWhatsapp" onclick="abrirModalWhatsapp();">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle;">
+                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                    </svg>
+                    Enviar via WhatsApp
+                </button>
                 
                 <form method="POST" action="{{ url_for('main.limpar_carrinho') }}" style="margin: 0;">
                     <button type="submit" class="btn btn-danger" 
@@ -449,6 +599,200 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+</script>
+
+<!-- Modal WhatsApp -->
+<div id="modalWhatsapp" role="dialog" aria-modal="true" aria-labelledby="modalWhatsappTitulo">
+    <div class="modal-whatsapp-box">
+        <div class="modal-whatsapp-header">
+            <h3 id="modalWhatsappTitulo">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle;margin-right:6px;">
+                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                </svg>
+                Enviar Carrinho via WhatsApp
+            </h3>
+            <button class="modal-whatsapp-close" onclick="fecharModalWhatsapp()" aria-label="Fechar">&times;</button>
+        </div>
+        <div class="modal-whatsapp-body">
+            <!-- Dados do Veículo -->
+            <div style="background:#f0fdf4;border:1px solid #b2dfdb;border-radius:8px;padding:12px;margin-bottom:14px;">
+                <p style="margin:0 0 10px;font-size:13px;font-weight:bold;color:#1a7a4a;">🚗 Dados do Veículo <span style="font-weight:normal;color:#666;">(opcional)</span></p>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                    <div style="flex:2;min-width:120px;">
+                        <label for="veiculo_modelo" style="font-size:12px;color:#555;display:block;margin-bottom:3px;">Modelo</label>
+                        <input type="text" id="veiculo_modelo" placeholder="Ex: Civic, Onix..." style="width:100%;padding:7px 10px;border:1px solid #ccc;border-radius:5px;font-size:13px;box-sizing:border-box;">
+                    </div>
+                    <div style="flex:1;min-width:80px;">
+                        <label for="veiculo_ano" style="font-size:12px;color:#555;display:block;margin-bottom:3px;">Ano</label>
+                        <input type="text" id="veiculo_ano" placeholder="Ex: 2022" style="width:100%;padding:7px 10px;border:1px solid #ccc;border-radius:5px;font-size:13px;box-sizing:border-box;">
+                    </div>
+                    <div style="flex:1;min-width:100px;">
+                        <label for="veiculo_motor" style="font-size:12px;color:#555;display:block;margin-bottom:3px;">Motor</label>
+                        <input type="text" id="veiculo_motor" placeholder="Ex: 1.0 Turbo" style="width:100%;padding:7px 10px;border:1px solid #ccc;border-radius:5px;font-size:13px;box-sizing:border-box;">
+                    </div>
+                </div>
+            </div>
+            <p style="margin:0 0 12px;font-size:13px;color:#555;">Selecione o contato para quem deseja enviar os itens do carrinho:</p>
+            <input type="text" class="modal-whatsapp-search" id="buscaContatoWhatsapp"
+                   placeholder="Buscar contato..." oninput="filtrarContatos(this.value)">
+            <div id="listaContatosWhatsapp">
+                <div class="modal-whatsapp-loading">Carregando contatos...</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    // Coleta itens do carrinho renderizados no template para compor a mensagem
+    var cartItems = [
+        {% if cart_summary['items'] %}
+        {% for item in cart_summary['items'] %}
+        {
+            nome: {{ item.produto.nome | tojson }},
+            codigo: {{ (item.produto.codigo or 'N/A') | tojson }},
+            fornecedor: {{ (item.produto.fornecedor or 'N/A') | tojson }},
+            quantidade: {{ item.quantidade }},
+            observacoes: {{ (item.observacoes or '') | tojson }}
+        }{% if not loop.last %},{% endif %}
+        {% endfor %}
+        {% endif %}
+    ];
+
+    var contatosCache = null;
+
+    window.abrirModalWhatsapp = function() {
+        var modal = document.getElementById('modalWhatsapp');
+        modal.classList.add('ativo');
+        document.body.style.overflow = 'hidden';
+        document.getElementById('buscaContatoWhatsapp').value = '';
+
+        if (contatosCache !== null) {
+            renderizarContatos(contatosCache);
+            return;
+        }
+
+        fetch('{{ url_for("main.carrinho_contatos_whatsapp") }}')
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                contatosCache = data;
+                renderizarContatos(data);
+            })
+            .catch(function() {
+                document.getElementById('listaContatosWhatsapp').innerHTML =
+                    '<div class="modal-whatsapp-empty">Erro ao carregar contatos. Tente novamente.</div>';
+            });
+    };
+
+    window.fecharModalWhatsapp = function() {
+        var modal = document.getElementById('modalWhatsapp');
+        modal.classList.remove('ativo');
+        document.body.style.overflow = '';
+    };
+
+    // Fecha ao clicar fora da caixa
+    document.getElementById('modalWhatsapp').addEventListener('click', function(e) {
+        if (e.target === this) window.fecharModalWhatsapp();
+    });
+
+    // Fecha com ESC
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') window.fecharModalWhatsapp();
+    });
+
+    window.filtrarContatos = function(termo) {
+        if (!contatosCache) return;
+        var filtrados = contatosCache.filter(function(c) {
+            var t = termo.toLowerCase();
+            return c.nome.toLowerCase().includes(t) || c.empresa.toLowerCase().includes(t);
+        });
+        renderizarContatos(filtrados);
+    };
+
+    // Lista atualmente exibida (usada pelo delegated listener)
+    var listaAtual = [];
+
+    function renderizarContatos(lista) {
+        listaAtual = lista || [];
+        var container = document.getElementById('listaContatosWhatsapp');
+        if (!listaAtual.length) {
+            container.innerHTML = '<div class="modal-whatsapp-empty">Nenhum contato com WhatsApp cadastrado.</div>';
+            return;
+        }
+        var html = '';
+        listaAtual.forEach(function(c, idx) {
+            var inicial = c.nome.charAt(0).toUpperCase();
+            html += '<div class="contato-whatsapp-item" data-idx="' + idx + '">';
+            html += '<div class="contato-whatsapp-avatar">' + inicial + '</div>';
+            html += '<div class="contato-whatsapp-info">';
+            html += '<div class="contato-whatsapp-nome">' + escapeHtml(c.nome) + '</div>';
+            if (c.empresa) {
+                html += '<div class="contato-whatsapp-empresa">' + escapeHtml(c.empresa) + '</div>';
+            }
+            html += '</div>';
+            if (c.favorito) {
+                html += '<span class="contato-whatsapp-fav" title="Favorito">★</span>';
+            }
+            html += '</div>';
+        });
+        container.innerHTML = html;
+    }
+
+    // Delegated click — evita problemas com onclick inline + JSON com aspas
+    document.getElementById('listaContatosWhatsapp').addEventListener('click', function(e) {
+        var item = e.target.closest('.contato-whatsapp-item');
+        if (!item) return;
+        var idx = parseInt(item.dataset.idx, 10);
+        var contato = listaAtual[idx];
+        if (contato) enviarWhatsapp(contato);
+    });
+
+    function enviarWhatsapp(contato) {
+        if (!contato.whatsapp) {
+            alert('Este contato não possui número de WhatsApp cadastrado.');
+            return;
+        }
+
+        var modelo = document.getElementById('veiculo_modelo').value.trim();
+        var ano = document.getElementById('veiculo_ano').value.trim();
+        var motor = document.getElementById('veiculo_motor').value.trim();
+
+        var linhas = ['*🛒 Lista de Peças*', ''];
+
+        if (modelo || ano || motor) {
+            linhas.push('*🚗 Veículo:*');
+            if (modelo) linhas.push('   Modelo: ' + modelo);
+            if (ano) linhas.push('   Ano: ' + ano);
+            if (motor) linhas.push('   Motor: ' + motor);
+            linhas.push('');
+        }
+
+        cartItems.forEach(function(item, idx) {
+            linhas.push((idx + 1) + '. *' + item.nome + '*');
+            linhas.push('   Código: ' + item.codigo + ' | Fornecedor: ' + item.fornecedor);
+            linhas.push('   Qtd: ' + item.quantidade);
+            if (item.observacoes) {
+                linhas.push('   Obs: ' + item.observacoes);
+            }
+        });
+        linhas.push('');
+        linhas.push('_Enviado pelo Catálogo de Peças_');
+
+        var mensagem = linhas.join('\n');
+        var url = 'https://api.whatsapp.com/send?phone=' + encodeURIComponent(contato.whatsapp) +
+                  '&text=' + encodeURIComponent(mensagem);
+        window.open(url, '_blank');
+        window.fecharModalWhatsapp();
+    }
+
+    function escapeHtml(str) {
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+})();
 </script>
 
 {% endblock %}
