@@ -1,0 +1,6 @@
+{
+  "latest_version": "2.0.9",
+  "download_url": "https://github.com/ricardofebronio19/CATALOGOGERAL/releases/download/v2.0.9/instalador_CatalogoDePecas_v2.0.9.exe",
+  "release_notes": "v2.0.9 - Correcoes na exclusao de produtos\n\nCorrecoes:\n- Corrigido erro ao remover item de favoritos com fallback seguro para JSON/form\n- Corrigida exclusao de peca com limpeza de referencias relacionadas (similares, sugestoes ignoradas, historico, recomendacoes e favoritos)\n- Melhor tratamento de rollback e mensagem de erro para evitar Internal Server Error",
+  "size_mb": "37"
+}
