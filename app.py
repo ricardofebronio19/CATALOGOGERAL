@@ -1,0 +1,547 @@
+import json
+import os
+import re
+import sys
+import threading
+from datetime import datetime
+
+import requests
+import logging
+from flask import Flask, request, send_from_directory
+from flask_login import LoginManager, current_user
+from flask_sqlalchemy import SQLAlchemy
+from markupsafe import Markup
+from packaging import version as pkg_version
+
+# Importa o sistema de logging estruturado
+from utils.logging_config import setup_logging, get_logger
+
+# Inicializa extensões sem associá-las a um app ainda
+db = SQLAlchemy()
+login_manager = LoginManager()
+login_manager.login_view = "auth.login"  # Aponta para o blueprint de autenticação
+
+
+# --- Configurações de Atualização ---
+def _carregar_versao() -> str:
+    """Obtém a versão da aplicação de forma resiliente.
+
+    Ordem:
+    1) Variável de ambiente APP_VERSION (injeção no build/CI)
+    2) Arquivo version.json empacotado (criado pelo build)
+    3) Fallback para '1.0.0'
+    """
+    # 1) Ambiente
+    env_version = os.getenv("APP_VERSION")
+    if env_version:
+        return env_version
+
+    # 2) Arquivo version.json (no diretório do app ou no sys._MEIPASS quando congelado)
+    try:
+        base_dir = None
+        if getattr(sys, "frozen", False):
+            base_dir = sys._MEIPASS  # type: ignore[attr-defined]
+        else:
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+        version_file = os.path.join(base_dir, "version.json")
+        if os.path.exists(version_file):
+            with open(version_file, "r", encoding="utf-8") as vf:
+                data = json.load(vf)
+                if isinstance(data, dict) and "version" in data and data["version"]:
+                    return str(data["version"])
+    except Exception:
+        pass
+
+    # 3) Default
+    return "1.0.0"
+
+
+VERSION = _carregar_versao()
+UPDATE_CONFIG_URL = (
+    "https://raw.githubusercontent.com/ricardofebronio19/CATALOGOGERAL/"
+    "main/update_config.json"
+)  # URL para o JSON de configuração da atualização
+
+# Esta rota deve ser definida após a criação do objeto 'app', então será movida para depois da definição do app.
+
+
+# Define o caminho base para os dados da aplicação (banco de dados, uploads)
+# Usa a pasta AppData do usuário, que é um local seguro para escrita.
+base_path = os.getenv("APPDATA") or os.path.expanduser("~")
+APP_DATA_PATH = os.path.join(base_path, "CatalogoDePecas")
+
+UPLOAD_FOLDER = os.path.join(APP_DATA_PATH, "uploads")
+CONFIG_FILE = os.path.join(APP_DATA_PATH, "config.json")
+ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif"}
+# Lista pré-definida com as principais montadoras de automóveis no Brasil
+MONTADORAS_PREDEFINIDAS = [
+    "Audi",
+    "BMW",
+    "BYD",
+    "Caoa Chery",
+    "Chevrolet",
+    "CITROËN",
+    "Fiat",
+    "Ford",
+    "GWM",
+    "Honda",
+    "Hyundai",
+    "Jeep",
+    "Kia",
+    "Land Rover",
+    "Mercedes-Benz",
+    "Mitsubishi",
+    "Nissan",
+    "Peugeot",
+    "Ram",
+    "Renault",
+    "Toyota",
+    "Volkswagen",
+    "Volvo",
+]
+
+
+# Determina o caminho base para templates e arquivos estáticos
+# Nota: a criação das pastas de dados foi movida para dentro de create_app()
+# para evitar efeitos colaterais durante a importação do módulo (útil em
+# testes que sobrescrevem APP_DATA_PATH antes de criar a app).
+# --- Funções de Configuração de Aparência ---
+def carregar_config_aparencia():
+    """Carrega as configurações de aparência do arquivo JSON de forma segura."""
+    try:
+        with open(CONFIG_FILE, "r") as f:
+            config = json.load(f)
+            # Garante que as chaves essenciais existam
+            config.setdefault("cor_principal", "#ff6600")
+            config.setdefault("logo_path", None)
+            # Mapeamento opcional de ícones por montadora (slug -> filename em uploads)
+            # Ex.: { "chevrolet": "chevrolet_custom.png" }
+            config.setdefault("montadora_icons", {})
+            # Configuração para pesquisa externa na internet
+            config.setdefault("pesquisa_externa_ativa", False)
+            # Cores específicas para colunas em 'Detalhes do Produto'
+            config.setdefault("cor_coluna_conversoes", "#fff3cd")
+            config.setdefault("cor_coluna_medidas", "#d1ecf1")
+            # Configurações de plano de fundo
+            config.setdefault("background_tipo", "cor")  # "cor" ou "imagem"
+            config.setdefault("background_cor", "#ffffff")
+            config.setdefault("background_imagem", None)
+            config.setdefault("background_repeat", "no-repeat")  # repeat, no-repeat, repeat-x, repeat-y
+            config.setdefault("background_position", "center center")  # center, top, bottom, left, right
+            config.setdefault("background_size", "cover")  # cover, contain, auto
+            config.setdefault("background_opacity", 1.0)  # 0.0 a 1.0
+            return config
+    except (FileNotFoundError, json.JSONDecodeError):
+        # Retorna um dicionário padrão se o arquivo não existir ou ser inválido
+        return {
+            "cor_principal": "#ff6600",
+            "logo_path": None,
+            "montadora_icons": {},
+            "pesquisa_externa_ativa": False,
+            "cor_coluna_conversoes": "#fff3cd",
+            "cor_coluna_medidas": "#d1ecf1",
+            "background_tipo": "cor",
+            "background_cor": "#ffffff",
+            "background_imagem": None,
+            "background_repeat": "no-repeat",
+            "background_position": "center center",
+            "background_size": "cover",
+            "background_opacity": 1.0,
+        }
+
+
+def salvar_config_aparencia(config):
+    """Salva as configurações de aparência no arquivo JSON."""
+    with open(CONFIG_FILE, "w") as f:
+        json.dump(config, f, indent=4)
+
+
+# --- Configuração do Flask-Login ---
+@login_manager.user_loader
+def load_user(user_id):
+    """Função para carregar o usuário a partir do ID armazenado na sessão."""
+    # Importa o modelo User aqui para evitar importação circular
+    from models import User
+
+    return db.session.get(User, int(user_id))
+
+
+def create_app():
+    """
+    Cria e configura a instância da aplicação Flask (App Factory Pattern).
+    """
+    if getattr(sys, "frozen", False):
+        # Se estiver rodando como um executável PyInstaller
+        template_folder = os.path.join(sys._MEIPASS, "templates")
+        static_folder = os.path.join(sys._MEIPASS, "static")
+        app = Flask(
+            __name__, template_folder=template_folder, static_folder=static_folder
+        )
+    else:
+        # Se estiver rodando como um script Python normal
+        app = Flask(__name__)
+
+    # --- Carrega configuração por ambiente (config.py) ---
+    from config import DevelopmentConfig, ProductionConfig
+
+    config_name = os.getenv("FLASK_CONFIG", "production").lower()
+    if config_name.startswith("dev"):
+        app.config.from_object(DevelopmentConfig)
+    else:
+        app.config.from_object(ProductionConfig)
+
+    # Gera/usa secret_key a partir da aparência se não houver SECRET_KEY em env
+    config_aparencia = carregar_config_aparencia()
+    if not app.config.get("SECRET_KEY"):
+        if "secret_key" not in config_aparencia:
+            config_aparencia["secret_key"] = os.urandom(24).hex()
+            salvar_config_aparencia(config_aparencia)
+        app.config["SECRET_KEY"] = config_aparencia["secret_key"]
+
+    # Define valores dependentes de APP_DATA_PATH
+    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + os.path.join(
+        APP_DATA_PATH, "catalogo.db"
+    )
+    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+        "connect_args": {"timeout": 15},
+        "pool_pre_ping": True,
+    }
+    app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
+    # Limita o tamanho máximo das requisições para proteger a aplicação.
+    # Pode ser sobrescrito pela variável de ambiente `MAX_CONTENT_LENGTH` (bytes).
+    app.config["MAX_CONTENT_LENGTH"] = int(os.getenv("MAX_CONTENT_LENGTH", 536870912))  # 512MB
+
+    # API de consulta por placa removida (funcionalidade desativada)
+
+    # Garante que as pastas de dados existam (cria com o APP_DATA_PATH atual)
+    try:
+        os.makedirs(APP_DATA_PATH, exist_ok=True)
+        os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
+    except Exception:
+        # Não falhar na criação de pastas durante import (tests podem manipular paths)
+        pass
+
+    # --- Configuração do Sistema de Logging ---
+    try:
+        app_logger = setup_logging(APP_DATA_PATH)
+        app.logger = app_logger
+        app_logger.info(f"Aplicação CGI inicializada - Versão {_carregar_versao()}")
+        app_logger.info(f"Ambiente: {config_name}")
+        app_logger.info(f"APP_DATA_PATH: {APP_DATA_PATH}")
+    except Exception as e:
+        print(f"Erro ao configurar logging: {e}")
+        # Fallback para logging básico
+        logging.basicConfig(level=logging.INFO)
+
+    # Desenvolvimento: se o banco de dados no APP_DATA_PATH não existir, mas
+    # houver um `data/catalogo.db` presente no repositório (útil ao rodar
+    # localmente a partir do código), copiamos esse arquivo para o diretório
+    # de dados do usuário para evitar trabalhar contra um DB vazio.
+    try:
+        proj_db = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "catalogo.db")
+        target_db = os.path.join(APP_DATA_PATH, "catalogo.db")
+        if os.path.exists(proj_db) and not os.path.exists(target_db):
+            try:
+                import shutil
+
+                shutil.copy2(proj_db, target_db)
+                print(f"Banco de dados de desenvolvimento copiado para: {target_db}")
+            except Exception as e:
+                print(f"Falha ao copiar banco de dados de desenvolvimento: {e}")
+    except Exception:
+        pass
+
+    # --- Inicialização das Extensões ---
+    db.init_app(app)
+    login_manager.init_app(app)
+
+    # --- Inicialização do Sistema FTS5 ---
+    try:
+        from core_utils import init_fts_system
+        if init_fts_system():
+            app_logger.info("Sistema Full-Text Search (FTS5) inicializado com sucesso")
+        else:
+            app_logger.warning("Sistema FTS5 não pôde ser inicializado - usando busca tradicional")
+    except Exception as e:
+        app_logger.error(f"Erro ao inicializar FTS5: {str(e)}")
+
+    # --- Inicialização do Sistema de Cache ---
+    try:
+        from utils.cache_system import init_cache_system, warm_up_cache
+        init_cache_system(app)
+        with app.app_context():
+            warm_up_cache()
+        app_logger.info("Sistema de cache em memória inicializado com sucesso")
+    except Exception as e:
+        app_logger.error(f"Erro ao inicializar sistema de cache: {str(e)}")
+
+    # --- Registro de Blueprints (Rotas) ---
+    from routes import admin_bp, auth_bp, main_bp
+    from api_routes import api_bp
+    from routes_favoritos import favorites_bp
+
+    app.register_blueprint(main_bp)
+    app.register_blueprint(auth_bp)
+    app.register_blueprint(admin_bp)
+    app.register_blueprint(api_bp) 
+    app.register_blueprint(favorites_bp)
+
+    # --- Filtros e Context Processors do Jinja2 ---
+    register_jinja_helpers(app)
+
+    # --- Funções e Rotas Auxiliares ---
+    @app.route("/uploads/<filename>")
+    def uploaded_file(filename):
+        """Serve os arquivos da pasta de uploads que está fora da 'static'."""
+        return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
+
+    # Associa a função de verificação de atualizações ao objeto app
+    app.check_for_updates = check_for_updates
+
+    return app
+
+
+def register_jinja_helpers(app):
+    """Registra filtros e processadores de contexto para o Jinja2."""
+
+    # Habilita a extensão 'do' no Jinja2
+    app.jinja_env.add_extension("jinja2.ext.do")
+
+    # Adiciona a macro de paginação ao contexto global do Jinja
+    # Isso evita a necessidade de importar a macro em cada template que a utiliza.
+    @app.context_processor
+    def utility_processor():
+        """Disponibiliza a macro de paginação globalmente para todos os templates."""
+        pagination_macro = app.jinja_env.get_template(
+            "partials/_pagination.html"
+        ).module
+        return dict(render_pagination=pagination_macro.render_pagination)
+
+    @app.template_filter("merge")
+    def _merge_query_args(dict1, dict2):
+        """Filtro para mesclar dicionários, essencial para os links de paginação/ordenação."""
+        result = dict1.copy()
+        result.update(dict2)
+        return result
+
+    @app.template_filter("highlight")
+    def highlight_filter(text, query):
+        """Filtro para destacar termos de busca no texto."""
+        if not query or not text:
+            return text
+        keywords = [re.escape(kw) for kw in query.strip().split() if kw]
+        if not keywords:
+            return text
+        # Adiciona limites de palavra (\b) ao redor da expressão regular.
+        # Isso garante que apenas palavras inteiras sejam destacadas, evitando
+        # que uma busca por "1005" destaque parte de "SK91005B".
+        highlighted_text = re.sub(
+            r"\b(" + "|".join(keywords) + r")\b",
+            r"<mark>\1</mark>",
+            str(text),
+            flags=re.IGNORECASE,
+        )
+        return Markup(highlighted_text)
+
+    @app.context_processor
+    def inject_global_vars():
+        """Injeta variáveis globais em todos os templates."""
+        config = carregar_config_aparencia()
+        update_info = app.config.get("UPDATE_INFO", None)
+
+        # Se não há info na memória, tenta carregar do arquivo
+        if not update_info:
+            update_info_file = os.path.join(APP_DATA_PATH, "update_info.json")
+            if os.path.exists(update_info_file):
+                try:
+                    with open(update_info_file, "r") as f:
+                        update_info = json.load(f)
+                        app.config["UPDATE_INFO"] = update_info
+                except (json.JSONDecodeError, IOError):
+                    pass
+
+        is_admin = current_user.is_authenticated and current_user.is_admin
+        # Passa os argumentos da requisição para todos os templates.
+        # Isso simplifica a criação de links que mantêm o estado da busca.
+        search_args = request.args.copy()
+        search_args.pop("page", None)
+        
+        # Informações do carrinho
+        cart_count = 0
+        if current_user.is_authenticated:
+            try:
+                from utils.cart_utils import get_cart_count
+                cart_count = get_cart_count()
+            except Exception:
+                cart_count = 0
+        
+        return dict(
+            config_aparencia=config,
+            is_admin=is_admin,
+            app_version=VERSION,
+            update_info=update_info,
+            search_args=search_args,
+            cart_count=cart_count,
+        )
+
+
+def check_for_updates(app):
+    """Verifica se há uma nova versão da aplicação disponível."""
+    with app.app_context():
+        print("Verificando atualizações...")
+        meta_path = os.path.join(APP_DATA_PATH, "update_config_meta.json")
+        update_info_file = os.path.join(APP_DATA_PATH, "update_info.json")
+        headers = {"User-Agent": f"CatalogoDePecas/{VERSION}"}
+
+        # Se houver metadados anteriores, use ETag / If-Modified-Since para economizar requests
+        try:
+            if os.path.exists(meta_path):
+                with open(meta_path, "r", encoding="utf-8") as mf:
+                    meta = json.load(mf)
+                etag = meta.get("etag")
+                last_modified = meta.get("last_modified")
+                if etag:
+                    headers["If-None-Match"] = etag
+                if last_modified:
+                    headers["If-Modified-Since"] = last_modified
+
+            response = requests.get(UPDATE_CONFIG_URL, headers=headers, timeout=15)
+
+            # Tratar 304 Not Modified: nada novo
+            if response.status_code == 304:
+                print("Update config não alterado (304).")
+                return
+
+            # Tratar 429 explicitamente para respeitar limites
+            if response.status_code == 429:
+                retry_after = response.headers.get("Retry-After")
+                print(f"Recebido 429 (Too Many Requests). Retry-After={retry_after}")
+                # Não lançar: apenas retornamos e tentaremos novamente na próxima verificação agendada
+                return
+
+            response.raise_for_status()
+
+            update_data = response.json()
+            # Salva novo ETag / Last-Modified se presente
+            new_meta = {
+                "etag": response.headers.get("ETag"),
+                "last_modified": response.headers.get("Last-Modified"),
+                "fetched_at": datetime.now().isoformat(),
+            }
+            try:
+                with open(meta_path, "w", encoding="utf-8") as mf:
+                    json.dump(new_meta, mf, indent=2)
+            except Exception:
+                pass
+
+            latest_version = update_data.get("latest_version", update_data.get("version"))
+
+            # Usa a biblioteca packaging para comparação de versão mais robusta
+            if latest_version and pkg_version.parse(latest_version) > pkg_version.parse(VERSION):
+                print(f"Nova versão encontrada: {latest_version}")
+                app.config["UPDATE_INFO"] = {
+                    "latest_version": latest_version,
+                    "download_url": update_data.get("download_url"),
+                    "release_notes": update_data.get("release_notes", "Sem notas de lançamento."),
+                    "update_found_at": datetime.now().isoformat(),
+                    "update_size": update_data.get("size_mb", "Desconhecido"),
+                }
+                # Salva informação de atualização em arquivo para persistir entre reinicializações
+                try:
+                    with open(update_info_file, "w", encoding="utf-8") as f:
+                        json.dump(app.config["UPDATE_INFO"], f, indent=2)
+                except Exception:
+                    pass
+            else:
+                print("Nenhuma nova atualização encontrada.")
+                # Remove arquivo de informação de atualização se não há atualizações
+                if os.path.exists(update_info_file):
+                    try:
+                        os.remove(update_info_file)
+                    except Exception:
+                        pass
+
+        except requests.exceptions.RequestException as e:
+            # Se for um erro HTTP com código 429 já tratamos acima; aqui tratamos demais erros de rede/timeout
+            print(f"Erro ao verificar atualizações: {e}")
+        except json.JSONDecodeError as e:
+            print(f"Erro ao decodificar JSON de update_config: {e}")
+
+
+def schedule_periodic_update_check(app):
+    """Agenda verificações periódicas de atualização a cada 6 horas."""
+    check_for_updates(app)
+    # Agenda a próxima verificação em 6 horas (21600 segundos)
+    threading.Timer(21600.0, lambda: schedule_periodic_update_check(app)).start()
+
+
+# Para criar o banco de dados e inserir dados de exemplo
+def inicializar_banco(app, reset=False):
+    """Garante que o banco de dados, tabelas, usuário admin e índice FTS existam."""
+    with app.app_context():
+        # Habilita o modo WAL (Write-Ahead Logging) para maior robustez contra corrupção.
+        # Isso deve ser feito antes de outras operações no banco.
+        with db.engine.connect() as connection:
+            connection.execute(db.text("PRAGMA journal_mode=WAL;"))
+
+        if reset:
+            db.drop_all()
+
+        from models import User  # Importa aqui para evitar importação circular
+        from models_favoritos import (
+            ListaFavoritos, ItemListaFavoritos, HistoricoVisualizacao, 
+            ProdutoRecomendado, CompartilhamentoLista, add_user_favorites_methods
+        )
+
+        db.create_all()
+
+        # Índices adicionais para manter performance de busca/joins em bases grandes.
+        try:
+            with db.engine.begin() as connection:
+                connection.execute(db.text("CREATE INDEX IF NOT EXISTS idx_aplicacao_produto_id ON aplicacao(produto_id);"))
+                connection.execute(db.text("CREATE INDEX IF NOT EXISTS idx_aplicacao_montadora ON aplicacao(montadora);"))
+                connection.execute(db.text("CREATE INDEX IF NOT EXISTS idx_aplicacao_veiculo ON aplicacao(veiculo);"))
+                connection.execute(db.text("CREATE INDEX IF NOT EXISTS idx_aplicacao_motor ON aplicacao(motor);"))
+                connection.execute(db.text("CREATE INDEX IF NOT EXISTS idx_imagem_produto_produto_id ON imagem_produto(produto_id);"))
+                connection.execute(db.text("CREATE INDEX IF NOT EXISTS idx_produto_nome ON produto(nome);"))
+        except Exception as e:
+            logging.warning(f"Falha ao criar índices de performance: {e}")
+
+        # Garante a estrutura do FTS5 após as tabelas principais existirem.
+        try:
+            from core_utils import init_fts_system
+            init_fts_system()
+        except Exception as e:
+            logging.warning(f"Falha ao inicializar FTS5 na etapa de bootstrap do banco: {e}")
+        
+        # Adiciona métodos relacionados a favoritos ao modelo User existente
+        add_user_favorites_methods()
+
+        # Cria um usuário 'admin' se não existir, com uma senha aleatória segura.
+        if User.query.filter_by(username="admin").first() is None:
+            import secrets
+            import string
+
+            alphabet = string.ascii_letters + string.digits
+            random_password = "".join(secrets.choice(alphabet) for i in range(12))
+
+            admin_user = User(username="admin", is_admin=True)
+            admin_user.set_password(random_password)
+            db.session.add(admin_user)
+            db.session.commit()
+            logging.basicConfig(level=logging.INFO)
+            logging.warning("ATENÇÃO: Usuário 'admin' criado pela primeira vez.")
+            # Grava a senha temporária em arquivo seguro no APP_DATA_PATH para consulta posterior
+            try:
+                os.makedirs(APP_DATA_PATH, exist_ok=True)
+                password_file = os.path.join(APP_DATA_PATH, "initial_admin_password.txt")
+                with open(password_file, "w", encoding="utf-8") as pf:
+                    pf.write(random_password)
+                try:
+                    os.chmod(password_file, 0o600)
+                except Exception:
+                    # Não crítico em Windows, apenas tenta aplicar permissão
+                    pass
+                logging.warning(f"Senha temporária gravada em: {password_file}")
+            except Exception as e:
+                logging.warning("Usuário admin criado, mas falha ao gravar senha em arquivo seguro. Altere a senha manualmente.")

@@ -1,0 +1,274 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Contato - Catálogo de Peças{% endblock %}
+
+{% block head %}
+<style>
+    .form-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .form-header {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+
+    .form-group-full {
+        grid-column: 1 / -1;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+        color: #333;
+    }
+
+    .form-group input,
+    .form-group textarea {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 16px;
+        box-sizing: border-box;
+    }
+
+    .form-group textarea {
+        resize: vertical;
+        min-height: 80px;
+    }
+
+    .form-group input:focus,
+    .form-group textarea:focus {
+        outline: none;
+        border-color: var(--cor-principal, #ff6600);
+        box-shadow: 0 0 0 2px rgba(255, 102, 0, 0.2);
+    }
+
+    .checkbox-group {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 10px;
+    }
+
+    .checkbox-group input[type="checkbox"] {
+        width: auto;
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+        margin-top: 30px;
+    }
+
+    .btn-primary {
+        background: var(--cor-principal, #ff6600);
+        color: white;
+        padding: 12px 24px;
+        border: none;
+        border-radius: 4px;
+        font-size: 16px;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+        transition: background 0.2s;
+    }
+
+    .btn-primary:hover {
+        background: #e55a00;
+    }
+
+    .btn-secondary {
+        background: #6c757d;
+        color: white;
+        padding: 12px 24px;
+        border: none;
+        border-radius: 4px;
+        font-size: 16px;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+        transition: background 0.2s;
+    }
+
+    .btn-secondary:hover {
+        background: #5a6268;
+    }
+
+    .btn-whatsapp {
+        background: #25D366;
+        color: white;
+        padding: 12px 24px;
+        border: none;
+        border-radius: 4px;
+        font-size: 16px;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+        transition: background 0.2s;
+    }
+
+    .btn-whatsapp:hover {
+        background: #1faa52;
+    }
+
+    .help-text {
+        font-size: 12px;
+        color: #666;
+        margin-top: 5px;
+    }
+
+    .required {
+        color: #dc3545;
+    }
+
+    .contato-info {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 4px;
+        margin-bottom: 20px;
+        border-left: 4px solid var(--cor-principal, #ff6600);
+    }
+
+    .contato-meta {
+        font-size: 12px;
+        color: #666;
+        margin-top: 10px;
+    }
+
+    @media (max-width: 768px) {
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .form-actions {
+            flex-direction: column;
+        }
+
+        .form-container {
+            padding: 15px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <div class="form-header">
+        <h1>Editar Contato</h1>
+        <div class="contato-info">
+            <h3>{{ contato.nome }}</h3>
+            {% if contato.empresa %}
+                <p><strong>Empresa:</strong> {{ contato.empresa }}</p>
+            {% endif %}
+            {% if contato.favorito %}
+                <p><span style="color: #ffd700;">★ Favorito</span></p>
+            {% endif %}
+            <div class="contato-meta">
+                <p><strong>Criado:</strong> {{ contato.data_criacao.strftime('%d/%m/%Y às %H:%M') if contato.data_criacao else 'N/A' }}</p>
+                {% if contato.data_atualizacao and contato.data_atualizacao != contato.data_criacao %}
+                    <p><strong>Atualizado:</strong> {{ contato.data_atualizacao.strftime('%d/%m/%Y às %H:%M') }}</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <form method="POST">
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="nome">Nome <span class="required">*</span></label>
+                <input type="text" id="nome" name="nome" value="{{ contato.nome }}" required maxlength="150">
+            </div>
+
+            <div class="form-group">
+                <label for="empresa">Empresa</label>
+                <input type="text" id="empresa" name="empresa" value="{{ contato.empresa or '' }}" maxlength="200">
+            </div>
+
+            <div class="form-group">
+                <label for="cargo">Cargo</label>
+                <input type="text" id="cargo" name="cargo" value="{{ contato.cargo or '' }}" maxlength="100">
+            </div>
+
+            <div class="form-group">
+                <label for="telefone">Telefone</label>
+                <input type="tel" id="telefone" name="telefone" value="{{ contato.telefone or '' }}" maxlength="20" placeholder="(11) 99999-9999">
+            </div>
+
+            <div class="form-group">
+                <label for="whatsapp">WhatsApp</label>
+                <input type="tel" id="whatsapp" name="whatsapp" value="{{ contato.whatsapp or '' }}" maxlength="20" placeholder="(11) 99999-9999">
+                <div class="help-text">Número para chat direto no WhatsApp</div>
+            </div>
+
+            <div class="form-group">
+                <label for="email">E-mail</label>
+                <input type="email" id="email" name="email" value="{{ contato.email or '' }}" maxlength="150">
+            </div>
+
+            <div class="form-group form-group-full">
+                <label for="endereco">Endereço</label>
+                <textarea id="endereco" name="endereco" rows="3" placeholder="Rua, número, cidade, CEP...">{{ contato.endereco or '' }}</textarea>
+            </div>
+
+            <div class="form-group form-group-full">
+                <label for="observacoes">Observações</label>
+                <textarea id="observacoes" name="observacoes" rows="4" placeholder="Informações adicionais sobre o contato...">{{ contato.observacoes or '' }}</textarea>
+            </div>
+
+            <div class="form-group form-group-full">
+                <div class="checkbox-group">
+                    <input type="checkbox" id="favorito" name="favorito" value="1" {% if contato.favorito %}checked{% endif %}>
+                    <label for="favorito">Marcar como favorito</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn-primary">Salvar Alterações</button>
+            {% if contato.whatsapp %}
+                <a href="{{ url_for('main.abrir_whatsapp', id=contato.id) }}" target="_blank" class="btn-whatsapp">💬 Abrir WhatsApp</a>
+            {% endif %}
+            <a href="{{ url_for('main.listar_contatos') }}" class="btn-secondary">Cancelar</a>
+        </div>
+    </form>
+</div>
+
+<script>
+// Máscara para telefone
+function mascaraTelefone(input) {
+    let value = input.value.replace(/\D/g, '');
+    
+    if (value.length <= 11) {
+        value = value.replace(/(\d{2})(\d)/, '($1) $2');
+        value = value.replace(/(\d{4,5})(\d{4})$/, '$1-$2');
+    }
+    
+    input.value = value;
+}
+
+document.getElementById('telefone').addEventListener('input', function() {
+    mascaraTelefone(this);
+});
+
+document.getElementById('whatsapp').addEventListener('input', function() {
+    mascaraTelefone(this);
+});
+</script>
+{% endblock %}

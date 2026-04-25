@@ -1,0 +1,35 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Distribution / packaging
+build/
+dist/
+Output/
+*.egg-info/
+
+# PyInstaller
+*.spec
+
+# Installer outputs
+Output/
+
+# Editor files
+.vscode/
+*.suo
+*.user
+*.swp
+
+# Database and uploads (if local)
+data/catalogo.db
+uploads/
+
+# OS files
+Thumbs.db
+.DS_Store

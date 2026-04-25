@@ -1,0 +1,578 @@
+import time
+import unicodedata
+from threading import Lock
+
+from sqlalchemy import func
+
+# Importações relativas para evitar dependência circular
+from app import db
+from models import Aplicacao, Produto
+
+# Importação do sistema FTS5
+try:
+    from utils.fts_search import get_fts_manager
+    FTS_AVAILABLE = True
+except ImportError:
+    FTS_AVAILABLE = False
+
+ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
+
+
+def _normalize_for_search(text: str) -> str:
+    """Remove acentos, pontuações comuns e converte para minúsculas para busca."""
+    if not text:
+        return ""
+    nfkd_form = unicodedata.normalize("NFD", text.lower())
+    text = "".join([c for c in nfkd_form if not unicodedata.combining(c)])
+    return text.replace(".", "").replace("-", "").replace(",", "").replace("/", "").replace(" ", "")
+
+
+def _normalize_code_for_search(text):
+    """
+    Normaliza código removendo acentos, pontuações, traços e espaços.
+    Específico para códigos de conversão que podem ter formatos variados.
+    """
+    if not text:
+        return ""
+    nfkd_form = unicodedata.normalize("NFD", text.lower())
+    text = "".join([c for c in nfkd_form if not unicodedata.combining(c)])
+    # Remove pontuações comuns em códigos
+    import re
+    text = re.sub(r'[^\w]', '', text)  # Remove tudo que não é letra ou número
+    return text
+
+
+def _apply_db_normalization(column):
+    """Aplica funções SQL para normalizar uma coluna para busca (case, acentos, pontuação)."""
+    normalized_column = func.lower(column)
+    # Mapa ampliado de caracteres acentuados para suportar vários idiomas
+    # Mapa reduzido aos caracteres portugueses/brasileiros essenciais
+    # para evitar `parser stack overflow` no SQLite com muitas chamadas replace() aninhadas
+    accent_map = {
+        "á": "a", "à": "a", "â": "a", "ã": "a",
+        "ç": "c",
+        "é": "e", "ê": "e",
+        "í": "i",
+        "ó": "o", "ô": "o", "õ": "o",
+        "ú": "u", "ü": "u",
+    }
+    for accented, unaccented in accent_map.items():
+        normalized_column = func.replace(normalized_column, accented, unaccented)
+    return func.replace(
+        func.replace(
+            func.replace(
+                func.replace(func.replace(normalized_column, ".", ""), "-", ""),
+                ",",
+                "",
+            ),
+            "/",
+            "",
+        ),
+        " ",
+        "",
+    )
+
+
+def _apply_code_normalization(column):
+    """
+    Aplica normalização específica para códigos no banco de dados.
+    Versão simplificada para evitar stack overflow no SQLite.
+    """
+    normalized_column = func.lower(column)
+    
+    # Remove apenas os caracteres mais comuns em códigos
+    # Limitamos as operações para evitar stack overflow
+    normalized_column = func.replace(normalized_column, ".", "")
+    normalized_column = func.replace(normalized_column, "-", "")
+    normalized_column = func.replace(normalized_column, "_", "")
+    normalized_column = func.replace(normalized_column, " ", "")
+    
+    return normalized_column
+
+
+def _build_search_query(
+    termo, codigo_produto, montadora, aplicacao_termo, grupo, medidas,
+    largura=None, altura=None, comprimento=None, diametro_externo=None, 
+    diametro_interno=None, elo=None, estrias_internas=None, estrias_externas=None
+):
+    """
+    Constrói a query de busca de produtos com base nos filtros fornecidos.
+    """
+    
+    # Busca tradicional
+    query = Produto.query
+
+    if termo:
+        # Força busca SQL para termos com hífen (FTS5 não funciona bem com hífens em códigos)
+        use_sql_search = "-" in termo or "/" in termo
+        
+        fts_query = _build_fts_query(termo) if not use_sql_search else None
+        if fts_query is not None:
+            query = fts_query
+        else:
+            query = query.join(
+                Aplicacao, Produto.id == Aplicacao.produto_id, isouter=True
+            ).distinct()
+            for palavra in termo.strip().split():
+                # Usa busca com ilike que é case-insensitive e funciona bem com acentos no SQLite
+                palavra_normalizada = _normalize_for_search(palavra)
+                palavra_codigo_normalizada = _normalize_code_for_search(palavra)
+                query = query.filter(
+                    db.or_(
+                        Produto.nome.ilike(f"%{palavra}%"),
+                        Produto.codigo.ilike(f"%{palavra}%"),
+                        Produto.fornecedor.ilike(f"%{palavra}%"),
+                        Aplicacao.veiculo.ilike(f"%{palavra}%"),
+                        Aplicacao.motor.ilike(f"%{palavra}%"),
+                        Aplicacao.conf_mtr.ilike(f"%{palavra}%"),
+                        # Busca normal em conversões
+                        Produto.conversoes.ilike(f"%{palavra}%"),
+                        # Busca normalizada geral em conversões
+                        _apply_db_normalization(Produto.conversoes).contains(palavra_normalizada),
+                        # Busca normalizada específica para códigos em conversões
+                        _apply_code_normalization(Produto.conversoes).contains(palavra_codigo_normalizada),
+                    )
+                )
+
+    if codigo_produto:
+        query = query.filter(Produto.codigo.ilike(f"%{codigo_produto}%"))
+
+    if grupo:
+        query = query.filter(Produto.grupo.ilike(f"%{grupo}%"))
+
+    if medidas:
+        query = query.filter(Produto.medidas.ilike(f"%{medidas}%"))
+
+    # Filtros específicos de medidas estruturadas
+    if largura:
+        query = query.filter(Produto.medidas.ilike(f"%LARGURA%{largura}%"))
+    
+    if altura:
+        query = query.filter(Produto.medidas.ilike(f"%ALTURA%{altura}%"))
+    
+    if comprimento:
+        query = query.filter(Produto.medidas.ilike(f"%COMPRIMENTO%{comprimento}%"))
+    
+    if diametro_externo:
+        query = query.filter(
+            db.or_(
+                Produto.medidas.ilike(f"%DIÂMETRO EXTERNO%{diametro_externo}%"),
+                Produto.medidas.ilike(f"%DIAMETRO EXTERNO%{diametro_externo}%")
+            )
+        )
+    
+    if diametro_interno:
+        query = query.filter(
+            db.or_(
+                Produto.medidas.ilike(f"%DIÂMETRO INTERNO%{diametro_interno}%"),
+                Produto.medidas.ilike(f"%DIAMETRO INTERNO%{diametro_interno}%")
+            )
+        )
+    
+    if elo:
+        query = query.filter(Produto.medidas.ilike(f"%ELO%{elo}%"))
+    
+    if estrias_internas:
+        query = query.filter(Produto.medidas.ilike(f"%ESTRIAS INTERNAS%{estrias_internas}%"))
+    
+    if estrias_externas:
+        query = query.filter(Produto.medidas.ilike(f"%ESTRIAS EXTERNAS%{estrias_externas}%"))
+
+    needs_join = not termo and (montadora or aplicacao_termo)
+    if needs_join:
+        query = query.join(Aplicacao, Produto.id == Aplicacao.produto_id)
+
+    if montadora:
+        # Se o usuário passou também uma aplicação (veículo), preferimos
+        # filtrar por aplicação no SQL e aplicar a filtragem por montadora no
+        # nível da aplicação (Python). Isso contorna limitações de LIKE/NOCASE
+        # do SQLite com caracteres Unicode/diacríticos.
+        if aplicacao_termo:
+            # Não aplicar filtro de montadora no SQL, deixamos para o
+            # pós-processamento em `routes.buscar` onde faremos uma
+            # comparação normalizada (sem acentos).
+            pass
+        else:
+            # A busca com `ilike` é geralmente suficiente para a maioria dos casos
+            # e funciona bem com a normalização de caracteres do SQLite.
+            query = query.filter(Aplicacao.montadora.ilike(f"%{montadora}%"))
+
+    if aplicacao_termo:
+        # Para evitar matches parciais (ex: A1 em A10), usamos uma busca mais específica
+        # Adicionamos espaços e delimitadores para garantir match de palavra completa
+        query = query.filter(
+            db.or_(
+                # Match exato (considerando case insensitive)
+                func.upper(Aplicacao.veiculo) == func.upper(aplicacao_termo),
+                func.upper(Aplicacao.motor) == func.upper(aplicacao_termo),
+                func.upper(Aplicacao.conf_mtr) == func.upper(aplicacao_termo),
+                # Match com espaço antes/depois (para casos como "A1 SEDAN")
+                Aplicacao.veiculo.ilike(f"% {aplicacao_termo} %"),
+                Aplicacao.motor.ilike(f"% {aplicacao_termo} %"),
+                Aplicacao.conf_mtr.ilike(f"% {aplicacao_termo} %"),
+                # Match no início com espaço depois (para casos como "A1 PREMIUM")
+                Aplicacao.veiculo.ilike(f"{aplicacao_termo} %"),
+                Aplicacao.motor.ilike(f"{aplicacao_termo} %"),
+                Aplicacao.conf_mtr.ilike(f"{aplicacao_termo} %"),
+                # Match no final com espaço antes (para casos como "GOLF A1")
+                Aplicacao.veiculo.ilike(f"% {aplicacao_termo}"),
+                Aplicacao.motor.ilike(f"% {aplicacao_termo}"),
+                Aplicacao.conf_mtr.ilike(f"% {aplicacao_termo}"),
+            )
+        )
+
+    return query
+
+
+def _atualizar_similares_simetricamente(produto_principal, novos_similares):
+    """Atualiza a relação de similares de forma simétrica."""
+    similares_antigos = set(produto_principal.similares)
+    novos_similares_set = set(novos_similares)
+
+    produto_principal.similares = novos_similares
+
+    for similar_removido in similares_antigos - novos_similares_set:
+        if produto_principal in similar_removido.similares:
+            similar_removido.similares.remove(produto_principal)
+
+    for novo_similar in novos_similares:
+        if produto_principal not in novo_similar.similares:
+            novo_similar.similares.append(produto_principal)
+
+
+# --- Cache para Datalists ---
+_datalist_cache = {}
+_cache_lock = Lock()
+CACHE_TIMEOUT_SECONDS = 300  # 5 minutos
+
+
+def _get_form_datalists(app_context=None):
+    """
+    Busca dados para preencher os datalists nos formulários de produto.
+    Utiliza um cache em memória para evitar consultas repetitivas ao banco de dados,
+    melhorando significativamente o tempo de carregamento dos formulários.
+    Opcionalmente, aceita um contexto de aplicação para ser usado fora de uma requisição Flask.
+    """
+    global _datalist_cache
+    now = time.time()
+
+    def query_data():
+        """Função interna para executar as queries ao banco de dados."""
+        from app import MONTADORAS_PREDEFINIDAS
+
+        grupos_db = (
+            db.session.query(Produto.grupo)
+            .distinct()
+            .filter(Produto.grupo.isnot(None), Produto.grupo != "")
+            .order_by(Produto.grupo)
+            .all()
+        )
+        lista_grupos = sorted([g[0] for g in grupos_db])
+
+        fornecedores_db = (
+            db.session.query(Produto.fornecedor)
+            .distinct()
+            .filter(Produto.fornecedor.isnot(None), Produto.fornecedor != "")
+            .order_by(Produto.fornecedor)
+            .all()
+        )
+        lista_fornecedores = sorted([f[0] for f in fornecedores_db])
+
+        montadoras_db = (
+            db.session.query(Aplicacao.montadora)
+            .distinct()
+            .filter(Aplicacao.montadora.isnot(None), Aplicacao.montadora != "")
+            .all()
+        )
+        lista_montadoras_db = [m[0] for m in montadoras_db]
+        lista_montadoras_completa = sorted(
+            list(set(lista_montadoras_db + MONTADORAS_PREDEFINIDAS))
+        )
+        return {
+            "grupos": lista_grupos,
+            "fornecedores": lista_fornecedores,
+            "montadoras": lista_montadoras_completa,
+        }
+
+    with _cache_lock:
+        # Verifica se o cache existe e não expirou
+        if (
+            _datalist_cache
+            and (now - _datalist_cache.get("timestamp", 0)) < CACHE_TIMEOUT_SECONDS
+        ):
+            return _datalist_cache["data"]
+
+        # Armazena os novos dados e o timestamp no cache
+        _datalist_cache = {"timestamp": now, "data": query_data()}
+        return _datalist_cache["data"]
+
+
+def _parse_year_range(year_str: str | None) -> tuple[int, int]:
+    """Converte uma string de ano (ex: "2010", "2010/2015", "2018/...") em uma tupla."""
+    if not year_str or not year_str.strip():
+        return -1, -1
+    year_str = year_str.strip()
+    try:
+        if year_str.endswith("/...") or year_str.endswith("/"):
+            return int(year_str.split("/")[0]), 9999
+        if year_str.startswith(".../") or year_str.startswith("/"):
+            return 0, int(year_str.split("/")[1])
+        if "/" in year_str:
+            parts = year_str.split("/")
+            return min(int(parts[0]), int(parts[1])), max(int(parts[0]), int(parts[1]))
+        return int(year_str), int(year_str)
+    except (ValueError, IndexError):
+        return -1, -1
+
+
+def _ranges_overlap(range1: tuple[int, int], range2: tuple[int, int]) -> bool:
+    """Verifica se dois intervalos de anos se sobrepõem."""
+    return range1[0] <= range2[1] and range2[0] <= range1[1]
+
+
+def allowed_file(filename):
+    """Função para verificar se a extensão do arquivo é permitida."""
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+def _processar_medidas_estruturadas(form_data: dict) -> str:
+    """
+    Converte os campos estruturados de medidas em uma string formatada.
+    
+    Args:
+        form_data: Dicionário com os dados do formulário
+        
+    Returns:
+        String formatada com as medidas ou string vazia se não houver medidas
+    """
+    campos_medidas = {
+        'largura': 'Largura',
+        'altura': 'Altura',
+        'comprimento': 'Comprimento',
+        'diametro_externo': 'Diâmetro Externo',
+        'diametro_interno': 'Diâmetro Interno',
+        'elo': 'Elo',
+        'estrias_internas': 'Estrias Internas',
+        'estrias_externas': 'Estrias Externas'
+    }
+    
+    medidas_list = []
+    
+    # Processa campos numéricos
+    for campo, label in campos_medidas.items():
+        valor = form_data.get(campo, '').strip()
+        if valor:
+            # Adiciona 'mm' para campos de dimensão, mas não para estrias
+            if 'estrias' in campo.lower():
+                medidas_list.append(f"{label}: {valor}")
+            else:
+                medidas_list.append(f"{label}: {valor}mm")
+    
+    # Adiciona medidas adicionais se houver
+    medidas_adicionais = form_data.get('medidas_adicionais', '').strip()
+    if medidas_adicionais:
+        medidas_list.append(f"\nMedidas Adicionais:\n{medidas_adicionais}")
+    
+    return '\n'.join(medidas_list).upper() if medidas_list else ''
+
+
+def _parsear_medidas_para_dict(medidas_str: str | None) -> dict:
+    """
+    Converte a string de medidas do banco de dados de volta para um dicionário.
+    
+    Args:
+        medidas_str: String de medidas do banco de dados
+        
+    Returns:
+        Dicionário com os campos de medidas separados
+    """
+    resultado = {
+        'largura': '',
+        'altura': '',
+        'comprimento': '',
+        'diametro_externo': '',
+        'diametro_interno': '',
+        'elo': '',
+        'estrias_internas': '',
+        'estrias_externas': '',
+        'medidas_adicionais': ''
+    }
+    
+    if not medidas_str:
+        return resultado
+    
+    # Mapeia os labels para as chaves do dicionário
+    mapeamento = {
+        'LARGURA': 'largura',
+        'ALTURA': 'altura',
+        'COMPRIMENTO': 'comprimento',
+        'DIÂMETRO EXTERNO': 'diametro_externo',
+        'DIAMETRO EXTERNO': 'diametro_externo',
+        'DIÂMETRO INTERNO': 'diametro_interno',
+        'DIAMETRO INTERNO': 'diametro_interno',
+        'ELO': 'elo',
+        'ESTRIAS INTERNAS': 'estrias_internas',
+        'ESTRIAS EXTERNAS': 'estrias_externas'
+    }
+    
+    linhas = medidas_str.split('\n')
+    capturando_adicionais = False
+    adicionais_lines = []
+    
+    for linha in linhas:
+        linha = linha.strip()
+        if not linha:
+            continue
+            
+        # Verifica se é o início da seção de medidas adicionais
+        if 'MEDIDAS ADICIONAIS:' in linha.upper():
+            capturando_adicionais = True
+            continue
+        
+        if capturando_adicionais:
+            adicionais_lines.append(linha)
+        else:
+            # Processa linhas normais (ex: "LARGURA: 50MM")
+            if ':' in linha:
+                partes = linha.split(':', 1)
+                label = partes[0].strip().upper()
+                valor = partes[1].strip()
+                
+                # Remove 'MM' do valor se presente
+                valor = valor.replace('MM', '').replace('mm', '').strip()
+                
+                # Encontra a chave correspondente
+                for key_label, key_dict in mapeamento.items():
+                    if key_label in label:
+                        resultado[key_dict] = valor
+                        break
+    
+    if adicionais_lines:
+        resultado['medidas_adicionais'] = '\n'.join(adicionais_lines)
+    
+    return resultado
+
+
+def _build_fts_query(termo: str, _allow_repair: bool = True):
+    """
+    Constrói uma query usando Full-Text Search (FTS5) para busca otimizada.
+    
+    Args:
+        termo: Termo de busca a ser usado no FTS5
+        
+    Returns:
+        Query SQLAlchemy com resultados ordenados por relevância
+    """
+    if not FTS_AVAILABLE or not termo:
+        return None
+    
+    try:
+        from utils.cache_system import cache_key_for_search, search_cache
+        from app import get_logger
+
+        logger = get_logger('fts')
+
+        cache_key = cache_key_for_search({"fts_termo": termo.strip().lower()})
+        fts_results = search_cache.get(cache_key)
+        if fts_results is None:
+            # Busca usando FTS5
+            fts_results = get_fts_manager().search(termo, limit=1000)  # Busca ampla para filtros posteriores
+            search_cache.set(cache_key, fts_results, ttl=120)
+
+        valid_fts_results = [
+            result for result in (fts_results or []) if result.get('produto_id') is not None
+        ]
+
+        if fts_results and not valid_fts_results:
+            logger.warning(
+                "Cache/retorno FTS sem produto_id válido detectado; refazendo busca e caindo para SQL se necessário"
+            )
+            search_cache.delete(cache_key)
+            fts_results = get_fts_manager().search(termo, limit=1000)
+            search_cache.set(cache_key, fts_results, ttl=120)
+            valid_fts_results = [
+                result for result in (fts_results or []) if result.get('produto_id') is not None
+            ]
+
+            if not valid_fts_results:
+                return None
+        else:
+            fts_results = valid_fts_results if valid_fts_results else fts_results
+        
+        if not fts_results:
+            return Produto.query.filter(False)  # Query vazia se nenhum resultado
+        
+        # Extrai IDs dos produtos encontrados
+        produto_ids = [result['produto_id'] for result in fts_results]
+        
+        # Cria query SQLAlchemy com os IDs encontrados pelo FTS5
+        # Ordena pela ordem de relevância do FTS5
+        query = Produto.query.filter(Produto.id.in_(produto_ids))
+        
+        # Ordena baseado na relevância do FTS5 (menor score = mais relevante no BM25)
+        id_to_rank = {result['produto_id']: idx for idx, result in enumerate(fts_results)}
+        
+        # SQLAlchemy não aceita ORDER BY customizado facilmente, então fazemos ordenação em Python
+        # na função que chama esta query
+        query._fts_order = id_to_rank
+        
+        return query
+        
+    except Exception as e:
+        from app import get_logger
+        logger = get_logger('fts')
+        error_text = str(e)
+        logger.error(f"Erro na busca FTS5: {error_text}")
+
+        # Auto-reparo: se a tabela virtual ainda não existe, tenta inicializar FTS e refaz uma vez.
+        if _allow_repair and "no such table: produtos_fts" in error_text.lower():
+            try:
+                from flask import current_app
+                from utils.fts_search import init_fts
+
+                if init_fts(current_app):
+                    return _build_fts_query(termo, _allow_repair=False)
+            except Exception as repair_err:
+                logger.error(f"Falha no auto-reparo do FTS5: {repair_err}")
+
+        # Sinaliza para o chamador seguir com busca tradicional
+        return None
+
+
+def get_fts_suggestions(query: str, limit: int = 5):
+    """
+    Retorna sugestões de busca usando FTS5 se disponível.
+    
+    Args:
+        query: Termo parcial para sugestões
+        limit: Número máximo de sugestões
+        
+    Returns:
+        Lista de strings com sugestões
+    """
+    if not FTS_AVAILABLE or not query:
+        return []
+    
+    try:
+        return get_fts_manager().get_search_suggestions(query, limit)
+    except Exception:
+        return []
+
+
+def init_fts_system():
+    """
+    Inicializa o sistema FTS5 se estiver disponível.
+    
+    Returns:
+        bool: True se FTS5 foi inicializado com sucesso, False caso contrário
+    """
+    if not FTS_AVAILABLE:
+        return False
+    
+    try:
+        from utils.fts_search import init_fts
+        from flask import current_app
+        return init_fts(current_app)
+    except Exception:
+        return False
+

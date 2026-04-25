@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+
+{% block title %}Página Inicial{% endblock %}
+
+{% block content %}
+
+    <div class="main-layout">
+        <aside class="sidebar">
+            <h2>Montadoras</h2>
+            <ul>
+                {% for montadora, veiculos in montadoras_com_veiculos.items() %}
+                    <li class="montadora-item">
+                        <div class="montadora-header">
+                            <a href="{{ url_for('main.buscar', montadora=montadora) }}">
+                                {# Determina o slug e verifica ícone customizado no config #}
+                                {% set slug = montadora.lower().replace(' ', '-').replace('--', '-') %}
+                                {% set custom_icon = (config_aparencia.montadora_icons.get(slug) if config_aparencia and config_aparencia.montadora_icons else None) %}
+                                {% if custom_icon %}
+                                    <img src="{{ url_for('uploaded_file', filename=custom_icon) }}" alt="Logo {{ montadora }}" class="montadora-logo">
+                                {% else %}
+                                    <img src="{{ url_for('static', filename='images/logos/' + slug + '.png') }}" alt="Logo {{ montadora }}" class="montadora-logo" onerror="this.style.display='none'">
+                                {% endif %}
+                                <span>{{ montadora }}</span>
+                            </a>
+                            {% if veiculos %}<span class="toggle-veiculos">+</span>{% endif %}
+                        </div>
+                        {% if veiculos %}
+                        <ul class="veiculos-list" style="display: none;">
+                            {% for veiculo in veiculos|sort %}
+                                <li><a href="{{ url_for('main.buscar', montadora=montadora, aplicacao=veiculo) }}" class="veiculo-link">{{ veiculo }}</a></li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        </aside>
+
+        <div class="main-content">
+            <div class="main-content-header">
+                <h1>Busca de Peças</h1>
+                <p>Encontre peças por código, nome, aplicação e mais.</p>
+            </div>
+            {% include 'partials/_search_form.html' ignore missing %}
+            
+            <!-- Botão de Pesquisa Externa removido -->
+            {# {% if config_aparencia and config_aparencia.pesquisa_externa_ativa %}
+            <div style="text-align: center; margin: 20px 0;">
+                <a href="{{ url_for('main.pesquisa_externa') }}" class="button pesquisa-externa-btn">
+                    🌐 Pesquisar na Internet
+                </a>
+                <p style="font-size: 0.9em; color: #666; margin-top: 8px;">
+                    Busque informações sobre peças diretamente na internet usando código e marca
+                </p>
+            </div>
+            {% endif %} #}
+            
+            <!-- Carrossel: exibe as imagens dos 4 últimos itens adicionados -->
+            {% if carousel_media %}
+            <div class="homepage-carousel" aria-label="Carrossel de lançamentos">
+                <div class="carousel-slides">
+                    {% for m in carousel_media %}
+                        <a href="{% if m.produto_id %}{{ url_for('main.detalhe_peca', id=m.produto_id) }}{% else %}#{% endif %}" class="carousel-slide{% if loop.index0 == 0 %} active{% endif %}" aria-hidden="{% if loop.index0 == 0 %}false{% else %}true{% endif %}">
+                            <div class="carousel-media">
+                            {% if m.type == 'image' %}
+                                <img src="{{ m.url }}" alt="{{ m.alt | e }}" loading="lazy">
+                            {% else %}
+                                <video src="{{ m.url }}" playsinline muted loop preload="metadata"></video>
+                            {% endif %}
+                            </div>
+                            {% if m.alt %}
+                                <div class="carousel-caption">{{ m.alt }}</div>
+                            {% endif %}
+                        </a>
+                    {% endfor %}
+                </div>
+                <button class="carousel-prev" aria-label="Anterior">‹</button>
+                <button class="carousel-next" aria-label="Próximo">›</button>
+                <div class="carousel-indicators">
+                    {% for m in carousel_media %}
+                        <button class="carousel-indicator{% if loop.index0 == 0 %} active{% endif %}" data-index="{{ loop.index0 }}" aria-label="Ir para slide {{ loop.index }}"></button>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Delegação de evento para os cabeçalhos das montadoras
+            document.querySelector('.sidebar ul').addEventListener('click', function(e) {
+                // Encontra o cabeçalho da montadora que foi clicado
+                const header = e.target.closest('.montadora-header');
+                if (!header) return; // Sai se o clique não foi no cabeçalho
+
+                // Encontra a lista de veículos correspondente
+                const veiculosList = header.nextElementSibling;
+                if (!veiculosList || !veiculosList.classList.contains('veiculos-list')) return;
+
+                // Encontra o ícone de toggle
+                const toggle = header.querySelector('.toggle-veiculos');
+
+                // Alterna a exibição da lista
+                if (veiculosList.style.display === 'none') {
+                    veiculosList.style.display = 'block';
+                    if (toggle) toggle.textContent = '−'; // Símbolo de menos
+                } else {
+                    veiculosList.style.display = 'none';
+                    if (toggle) toggle.textContent = '+';
+                }
+            });
+            // Carrossel: comportamento de troca automática e controles
+            (function() {
+                const carousel = document.querySelector('.homepage-carousel');
+                if (!carousel) return;
+                const slides = Array.from(carousel.querySelectorAll('.carousel-slide'));
+                const prevBtn = carousel.querySelector('.carousel-prev');
+                const nextBtn = carousel.querySelector('.carousel-next');
+                const indicators = Array.from(carousel.querySelectorAll('.carousel-indicator'));
+                let current = slides.findIndex(s => s.classList.contains('active')) || 0;
+                let interval = null;
+                const delay = 5000;
+
+                function show(index) {
+                    if (index < 0) index = slides.length - 1;
+                    if (index >= slides.length) index = 0;
+                    slides.forEach((s, i) => {
+                        s.classList.toggle('active', i === index);
+                        s.setAttribute('aria-hidden', i === index ? 'false' : 'true');
+                        if (indicators[i]) indicators[i].classList.toggle('active', i === index);
+                        // pause/play videos
+                        const vid = s.querySelector('video');
+                        if (vid) {
+                            if (i === index) { try { vid.play(); } catch(e){} } else { try { vid.pause(); vid.currentTime = 0; } catch(e){} }
+                        }
+                    });
+                    current = index;
+                }
+
+                function next() { show(current + 1); }
+                function prev() { show(current - 1); }
+
+                if (nextBtn) nextBtn.addEventListener('click', () => { next(); resetInterval(); });
+                if (prevBtn) prevBtn.addEventListener('click', () => { prev(); resetInterval(); });
+
+                indicators.forEach(btn => btn.addEventListener('click', (e) => { const idx = parseInt(btn.dataset.index || '0', 10); show(idx); resetInterval(); }));
+
+                function startInterval() { interval = setInterval(next, delay); }
+                function resetInterval() { if (interval) clearInterval(interval); startInterval(); }
+
+                carousel.addEventListener('mouseenter', () => { if (interval) clearInterval(interval); });
+                carousel.addEventListener('mouseleave', () => { resetInterval(); });
+
+                // Inicializa
+                show(current || 0);
+                startInterval();
+            })();
+
+            // Garante que clicks em links de veículo sempre naveguem (evita interferência de outros handlers)
+            document.querySelectorAll('.veiculo-link').forEach(a => {
+                a.addEventListener('click', function(e) {
+                    // Respeita abertura em nova aba/janela pelo usuário
+                    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
+                    e.stopPropagation();
+                    e.preventDefault();
+                    window.location.href = this.href;
+                });
+            });
+        });
+    </script>
+{% endblock %}

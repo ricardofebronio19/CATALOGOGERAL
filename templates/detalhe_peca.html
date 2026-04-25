@@ -1,0 +1,1670 @@
+{% extends "base.html" %}
+
+{% block title %}{{ produto.nome }} - Detalhes{% endblock %}
+
+{% block head %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+{% endblock %}
+
+{% block content %}
+        <header>
+            <h1>Detalhes do Produto</h1>
+        </header>
+
+        <div class="product-detail-header">
+            <div class="product-detail-info">
+                <h2>{{ produto.nome }}</h2>
+                <p>
+                    <strong>Código:</strong> 
+                    <span id="product-code">{{ produto.codigo }}</span>
+                    <button onclick="copyToClipboard('{{ produto.codigo }}', 'Código do produto')" title="Copiar código" class="btn-copy-code">
+                                            📋 Copiar
+                                        </button>
+                                    </p>
+                                    <p><strong>Grupo:</strong> {{ produto.grupo or 'N/A' }}</p>
+                                    <p><strong>Fornecedor:</strong> {{ produto.fornecedor or 'N/A' }}</p>
+                                    
+                                    <div style="display: flex; gap: 10px; align-items: center; margin: 10px 0; flex-wrap: wrap;">
+                                        {% if current_user.is_authenticated %}
+                                            <form method="POST" action="{{ url_for('main.adicionar_ao_carrinho') }}" style="display: inline-flex; align-items: center; gap:8px;">
+                                                <input type="hidden" name="produto_id" value="{{ produto.id }}">
+                                                <button type="submit" class="button" style="background:#28a745; color:white; padding:8px 12px;">🛒 adicionar</button>
+                                            </form>
+                                            
+                                            <button onclick="abrirModalAdicionar({{ produto.id }})" class="button" style="background:#e74c3c; color:white; padding:8px 12px;">
+                                                ❤️ Favoritar
+                                            </button>
+                                        {% endif %}
+
+                                        {% if is_admin %}
+                                            <a href="{{ url_for('admin.editar_peca', id=produto.id) }}" class="button" style="background-color: #007bff;">Editar Peça</a>
+                                            <a href="{{ url_for('admin.clonar_peca', id=produto.id) }}" class="button" style="background-color: #17a2b8;">Clonar</a>
+                                            <form action="{{ url_for('admin.excluir_peca', id=produto.id) }}" method="POST" style="display: inline;" onsubmit="return confirm('Tem certeza que deseja excluir esta peça? Todas as suas aplicações e relações de similaridade serão perdidas.');">
+                                                <button type="submit" class="button" style="background-color: #dc3545;">Excluir Peça</button>
+                                            </form>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <!-- Galeria de Imagens -->
+                                <div class="image-gallery">
+                                    <div class="main-image-container">
+                                        <img id="mainProductImage" 
+                                             src="{% if produto.imagens %}{{ url_for('uploaded_file', filename=produto.imagens[0].filename) }}{% else %}https://via.placeholder.com/250x250/eee/aaa?text=Sem+Imagem{% endif %}" 
+                                             alt="Imagem do Produto" 
+                                             class="product-detail-image" 
+                                             title="Clique para ampliar"
+                                             style="cursor: pointer; user-select: none;">
+                                    </div>
+                                    {% if produto.imagens|length > 1 %}
+                                    <div class="thumbnail-container">
+                                        {% for imagem in produto.imagens %}
+                                        <img src="{{ url_for('uploaded_file', filename=imagem.filename) }}" alt="Miniatura {{ loop.index }}" class="thumbnail-image" onclick="changeMainImage('{{ url_for('uploaded_file', filename=imagem.filename) }}')">
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="details-layout-container">
+                                <style>
+                                    /* Cores personalizáveis vindas da configuração */
+                                    :root {
+                                        --cor-coluna-conversoes: {{ (config_aparencia.cor_coluna_conversoes or '#fff3cd') }};
+                                        --cor-coluna-medidas: {{ (config_aparencia.cor_coluna_medidas or '#d1ecf1') }};
+                                    }
+                                    .info-section-lateral.conversoes { background-color: var(--cor-coluna-conversoes); padding: 10px; border-radius: 6px; }
+                                    .info-section-lateral.medidas { background-color: var(--cor-coluna-medidas); padding: 10px; border-radius: 6px; }
+                                    
+                                    /* Estilos para aplicações priorizadas da busca */
+                                    .application-row.prioritized-vehicle {
+                                        background-color: #d4febf !important;
+                                        border-left: 4px solid #28a745 !important;
+                                        font-weight: 600 !important;
+                                    }
+                                    
+                                    .application-row.prioritized-brand {
+                                        background-color: #e3f2fd !important;
+                                        border-left: 4px solid #2196f3 !important;
+                                        font-weight: 500 !important;
+                                    }
+                                    
+                                    .application-row.prioritized-vehicle:hover,
+                                    .application-row.prioritized-brand:hover {
+                                        transform: scale(1.02);
+                                        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+                                        transition: all 0.2s ease;
+                                    }
+                                </style>
+                                <!-- Seção de Conversões (Esquerda) -->
+                                {% if produto.conversoes %}
+                                <div class="info-section-lateral conversoes">
+                                    <h3>Conversões</h3>
+                                    <pre id="conversoes-content">{{ produto.conversoes | highlight(termo) }}</pre>
+                                </div>
+                                {% endif %}
+
+                                <!-- Seção de Aplicações (Centro) -->
+                                <div class="application-section">
+                                    <h3 style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                                        <span>Aplicações</span>
+                                        <div style="display: flex; align-items: center; gap: 10px;">
+                                            {% if aplicacoes_agrupadas %}
+                                                <!-- Campo de busca compacto -->
+                                                <div style="display: flex; align-items: center; gap: 5px;">
+                                                    <svg width="14" height="14" style="color: #6c757d;" fill="currentColor" viewBox="0 0 16 16">
+                                                        <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+                                                    </svg>
+                                                    <input type="text" 
+                                                           id="applicationSearchInput" 
+                                                           placeholder="Filtrar aplicações..." 
+                                                           style="width: 200px; padding: 4px 8px; border: 1px solid #ced4da; border-radius: 3px; font-size: 12px; transition: all 0.15s ease;"
+                                                           onfocus="this.style.borderColor='#80bdff'; this.style.boxShadow='0 0 0 1px rgba(0,123,255,.25)'"
+                                                           onblur="this.style.borderColor='#ced4da'; this.style.boxShadow='none'">
+                                                </div>
+                                            {% endif %}
+                                            <button id="clear-filter-btn" class="button" style="display: none; background-color: #6c757d; font-size: 0.8em; padding: 5px 10px;">Limpar Filtro</button>
+                                        </div>
+                                    </h3>
+                                    <div class="filter-help-text">
+                                        <span style="font-size: 1.2em; margin-right: 5px;">ℹ️</span>
+                                        <span>Clique em uma aplicação para filtrar os produtos similares.</span>
+                                    </div>
+                                    
+                                    {# Mensagem de contexto quando há priorização ativa #}
+                                    {% if veiculo_context or montadora_context %}
+                                        <div style="background-color: #e8f5e8; border: 1px solid #b8dab8; color: #2d5116; padding: 8px 12px; border-radius: 6px; margin: 10px 0; font-size: 0.9em;">
+                                            <strong>🎯 Resultados priorizados:</strong>
+                                            {% if veiculo_context and montadora_context %}
+                                                Exibindo primeiro as aplicações para <strong>{{ montadora_context }} {{ veiculo_context }}</strong>
+                                            {% elif veiculo_context %}
+                                                Exibindo primeiro as aplicações para o veículo <strong>{{ veiculo_context }}</strong>
+                                            {% elif montadora_context %}
+                                                Exibindo primeiro as aplicações da montadora <strong>{{ montadora_context }}</strong>
+                                            {% endif %}
+                                            (baseado na sua busca anterior).
+                                        </div>
+                                    {% endif %}
+                                    
+                                    <div id="applicationSearchCount" style="margin-bottom: 10px; font-size: 11px; color: #6c757d; font-style: italic; text-align: right;">
+                                        <!-- Contador será preenchido via JavaScript -->
+                                    </div>
+
+                                    {% if aplicacoes_agrupadas %}
+                    
+                                        <table class="application-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Veículo</th>
+                                                    <th>Ano</th>
+                                                    <th>Motor</th>
+                                                    <th>Configuraçâo</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="application-table-body">
+                                                {% for montadora, lista_aplicacoes in aplicacoes_agrupadas.items() %}
+                                                    <!-- Linha do cabeçalho do fabricante -->
+                                                    <tr class="fabricante-header">
+                                                        <td colspan="4"><strong>{{ montadora }}</strong></td>
+                                                    </tr>
+                                                    <!-- Linhas das aplicações para este fabricante -->
+                                                    {% for aplicacao in lista_aplicacoes %}
+                                                        {% set is_prioritized = false %}
+                                                        {% set destaque_class = "" %}
+                                                        {% set titulo_extra = "" %}
+                                                        
+                                                        {# Verifica se esta aplicação corresponde ao contexto da busca (contém, não exato) #}
+                                                        {% set v_app = (aplicacao.veiculo or '')|lower %}
+                                                        {% set v_ctx = veiculo_context|lower %}
+                                                        {% set m_app = (aplicacao.montadora or '')|lower %}
+                                                        {% set m_ctx = montadora_context|lower %}
+                                                        {% if veiculo_context and (v_ctx in v_app or v_app in v_ctx) %}
+                                                            {% set is_prioritized = true %}
+                                                            {% set destaque_class = " prioritized-vehicle" %}
+                                                            {% set titulo_extra = " (Veículo pesquisado)" %}
+                                                        {% elif montadora_context and (m_ctx in m_app or m_app in m_ctx) %}
+                                                            {% set is_prioritized = true %}
+                                                            {% set destaque_class = " prioritized-brand" %}
+                                                            {% set titulo_extra = " (Montadora pesquisada)" %}
+                                                        {% endif %}
+                                                        
+                                                        <tr class="application-row{{ destaque_class }}" 
+                                                            data-veiculo="{{ aplicacao.veiculo or '' }}" 
+                                                            data-ano="{{ aplicacao.ano or '' }}" 
+                                                            data-motor="{{ aplicacao.motor or '' }}"
+                                                            title="Clique para filtrar similares por esta aplicação{{ titulo_extra }}"
+                                                            style="cursor: pointer;">
+                                                            <td>
+                                                                {% if is_prioritized %}🎯 {% endif %}{{ (aplicacao.veiculo or '') | highlight(termo) }}
+                                                            </td>
+                                                            <td>{{ (aplicacao.ano or '') | highlight(termo) }}</td>
+                                                            <td>{{ (aplicacao.motor or '') | highlight(termo) }}</td>
+                                                            <td>{{ (aplicacao.conf_mtr or '') | highlight(termo) }}</td>
+                                                        </tr>
+                                                    {% endfor %}
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    {% else %}
+                                        <p style="padding: 15px; text-align: center;">Nenhuma aplicação cadastrada para este produto.</p>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Seção de Medidas (Direita) -->
+                                {% if produto.medidas %}
+                                <div class="info-section-lateral medidas">
+                                    <h3>Medidas</h3>
+                                    <pre>{{ produto.medidas | highlight(termo) }}</pre>
+                                </div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Seção de Observações -->
+                            {% if produto.observacoes %}
+                            <div class="info-section similar-section observacoes-section">
+                                <h3>⚠️ OBSERVAÇÕES</h3>
+                                <pre class="observacoes-text">{{ produto.observacoes | highlight(termo) }}</pre>
+                            </div>
+                            {% endif %}
+
+                            <!-- Seção de Produtos Similares -->
+                            {% if produto.similares or sugestoes_similares %}
+                            <div id="similar-products-section" class="application-section similar-section">
+                                <h3>Produtos Similares</h3>
+                                <table class="application-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Imagem</th>
+                                            <th>Nome</th>
+                                            <th>Código</th>
+                                            <th>Veículo</th>
+                                            <th>Ano</th>
+                                            <th>Motor</th>
+                                            <th>Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Similares Manuais -->
+                                        {% for similar in produto.similares|sort(attribute='codigo') %}
+                                            {% set app_data = [] %}
+                                            {% for app in similar.aplicacoes %}
+                                                {% do app_data.append({
+                                                    'veiculo': app.veiculo|default('', true)|trim,
+                                                    'ano': app.ano|default('', true)|trim,
+                                                    'motor': app.motor|default('', true)|trim
+                                                }) %}
+                                            {% endfor %}
+                                            {% set app_json = app_data|tojson %}
+
+                                            {% set apps_sorted = similar.aplicacoes|sort(attribute='veiculo') %}
+
+                                            <tr class="similar-row" data-applications="{{ app_json }}">
+                                                <td>
+                                                    <img src="{% if similar.imagens %}{{ url_for('uploaded_file', filename=similar.imagens[0].filename) }}{% else %}https://via.placeholder.com/60x60/eee/aaa?text=Sem+Imagem{% endif %}" alt="Miniatura de {{ similar.nome }}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px;">
+                                                </td>
+                                                <td>
+                                                    <a href="{{ url_for('main.detalhe_peca', id=similar.id) }}" style="text-decoration: none; color: #0056b3; font-weight: bold;">
+                                                        {{ similar.nome }}
+                                                    </a>
+                                                </td>
+                                                <td>{{ similar.codigo }}</td>
+                                                {% set veic_titles = [] %}
+                                                {% set anos_titles = [] %}
+                                                {% set motores_titles = [] %}
+                                                {% for app in apps_sorted %}
+                                                    {% if app.veiculo %}{% do veic_titles.append(app.veiculo) %}{% endif %}
+                                                    {% if app.ano %}{% do anos_titles.append(app.ano) %}{% endif %}
+                                                    {% if app.motor %}{% do motores_titles.append(app.motor) %}{% endif %}
+                                                {% endfor %}
+
+                                                <td>
+                                                    {% if apps_sorted %}
+                                                        <div class="vertical-list">
+                                                            {% for app in apps_sorted[:4] %}
+                                                                <div>{{ app.veiculo or '' }}</div>
+                                                            {% endfor %}
+                                                            {% if apps_sorted|length > 4 %}
+                                                                <div class="more-apps">... e mais</div>
+                                                            {% endif %}
+                                                            <div class="custom-tooltip">
+                                                                {% for t in veic_titles %}
+                                                                    <div>{{ t }}</div>
+                                                                {% endfor %}
+                                                            </div>
+                                                        </div>
+                                                    {% else %}-{% endif %}
+                                                </td>
+                                                <td>
+                                                    {% if apps_sorted %}
+                                                        <div class="vertical-list">
+                                                            {% for app in apps_sorted[:4] %}
+                                                                <div>{{ app.ano or '' }}</div>
+                                                            {% endfor %}
+                                                            <div class="custom-tooltip">
+                                                                {% for t in anos_titles %}
+                                                                    <div>{{ t }}</div>
+                                                                {% endfor %}
+                                                            </div>
+                                                        </div>
+                                                    {% else %}-{% endif %}
+                                                </td>
+                                                <td>
+                                                    {% if apps_sorted %}
+                                                        <div class="vertical-list">
+                                                            {% for app in apps_sorted[:4] %}
+                                                                <div>{{ app.motor or '' }}</div>
+                                                            {% endfor %}
+                                                            {% if apps_sorted|length > 4 %}
+                                                                <div class="more-apps">... e mais</div>
+                                                            {% endif %}
+                                                            <div class="custom-tooltip">
+                                                                {% for t in motores_titles %}
+                                                                    <div>{{ t }}</div>
+                                                                {% endfor %}
+                                                            </div>
+                                                        </div>
+                                                    {% else %}-{% endif %}
+                                                </td>
+                                                <td>
+                                                    <span class="badge badge-manual" style="margin-right:6px;">Manual</span>
+                                                    {% if is_admin %}
+                                                    <form action="{{ url_for('admin.remover_similar', produto_id=produto.id, similar_id=similar.id) }}" method="POST" style="display:inline;" class="remove-similar-form" data-url="{{ url_for('admin.remover_similar', produto_id=produto.id, similar_id=similar.id) }}">
+                                                        <button type="button" class="button remove-similar-action" style="background-color: #dc3545; padding:6px 8px; font-size:0.85em;">Remover</button>
+                                                    </form>
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+
+                                        <!-- Sugestões Automáticas por Conversão -->
+                                        {% for sugestao in sugestoes_similares|sort(attribute='codigo') %}
+                                            {% set app_data = [] %}
+                                            {% for app in sugestao.aplicacoes %}
+                                                {% do app_data.append({
+                                                    'veiculo': app.veiculo|default('', true)|trim,
+                                                    'ano': app.ano|default('', true)|trim,
+                                                    'motor': app.motor|default('', true)|trim
+                                                }) %}
+                                            {% endfor %}
+                                            {% set app_json = app_data|tojson %}
+
+                                            {% set apps_sorted_s = sugestao.aplicacoes|sort(attribute='veiculo') %}
+
+                                            <tr class="similar-row" data-applications="{{ app_json }}">
+                                                <td>
+                                                    <img src="{% if sugestao.imagens %}{{ url_for('uploaded_file', filename=sugestao.imagens[0].filename) }}{% else %}https://via.placeholder.com/60x60/eee/aaa?text=Sem+Imagem{% endif %}" alt="Miniatura de {{ sugestao.nome }}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px;">
+                                                </td>
+                                                <td>
+                                                    <a href="{{ url_for('main.detalhe_peca', id=sugestao.id) }}" style="text-decoration: none; color: #0056b3; font-weight: bold;">
+                                                        {{ sugestao.nome }}
+                                                    </a>
+                                                </td>
+                                                <td>{{ sugestao.codigo }}</td>
+                                                {% set veic_titles_s = [] %}
+                                                {% set anos_titles_s = [] %}
+                                                {% set motores_titles_s = [] %}
+                                                {% for app in apps_sorted_s %}
+                                                    {% if app.veiculo %}{% do veic_titles_s.append(app.veiculo) %}{% endif %}
+                                                    {% if app.ano %}{% do anos_titles_s.append(app.ano) %}{% endif %}
+                                                    {% if app.motor %}{% do motores_titles_s.append(app.motor) %}{% endif %}
+                                                {% endfor %}
+
+                                                <td>
+                                                    {% if apps_sorted_s %}
+                                                        <div class="vertical-list">
+                                                            {% for app in apps_sorted_s[:4] %}
+                                                                <div>{{ app.veiculo or '' }}</div>
+                                                            {% endfor %}
+                                                            {% if apps_sorted_s|length > 4 %}
+                                                                <div class="more-apps">... e mais</div>
+                                                            {% endif %}
+                                                            <div class="custom-tooltip">
+                                                                {% for t in veic_titles_s %}
+                                                                    <div>{{ t }}</div>
+                                                                {% endfor %}
+                                                            </div>
+                                                        </div>
+                                                    {% else %}-{% endif %}
+                                                </td>
+                                                <td>
+                                                    {% if apps_sorted_s %}
+                                                        <div class="vertical-list">
+                                                            {% for app in apps_sorted_s[:4] %}
+                                                                <div>{{ app.ano or '' }}</div>
+                                                            {% endfor %}
+                                                            <div class="custom-tooltip">
+                                                                {% for t in anos_titles_s %}
+                                                                    <div>{{ t }}</div>
+                                                                {% endfor %}
+                                                            </div>
+                                                        </div>
+                                                    {% else %}-{% endif %}
+                                                </td>
+                                                <td>
+                                                    {% if apps_sorted_s %}
+                                                        <div class="vertical-list">
+                                                            {% for app in apps_sorted_s[:4] %}
+                                                                <div>{{ app.motor or '' }}</div>
+                                                            {% endfor %}
+                                                            {% if apps_sorted_s|length > 4 %}
+                                                                <div class="more-apps">... e mais</div>
+                                                            {% endif %}
+                                                            <div class="custom-tooltip">
+                                                                {% for t in motores_titles_s %}
+                                                                    <div>{{ t }}</div>
+                                                                {% endfor %}
+                                                            </div>
+                                                        </div>
+                                                    {% else %}-{% endif %}
+                                                </td>
+                                                <td>
+                                                    <span class="badge badge-auto" style="margin-right:6px;">Sugestão</span>
+                                                    {% if is_admin %}
+                                                    <!-- Para sugestões podemos persistir a remoção -> chama endpoint -->
+                                                    <form class="remove-similar-form" method="POST" data-suggestion="1" data-url="{{ url_for('admin.ignorar_sugestao', produto_id=produto.id, sugestao_id=sugestao.id) }}" style="display:inline;">
+                                                        <button type="button" class="button remove-similar-action" style="background-color: #dc3545; padding:6px 8px; font-size:0.85em;">Remover</button>
+                                                    </form>
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                    <tbody id="no-similar-results-row" style="display: none;"><tr class="no-results-row"><td colspan="7">Nenhum produto similar encontrado para a aplicação selecionada.</td></tr></tbody>
+                                </table>
+                            </div>
+                            {% endif %}
+
+                            <!-- Seção de Produtos Similares (MANUAL) -->
+
+                            <!-- Modal de Imagem Refatorado -->
+                            <div id="imageModal" class="image-modal">
+                                <!-- Botão fechar -->
+                                <button id="closeModalBtn" class="button modal-close-btn" type="button" title="Fechar (Esc)">&times;</button>
+                                
+                                <!-- Container da imagem -->
+                                <div class="modal-image-container">
+                                    <img id="modalImage" class="modal-image" alt="Imagem ampliada">
+                                </div>
+                                
+                                <!-- Controles de zoom -->
+                                <div class="modal-zoom-controls">
+                                    <button id="zoomInBtn" class="button zoom-btn" type="button" title="Zoom In (+)">+</button>
+                                    <button id="zoomOutBtn" class="button zoom-btn" type="button" title="Zoom Out (−)">−</button>
+                                    <button id="zoomResetBtn" class="button zoom-btn" type="button" title="Reset Zoom (0)">⌂</button>
+                                </div>
+                                
+                                <!-- Navegação entre imagens -->
+                                <div class="modal-nav-controls">
+                                    <button id="prevImageBtn" class="button modal-nav-btn nav-prev" type="button" title="Imagem anterior (←)">
+                                        <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                                            <path d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z"/>
+                                        </svg>
+                                    </button>
+                                    <button id="nextImageBtn" class="button modal-nav-btn nav-next" type="button" title="Próxima imagem (→)">
+                                        <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                                            <path d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                                
+                                <!-- Contador de imagens -->
+                                <div class="modal-counter">
+                                    <span id="imageCounter">1 / 1</span>
+                                </div>
+                            </div>
+
+                            <style>
+                                /* Badges de similares */
+                                .badge-similar {
+                                    padding: 2px 6px;
+                                    font-size: 10px;
+                                    border-radius: 12px;
+                                    font-weight: bold;
+                                    color: white;
+                                }
+                                .badge-manual { background-color: #6c757d; }
+                                .badge-auto { background-color: #17a2b8; }
+                                .similar-applications {
+                                    max-height: 80px;
+                                    overflow-y: auto;
+                                    padding-right: 5px;
+                                    font-size: 0.9em;
+                                }
+                                .similar-applications div {
+                                    display: flex;
+                                    justify-content: space-between;
+                                    gap: 10px;
+                                    white-space: nowrap;
+                                }
+                                .similar-applications small {
+                                    color: #555;
+                                    font-style: italic;
+                                }
+                                .application-row.active-filter {
+                                    background-color: #fff3cd !important;
+                                    font-weight: bold;
+                                }
+                                .no-results-row td {
+                                    text-align: center;
+                                    padding: 20px;
+                                    color: #666;
+                                    font-style: italic;
+                                }
+                                .filter-help-text {
+                                    display: flex;
+                                    align-items: center;
+                                    gap: 8px;
+                                    padding: 8px 15px;
+                                    background-color: #f8f9fa;
+                                    font-size: 0.9em;
+                                    color: #555;
+                                }
+                                .filter-help-text img { width: 16px; height: 16px; }
+                            </style>
+
+                    {% endblock %}
+
+                    {% block scripts %}
+                        {{ super() }}
+                        <script>
+                            // Variáveis de contexto da pesquisa (passadas pelo servidor)
+                            var VEICULO_CONTEXT = {{ (veiculo_context or '')|tojson }};
+                            var MONTADORA_CONTEXT = {{ (montadora_context or '')|tojson }};
+                        </script>
+                        {% raw %}
+                        <script>
+                            // Função para trocar a imagem principal na galeria
+                            function changeMainImage(newSrc) {
+                                const mainImage = document.getElementById('mainProductImage');
+                                if (mainImage) mainImage.src = newSrc;
+                            }
+
+                            function copyToClipboard(text, type = 'Texto') {
+                                navigator.clipboard.writeText(text).then(function() {
+                                    // Cria uma notificação temporária
+                                    const notification = document.createElement('div');
+                                    notification.innerText = `${type} copiado: ${text}`;
+                                    notification.style.position = 'fixed';
+                                    notification.style.bottom = '20px';
+                                    notification.style.left = '50%';
+                                    notification.style.transform = 'translateX(-50%)';
+                                    notification.style.backgroundColor = '#28a745';
+                                    notification.style.color = 'white';
+                                    notification.style.padding = '10px 20px';
+                                    notification.style.borderRadius = '5px';
+                                    document.body.appendChild(notification);
+                                    setTimeout(() => { document.body.removeChild(notification); }, 2000);
+                                }, function(err) {
+                                    console.error('Erro ao copiar texto: ', err);
+                                });
+                            }
+
+                            // Função para busca em aplicações
+                            function setupApplicationSearch() {
+                                const searchInput = document.getElementById('applicationSearchInput');
+                                const applicationTableBody = document.getElementById('application-table-body');
+                                const searchCountDiv = document.getElementById('applicationSearchCount');
+            
+                                if (!searchInput || !applicationTableBody) return;
+
+                                // Armazenar todas as linhas originais
+                                const allRows = Array.from(applicationTableBody.querySelectorAll('tr'));
+                                const applicationRows = allRows.filter(row => row.classList.contains('application-row'));
+                                const fabricanteHeaders = allRows.filter(row => row.classList.contains('fabricante-header'));
+            
+                                // Função para atualizar contador
+                                function updateCounter(visibleCount, totalCount) {
+                                    if (searchCountDiv) {
+                                        if (visibleCount === totalCount) {
+                                            searchCountDiv.textContent = `${totalCount} aplicações`;
+                                        } else {
+                                            searchCountDiv.textContent = `${visibleCount} de ${totalCount} aplicações`;
+                                            searchCountDiv.style.cursor = 'pointer';
+                                            searchCountDiv.title = 'Clique para limpar filtro';
+                                        }
+                                    }
+                                }
+            
+                                // Função para limpar busca
+                                function clearSearch() {
+                                    searchInput.value = '';
+                                    filterApplications();
+                                    searchCountDiv.style.cursor = 'default';
+                                    searchCountDiv.title = '';
+                                }
+            
+                                // Inicializar contador
+                                updateCounter(applicationRows.length, applicationRows.length);
+
+                                // Função de filtro aprimorada
+                                function filterApplications() {
+                                    const searchTerm = searchInput.value.toLowerCase().trim();
+                                    console.log('🔍 Filtrando aplicações com termo:', searchTerm);
+                
+                                    if (!searchTerm) {
+                                        // Mostrar todas as linhas
+                                        allRows.forEach(row => {
+                                            row.style.display = '';
+                                            row.style.backgroundColor = '';
+                                        });
+                                        updateCounter(applicationRows.length, applicationRows.length);
+                                        console.log('✅ Filtro limpo - todas aplicações visíveis');
+                                        return;
+                                    }
+
+                                    let visibleCount = 0;
+                                    const visibleFabricantes = new Set();
+                                    const searchTermNormalized = searchTerm.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+                                    // Filtrar aplicações
+                                    applicationRows.forEach(row => {
+                                        const veiculo = (row.getAttribute('data-veiculo') || '').toLowerCase();
+                                        const ano = (row.getAttribute('data-ano') || '').toLowerCase();
+                                        const motor = (row.getAttribute('data-motor') || '').toLowerCase();
+                                        const cells = Array.from(row.cells);
+                                        const configuracao = cells.length > 3 ? (cells[3].textContent || '').toLowerCase() : '';
+                                        
+                                        // Normaliza todos os campos para busca
+                                        const veiculoNorm = veiculo.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                                        const motorNorm = motor.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                                        const confNorm = configuracao.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+                                        const matches = veiculoNorm.includes(searchTermNormalized) || 
+                                                       veiculo.includes(searchTerm) ||
+                                                       ano.includes(searchTerm) || 
+                                                       motorNorm.includes(searchTermNormalized) ||
+                                                       motor.includes(searchTerm) ||
+                                                       confNorm.includes(searchTermNormalized) ||
+                                                       configuracao.includes(searchTerm);
+
+                                        if (matches) {
+                                            row.style.display = '';
+                                            row.style.backgroundColor = '#fff3cd'; // Destaque visual
+                                            visibleCount++;
+                                            console.log('✅ Aplicação encontrada:', {
+                                                veiculo: row.getAttribute('data-veiculo'),
+                                                ano: row.getAttribute('data-ano'),
+                                                motor: row.getAttribute('data-motor')
+                                            });
+                                            
+                                            // Identificar fabricante desta aplicação com busca mais robusta
+                                            let current = row;
+                                            while (current && current.previousElementSibling) {
+                                                current = current.previousElementSibling;
+                                                if (current.classList.contains('fabricante-header')) {
+                                                    visibleFabricantes.add(current);
+                                                    break;
+                                                }
+                                            }
+                                        } else {
+                                            row.style.display = 'none';
+                                            row.style.backgroundColor = '';
+                                        }
+                                    });
+
+                                    // Mostrar/ocultar cabeçalhos de fabricante
+                                    fabricanteHeaders.forEach(header => {
+                                        if (visibleFabricantes.has(header)) {
+                                            header.style.display = '';
+                                        } else {
+                                            header.style.display = 'none';
+                                        }
+                                    });
+
+                                    updateCounter(visibleCount, applicationRows.length);
+                                    console.log(`📊 Filtro aplicado: ${visibleCount} de ${applicationRows.length} aplicações visíveis`);
+                                }
+
+                                // Event listener para busca em tempo real com debounce
+                                let searchTimeout;
+                                searchInput.addEventListener('input', function() {
+                                    clearTimeout(searchTimeout);
+                                    searchTimeout = setTimeout(() => {
+                                        filterApplications();
+                                    }, 150); // Debounce de 150ms para melhor performance
+                                });
+            
+                                // Event listener para Enter
+                                searchInput.addEventListener('keypress', function(e) {
+                                    if (e.key === 'Enter') {
+                                        clearTimeout(searchTimeout);
+                                        filterApplications();
+                                    }
+                                });
+                                
+                                // Event listener para teclas Escape (limpar filtro)
+                                searchInput.addEventListener('keydown', function(e) {
+                                    if (e.key === 'Escape') {
+                                        clearSearch();
+                                    }
+                                });
+            
+                                // Event listener para limpar busca clicando no contador
+                                if (searchCountDiv) {
+                                    searchCountDiv.addEventListener('click', function() {
+                                        if (searchInput.value.trim()) {
+                                            clearSearch();
+                                        }
+                                    });
+                                }
+                            }
+
+                            // --- Lógica Principal da Página ---
+                            document.addEventListener('DOMContentLoaded', function() {
+
+                                // ============== SISTEMA DE MODAL DE IMAGEM ==============
+                                function setupImageModal() {
+                                    const modal = document.getElementById('imageModal');
+                                    const modalImage = document.getElementById('modalImage');
+                                    const closeBtn = document.getElementById('closeModalBtn');
+                                    const prevBtn = document.getElementById('prevImageBtn');
+                                    const nextBtn = document.getElementById('nextImageBtn');
+                                    const zoomInBtn = document.getElementById('zoomInBtn');
+                                    const zoomOutBtn = document.getElementById('zoomOutBtn');
+                                    const zoomResetBtn = document.getElementById('zoomResetBtn');
+                                    const counter = document.getElementById('imageCounter');
+                                    const mainImg = document.getElementById('mainProductImage');
+
+                                    if (!modal || !modalImage) return;
+
+                                    let images = [];
+                                    let currentIndex = 0;
+                                    let currentZoom = 1;
+                                    let imageOffset = { x: 0, y: 0 };
+                                    let isDragging = false;
+                                    let dragStart = { x: 0, y: 0 };
+
+                                    function collectImages() {
+                                        images = [];
+                                        if (mainImg && !mainImg.src.includes('placeholder')) {
+                                            images.push(mainImg.src);
+                                        }
+                                        document.querySelectorAll('.thumbnail-image').forEach(function(t) {
+                                            if (images.indexOf(t.src) === -1) images.push(t.src);
+                                        });
+                                    }
+
+                                    function openModal(index) {
+                                        collectImages();
+                                        if (images.length === 0) return;
+                                        currentIndex = (index >= 0 && index < images.length) ? index : 0;
+                                        document.body.classList.add('modal-open');
+                                        modal.style.display = 'flex';
+                                        showImage();
+                                    }
+
+                                    function closeModal() {
+                                        document.body.classList.remove('modal-open');
+                                        modal.style.display = 'none';
+                                        resetZoom();
+                                    }
+
+                                    function showImage() {
+                                        modalImage.src = images[currentIndex];
+                                        resetZoom();
+                                        updateUI();
+                                    }
+
+                                    function goToImage(index) {
+                                        if (index < 0 || index >= images.length) return;
+                                        currentIndex = index;
+                                        showImage();
+                                    }
+
+                                    function nextImage() {
+                                        if (currentIndex < images.length - 1) {
+                                            currentIndex++;
+                                            showImage();
+                                        }
+                                    }
+
+                                    function previousImage() {
+                                        if (currentIndex > 0) {
+                                            currentIndex--;
+                                            showImage();
+                                        }
+                                    }
+
+                                    function zoomIn() {
+                                        setZoom(currentZoom + 0.25);
+                                    }
+
+                                    function zoomOut() {
+                                        setZoom(currentZoom - 0.25);
+                                    }
+
+                                    function setZoom(zoom) {
+                                        currentZoom = Math.max(0.5, Math.min(zoom, 5));
+                                        applyTransform();
+                                    }
+
+                                    function resetZoom() {
+                                        currentZoom = 1;
+                                        imageOffset = { x: 0, y: 0 };
+                                        applyTransform();
+                                    }
+
+                                    function applyTransform() {
+                                        var transform = 'translate(' + imageOffset.x + 'px, ' + imageOffset.y + 'px) scale(' + currentZoom + ')';
+                                        modalImage.style.setProperty('transform', transform, 'important');
+                                        modalImage.style.setProperty('transform-origin', 'center center', 'important');
+                                        modalImage.style.cursor = currentZoom > 1 ? 'move' : 'default';
+                                    }
+
+                                    function updateUI() {
+                                        if (counter) {
+                                            counter.textContent = (currentIndex + 1) + ' / ' + images.length;
+                                        }
+                                        if (prevBtn) {
+                                            prevBtn.disabled = currentIndex === 0;
+                                            prevBtn.style.opacity = currentIndex === 0 ? '0.3' : '1';
+                                        }
+                                        if (nextBtn) {
+                                            nextBtn.disabled = currentIndex === images.length - 1;
+                                            nextBtn.style.opacity = currentIndex === images.length - 1 ? '0.3' : '1';
+                                        }
+                                        var showNav = images.length > 1;
+                                        if (prevBtn) prevBtn.style.display = showNav ? 'inline-flex' : 'none';
+                                        if (nextBtn) nextBtn.style.display = showNav ? 'inline-flex' : 'none';
+                                    }
+
+                                    // --- Drag/Pan ---
+                                    function startDrag(e) {
+                                        if (currentZoom <= 1) return;
+                                        isDragging = true;
+                                        dragStart = { x: e.clientX - imageOffset.x, y: e.clientY - imageOffset.y };
+                                        e.preventDefault();
+                                    }
+                                    function onDrag(e) {
+                                        if (!isDragging) return;
+                                        imageOffset = { x: e.clientX - dragStart.x, y: e.clientY - dragStart.y };
+                                        applyTransform();
+                                    }
+                                    function endDrag() { isDragging = false; }
+
+                                    // --- Event Listeners ---
+                                    if (mainImg) {
+                                        mainImg.addEventListener('click', function(e) {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            openModal(0);
+                                        });
+                                    }
+
+                                    document.querySelectorAll('.thumbnail-image').forEach(function(thumb, index) {
+                                        thumb.addEventListener('click', function(e) {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            collectImages();
+                                            var idx = images.indexOf(thumb.src);
+                                            openModal(idx >= 0 ? idx : 0);
+                                        });
+                                    });
+
+                                    if (closeBtn) closeBtn.addEventListener('click', closeModal);
+                                    modal.addEventListener('click', function(e) { if (e.target === modal) closeModal(); });
+
+                                    if (prevBtn) prevBtn.addEventListener('click', function(e) { e.stopPropagation(); previousImage(); });
+                                    if (nextBtn) nextBtn.addEventListener('click', function(e) { e.stopPropagation(); nextImage(); });
+                                    if (zoomInBtn) zoomInBtn.addEventListener('click', function(e) { e.stopPropagation(); zoomIn(); });
+                                    if (zoomOutBtn) zoomOutBtn.addEventListener('click', function(e) { e.stopPropagation(); zoomOut(); });
+                                    if (zoomResetBtn) zoomResetBtn.addEventListener('click', function(e) { e.stopPropagation(); resetZoom(); });
+
+                                    // Mouse wheel zoom
+                                    modalImage.addEventListener('wheel', function(e) {
+                                        if (modal.style.display !== 'flex') return;
+                                        e.preventDefault();
+                                        if (e.deltaY < 0) zoomIn(); else zoomOut();
+                                    }, { passive: false });
+
+                                    // Drag to pan
+                                    modalImage.addEventListener('mousedown', startDrag);
+                                    document.addEventListener('mousemove', onDrag);
+                                    document.addEventListener('mouseup', endDrag);
+
+                                    // Keyboard shortcuts
+                                    document.addEventListener('keydown', function(e) {
+                                        if (modal.style.display !== 'flex') return;
+                                        switch (e.key) {
+                                            case 'Escape': closeModal(); break;
+                                            case 'ArrowLeft': e.preventDefault(); previousImage(); break;
+                                            case 'ArrowRight': e.preventDefault(); nextImage(); break;
+                                            case '+': case '=': e.preventDefault(); zoomIn(); break;
+                                            case '-': e.preventDefault(); zoomOut(); break;
+                                            case '0': e.preventDefault(); resetZoom(); break;
+                                            case 'Home': e.preventDefault(); goToImage(0); break;
+                                            case 'End': e.preventDefault(); goToImage(images.length - 1); break;
+                                        }
+                                    });
+
+                                    collectImages();
+                                }
+
+                                /**
+                                 * Transforma a seção de conversões em elementos clicáveis.
+                                 */
+                                function setupInteractiveConversions() {
+                                    console.log('🔄 Iniciando setupInteractiveConversions...');
+                                    const container = document.getElementById('conversoes-content');
+                                    if (!container) {
+                                        console.log('❌ Container conversoes-content não encontrado!');
+                                        return;
+                                    }
+
+                                    const rawText = container.innerText || container.textContent;
+                                    console.log('📝 Texto original das conversões:', rawText);
+                                    
+                                    if (!rawText || rawText.trim() === '') {
+                                        console.log('⚠️ Texto de conversões está vazio');
+                                        return;
+                                    }
+                                    
+                                    const lines = rawText.split('\n').filter(line => line.trim() !== '');
+                                    console.log('📋 Linhas processadas:', lines.length);
+
+                                    const newHtml = lines.map((line) => {
+                                        const trimmedLine = line.trim();
+                                        
+                                        // Regra simples e confiável:
+                                        // Tem dígito → é código. Sem dígito → é fabricante.
+                                        const hasDigit = /\d/.test(trimmedLine);
+                                        const isLikelyBrand = !hasDigit;
+
+                                        if (isLikelyBrand) {
+                                            const safe = trimmedLine.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                                            return `<div class="conversion-brand" title="Fabricante: ${safe}"><span class="brand-label">🏭</span><strong>${safe}</strong></div>`;
+                                        } else {
+                                            const safe = trimmedLine.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                                            const escapedCode = trimmedLine.replace(/'/g, "\\'");
+                                            return `<div class="conversion-code" title="Clique para copiar: ${safe}" onclick="copyToClipboard('${escapedCode}', 'Código'); this.classList.add('copied'); setTimeout(() => this.classList.remove('copied'), 1000);"><span class="code-label">📋</span><span class="code-text">${safe}</span></div>`;
+                                        }
+                                    }).join('');
+
+                                    container.innerHTML = newHtml;
+                                    console.log('✅ Conversões processadas com sucesso!');
+                                    console.log('🎨 Total de elementos criados:', lines.length);
+                                    
+                                    // Força refresh visual e aplica estilos
+                                    container.style.display = 'none';
+                                    container.offsetHeight; // trigger reflow
+                                    container.style.display = '';
+                                    
+                                    // Adiciona contador de conversões
+                                    const brandsCount = container.querySelectorAll('.conversion-brand').length;
+                                    const codesCount = container.querySelectorAll('.conversion-code').length;
+                                    console.log(`📊 Resultado: ${brandsCount} fabricantes, ${codesCount} códigos`);
+                                }
+
+                                /**
+                                 * Configura a lógica de filtragem de produtos similares ao clicar em uma aplicação.
+                                 */
+                                function setupSimilarFiltering() {
+                                    const tableBody = document.getElementById('application-table-body');
+                                    const similarRows = document.querySelectorAll('.similar-row');
+                                    const noResultsRow = document.getElementById('no-similar-results-row');
+                                    const clearFilterBtn = document.getElementById('clear-filter-btn');
+
+                                    if (!tableBody || !clearFilterBtn) return;
+            
+                                /**
+                                 * Converte uma string de ano (ex: "2010", "2010/2015", "2018/...") 
+                                 * em um objeto com ano inicial e final.
+                                 * @param {string} yearStr A string do ano.
+                                 * @returns {{start: number, end: number}}
+                                 */
+                                function parseYearRange(yearStr) {
+                                    if (!yearStr || !yearStr.trim()) {
+                                        const result = { start: -Infinity, end: Infinity };
+                                        console.log(`parseYearRange('${yearStr}') = vazio →`, result);
+                                        return result; // Corresponde a qualquer ano se vazio
+                                    }
+                                    yearStr = yearStr.trim();
+                                    console.log(`parseYearRange('${yearStr}') processando...`);
+
+                                    // Formato: 2018/... ou 2018/
+                                    if (yearStr.endsWith('/...') || yearStr.endsWith('/')) {
+                                        const startYear = parseInt(yearStr, 10); // Especifica o radix 10
+                                        const result = { start: startYear, end: Infinity };
+                                        console.log(`parseYearRange('${yearStr}') = início aberto →`, result);
+                                        return result;
+                                    }
+                                    // Formato: .../2015 ou /2015
+                                    if (yearStr.startsWith('.../') || yearStr.startsWith('/')) {
+                                        const endYear = parseInt(yearStr.substring(yearStr.indexOf('/') + 1), 10);
+                                        const result = { start: -Infinity, end: endYear };
+                                        console.log(`parseYearRange('${yearStr}') = fim aberto →`, result);
+                                        return result;
+                                    }
+                                    // Formato: 2010/2015
+                                    if (yearStr.includes('/')) {
+                                        const parts = yearStr.split('/');
+                                        const start = parseInt(parts[0], 10);
+                                        const end = parseInt(parts[1], 10);
+                                        const result = { start: Math.min(start, end), end: Math.max(start, end) };
+                                        console.log(`parseYearRange('${yearStr}') = intervalo →`, result);
+                                        return result;
+                                    }
+                                    // Formato: 2010
+                                    const singleYear = parseInt(yearStr, 10);
+                                    if (!isNaN(singleYear)) {
+                                        const result = { start: singleYear, end: singleYear };
+                                        console.log(`parseYearRange('${yearStr}') = ano único →`, result);
+                                        return result;
+                                    }
+
+                                    const fallback = { start: -Infinity, end: Infinity };
+                                    console.log(`parseYearRange('${yearStr}') = fallback →`, fallback);
+                                    return fallback; // Fallback
+                                }
+
+                                // Normaliza string: remove acentos, pontuação extra e trim
+                                function normalizeString(s) {
+                                    if (!s) return '';
+                                    try {
+                                        // Remove diacríticos usando NFD + regex para combining marks
+                                        s = s.normalize('NFD').replace(/\p{Diacritic}/gu, '');
+                                    } catch (e) {
+                                        // Fallback para engines que não suportam \p{Diacritic}
+                                        s = s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                                    }
+                                    // Remove caracteres não alfanuméricos, normaliza espaços e converte para minúsculas
+                                    return s.replace(/[^\p{L}\p{N} ]+/gu, ' ').replace(/\s+/g, ' ').trim().toLowerCase();
+                                }
+
+                                /**
+                                 * Verifica se dois intervalos de anos se sobrepõem.
+                                 * @param {{start: number, end: number}} range1
+                                 * @param {{start: number, end: number}} range2
+                                 * @returns {boolean}
+                                 */
+                                function rangesOverlap(range1, range2) {
+                                    // A sobreposição existe se o início de um intervalo for menor ou igual ao fim do outro, e vice-versa.
+                                    const overlap = range1.start <= range2.end && range2.start <= range1.end;
+                                    console.log(`rangesOverlap(`, range1, `,`, range2, `) = ${overlap}`);
+                                    return overlap;
+                                }
+
+                                function filterSimilars(clickedRow) {
+                                    // Captura todos os dados da aplicação clicada
+                                    // Filtro simples por veículo: mostra apenas similares que tenham o mesmo veículo nas aplicações
+                                    const filtroVeiculo = normalizeString(clickedRow.dataset.veiculo || '');
+                                    let visibleCount = 0;
+
+                                    // Limpa o filtro ativo anterior e marca o atual
+                                    tableBody.querySelectorAll('.application-row.active-filter').forEach(row => row.classList.remove('active-filter'));
+                                    clickedRow.classList.add('active-filter');
+
+                                    // Reconsulta as linhas atuais de similares (podem ter sido removidas dinamicamente)
+                                    const currentSimilarRows = Array.from(document.querySelectorAll('.similar-row'));
+                                    if (currentSimilarRows.length === 0) {
+                                        console.log('filterSimilars: nenhum similar encontrado na página');
+                                    }
+
+                                    currentSimilarRows.forEach((row) => {
+                                        const applications = JSON.parse(row.dataset.applications || '[]');
+                                        const hasVehicle = applications.some(app => {
+                                            const appVeic = normalizeString(app.veiculo || '');
+                                            return appVeic === filtroVeiculo || appVeic.includes(filtroVeiculo) || filtroVeiculo.includes(appVeic);
+                                        });
+                                        if (hasVehicle) {
+                                            row.style.display = '';
+                                            visibleCount++;
+                                        } else {
+                                            row.style.display = 'none';
+                                        }
+                                    });
+
+                                    noResultsRow.style.display = visibleCount === 0 ? '' : 'none';
+                                    clearFilterBtn.style.display = 'inline-block';
+
+                                    // Rola até a seção de produtos similares para foco do usuário
+                                    const similarSection = document.getElementById('similar-products-section');
+                                    if (similarSection) {
+                                        similarSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                    }
+                                }
+
+                                function clearFilter() {
+                                    tableBody.querySelectorAll('.application-row.active-filter').forEach(row => row.classList.remove('active-filter'));
+                                    similarRows.forEach(row => row.style.display = '');
+                                    noResultsRow.style.display = 'none';
+                                    clearFilterBtn.style.display = 'none';
+                                }
+
+                                // Event Delegation: Adiciona um único listener ao corpo da tabela
+                                tableBody.addEventListener('click', (event) => {
+                                    const clickedRow = event.target.closest('.application-row');
+                                    if (clickedRow) {
+                                        console.log('Aplicação clicada:', {
+                                            veiculo: clickedRow.dataset.veiculo,
+                                            ano: clickedRow.dataset.ano,
+                                            motor: clickedRow.dataset.motor
+                                        });
+                                        console.log('Similar rows encontradas:', similarRows.length);
+                                        filterSimilars(clickedRow);
+                                    }
+                                });
+
+                                clearFilterBtn.addEventListener('click', clearFilter);
+            
+                                // Permite clicar em links de veículo (por exemplo na lista lateral) para filtrar similares
+                                const veiculoLinks = document.querySelectorAll('.veiculo-link');
+                                veiculoLinks.forEach(link => {
+                                    link.addEventListener('click', (e) => {
+                                        e.preventDefault();
+                                        const vehicleName = (link.textContent || link.innerText || '').trim();
+                                        if (!vehicleName) return;
+                                        // Marca/desmarca linhas na tabela de aplicações para mostrar a seleção
+                                        tableBody.querySelectorAll('.application-row').forEach(row => {
+                                            if (normalizeString(row.dataset.veiculo || '') === normalizeString(vehicleName)) {
+                                                row.classList.add('active-filter');
+                                            } else {
+                                                row.classList.remove('active-filter');
+                                            }
+                                        });
+
+                                        // Filtra os similares para exibir somente os que possuem essa aplicação
+                                        let visibleCount = 0;
+                                        similarRows.forEach(row => {
+                                            const applications = JSON.parse(row.dataset.applications || '[]');
+                                            const hasMatch = applications.some(app => (app.veiculo || '').trim().toLowerCase() === vehicleName.toLowerCase());
+                                            if (hasMatch) {
+                                                row.style.display = '';
+                                                visibleCount++;
+                                            } else {
+                                                row.style.display = 'none';
+                                            }
+                                        });
+
+                                        noResultsRow.style.display = visibleCount === 0 ? '' : 'none';
+                                        clearFilterBtn.style.display = 'inline-block';
+                                    });
+                                });
+                                }
+
+                                // Inicializa todos os módulos da página
+                                try { setupImageModal(); } catch (e) { console.error('Erro modal:', e); }
+                                try { setupInteractiveConversions(); } catch (e) { console.error('Erro conversões:', e); }
+                                try { setupSimilarFiltering(); } catch (e) { console.error('Erro filtros:', e); }
+                                try { setupApplicationSearch(); } catch (e) { console.error('Erro busca:', e); }
+                                
+                                // === FUNÇÕES DE DEBUG PARA TESTES ===
+                                window.debugApplicationSearch = function() {
+                                    const searchInput = document.getElementById('applicationSearchInput');
+                                    const tableBody = document.getElementById('application-table-body');
+                                    console.log('🔍 Debug da busca de aplicações:');
+                                    console.log('Input encontrado:', !!searchInput);
+                                    console.log('Tabela encontrada:', !!tableBody);
+                                    if (tableBody) {
+                                        const rows = tableBody.querySelectorAll('.application-row');
+                                        console.log('Linhas de aplicação encontradas:', rows.length);
+                                        rows.forEach((row, index) => {
+                                            console.log(`Linha ${index}:`, {
+                                                veiculo: row.getAttribute('data-veiculo'),
+                                                ano: row.getAttribute('data-ano'),
+                                                motor: row.getAttribute('data-motor'),
+                                                visivel: row.style.display !== 'none'
+                                            });
+                                        });
+                                    }
+                                };
+                                
+                                window.debugConversions = function() {
+                                    const container = document.getElementById('conversoes-content');
+                                    console.log('🔄 Debug das conversões:');
+                                    console.log('Container encontrado:', !!container);
+                                    if (container) {
+                                        const brands = container.querySelectorAll('.conversion-brand');
+                                        const codes = container.querySelectorAll('.conversion-code');
+                                        console.log('Marcas encontradas:', brands.length);
+                                        console.log('Códigos encontrados:', codes.length);
+                                        brands.forEach((brand, index) => {
+                                            console.log(`Marca ${index}:`, brand.textContent.trim());
+                                        });
+                                        codes.forEach((code, index) => {
+                                            console.log(`Código ${index}:`, code.textContent.trim());
+                                        });
+                                    }
+                                };
+                                
+                                // Expõe funções para debug no console
+                                console.log('🛠️ Funções de debug disponíveis:');
+                                console.log('- window.debugApplicationSearch()');
+                                console.log('- window.debugConversions()');
+                                
+                                // Valida se tudo foi carregado corretamente
+                                setTimeout(() => {
+                                    const searchInput = document.getElementById('applicationSearchInput');
+                                    const conversionsContainer = document.getElementById('conversoes-content');
+                                    
+                                    if (searchInput) {
+                                        console.log('✅ Sistema de busca de aplicações inicializado');
+                                    } else {
+                                        console.log('⚠️ Campo de busca de aplicações não encontrado');
+                                    }
+                                    
+                                    if (conversionsContainer) {
+                                        const brands = conversionsContainer.querySelectorAll('.conversion-brand');
+                                        const codes = conversionsContainer.querySelectorAll('.conversion-code');
+                                        console.log(`✅ Sistema de conversões inicializado: ${brands.length} marcas, ${codes.length} códigos`);
+                                    } else {
+                                        console.log('ℹ️ Seção de conversões não encontrada (normal se o produto não tem conversões)');
+                                    }
+                                }, 1000);
+
+                                // ============== AUTO-FILTRO BASEADO NO CONTEXTO DA PESQUISA ==============
+                                if (VEICULO_CONTEXT || MONTADORA_CONTEXT) {
+                                console.log('🎯 Aplicando auto-filtro baseado no contexto da pesquisa...');
+                                console.log('Veículo context:', VEICULO_CONTEXT);
+                                console.log('Montadora context:', MONTADORA_CONTEXT);
+
+                                // Aguarda um pequeno delay para garantir que todos os elementos foram criados
+                                setTimeout(function() {
+                                    try {
+                                        const tableBody = document.getElementById('application-table-body');
+                                        if (!tableBody) {
+                                            console.log('❌ Tabela de aplicações não encontrada');
+                                            return;
+                                        }
+
+                                        const applicationRows = tableBody.querySelectorAll('.application-row');
+                                        let matchedRow = null;
+
+                                        // Função para normalizar strings para comparação
+                                        function normalizeForMatch(str) {
+                                            if (!str) return '';
+                                            return str.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                                        }
+
+                                        // Tenta encontrar a aplicação que corresponde ao contexto da pesquisa
+                                        applicationRows.forEach(function(row) {
+                                            if (VEICULO_CONTEXT) {
+                                            const rowVeiculo = normalizeForMatch(row.dataset.veiculo || '');
+                                            const searchVeiculo = normalizeForMatch(VEICULO_CONTEXT);
+                                            
+                                            // Verifica correspondência exata ou inclusão
+                                            if (rowVeiculo === searchVeiculo || rowVeiculo.includes(searchVeiculo) || searchVeiculo.includes(rowVeiculo)) {
+                                                matchedRow = row;
+                                                console.log('✅ Aplicação encontrada por veículo:', row.dataset.veiculo);
+                                                return;
+                                            }
+                                            }
+
+                                            if (MONTADORA_CONTEXT && !VEICULO_CONTEXT) {
+                                            // Se não encontrou por veículo, tenta por montadora
+                                            const fabricanteRow = row.previousElementSibling;
+                                            if (fabricanteRow && fabricanteRow.classList.contains('fabricante-header')) {
+                                                const rowMontadora = normalizeForMatch(fabricanteRow.textContent || '');
+                                                const searchMontadora = normalizeForMatch(MONTADORA_CONTEXT);
+                                                
+                                                if (rowMontadora.includes(searchMontadora) || searchMontadora.includes(rowMontadora)) {
+                                                    if (!matchedRow) { // Só define se ainda não encontrou nenhuma
+                                                        matchedRow = row;
+                                                        console.log('✅ Aplicação encontrada por montadora:', fabricanteRow.textContent);
+                                                    }
+                                                }
+                                            }
+                                            }
+                                        });
+
+                                        // Se encontrou uma correspondência, aplica o filtro automaticamente
+                                        if (matchedRow) {
+                                            console.log('🎯 Aplicando filtro automático para:', {
+                                                veiculo: matchedRow.dataset.veiculo,
+                                                ano: matchedRow.dataset.ano,
+                                                motor: matchedRow.dataset.motor
+                                            });
+
+                                            // Destaca visualmente a aplicação correspondente
+                                            matchedRow.style.backgroundColor = '#fff3cd';
+                                            matchedRow.style.border = '2px solid #ffc107';
+                                            matchedRow.style.borderRadius = '4px';
+                                            
+                                            // Adiciona um tooltip indicando que foi aplicado automaticamente
+                                            matchedRow.title += ' (Filtro aplicado automaticamente baseado na sua pesquisa)';
+                                            
+                                            // Simula o clique na aplicação para aplicar o filtro
+                                            matchedRow.click();
+                                            
+                                            // Mostra notificação amigável ao usuário
+                                            const contextLabel = VEICULO_CONTEXT || MONTADORA_CONTEXT;
+                                            if (typeof ux !== 'undefined' && ux.showToast) {
+                                                ux.showToast(
+                                                    'Filtro aplicado automaticamente baseado na sua pesquisa por "' + contextLabel + '"',
+                                                    'info',
+                                                    '🎯 Filtro Automático',
+                                                    7000
+                                                );
+                                            } else {
+                                                // Fallback para notificação simples
+                                                const notification = document.createElement('div');
+                                                notification.style.cssText = `
+                                                    position: fixed; top: 20px; right: 20px; 
+                                                    background: #d4edda; color: #155724; 
+                                                    padding: 15px 20px; border-radius: 8px; 
+                                                    border: 1px solid #c3e6cb; z-index: 9999;
+                                                    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                                                    font-family: Arial, sans-serif; font-size: 14px;
+                                                    max-width: 350px; line-height: 1.4;
+                                                `;
+                                                notification.innerHTML = '<strong>🎯 Filtro Automático</strong><br>Produtos similares filtrados automaticamente para "<em>' + contextLabel + '</em>"';
+                                                document.body.appendChild(notification);
+                                                
+                                                setTimeout(() => {
+                                                    notification.style.opacity = '0';
+                                                    notification.style.transition = 'opacity 0.5s';
+                                                    setTimeout(() => notification.remove(), 500);
+                                                }, 5000);
+                                            }
+                                            
+                                            // Rola para a seção de aplicações para mostrar o destaque
+                                            setTimeout(function() {
+                                                matchedRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                            }, 500);
+
+                                            // Remove o destaque após alguns segundos para não poluir visualmente
+                                            setTimeout(function() {
+                                                matchedRow.style.backgroundColor = '';
+                                                matchedRow.style.border = '';
+                                                matchedRow.style.borderRadius = '';
+                                            }, 5000);
+
+                                        } else {
+                                            console.log('⚠️ Nenhuma aplicação correspondente encontrada para o contexto da pesquisa');
+                                        }
+                                        
+                                    } catch (e) {
+                                        console.error('❌ Erro ao aplicar auto-filtro:', e);
+                                    }
+                                }, 500);
+                                }
+
+                                // --- Remoção de similar via AJAX ---
+                                document.addEventListener('click', function(e) {
+                                    const btn = e.target.closest('.remove-similar-action');
+                                    if (!btn) return;
+                                    e.preventDefault();
+
+                                    // Encontra o form pai que carrega a URL
+                                    const form = btn.closest('.remove-similar-form');
+                                    if (!form) return;
+
+                                    if (!confirm('Confirma remoção deste produto similar? Esta ação é irreversível.')) return;
+
+                                    // Se for uma sugestão, persistimos a ignorância no servidor via POST
+                                    if (form.dataset.suggestion === '1') {
+                                        const url = form.dataset.url;
+                                        if (!url) {
+                                            // fallback: remove apenas frontend
+                                            const row = form.closest('tr');
+                                            if (row) row.remove();
+                                            return;
+                                        }
+
+                                        // Guarda a linha para possível desfazer
+                                        const row = form.closest('tr');
+                                        const rowHTML = row ? row.outerHTML : null;
+                                        const nextSibling = row ? row.nextElementSibling : null;
+
+                                        fetch(url, {
+                                            method: 'POST',
+                                            headers: {
+                                                'Accept': 'application/json',
+                                                'Content-Type': 'application/json'
+                                            },
+                                            credentials: 'same-origin'
+                                        }).then(resp => {
+                                            if (!resp.ok) throw resp;
+                                            return resp.json();
+                                        }).then(data => {
+                                            // Remove a linha da UI
+                                            if (row) row.remove();
+
+                                            const remaining = document.querySelectorAll('.similar-row');
+                                            const noResultsRow = document.getElementById('no-similar-results-row');
+                                            if (remaining.length === 0 && noResultsRow) {
+                                                noResultsRow.style.display = '';
+                                            }
+
+                                            // Cria notificação com botão Desfazer
+                                            const note = document.createElement('div');
+                                            note.style.position = 'fixed';
+                                            note.style.bottom = '20px';
+                                            note.style.left = '50%';
+                                            note.style.transform = 'translateX(-50%)';
+                                            note.style.backgroundColor = '#28a745';
+                                            note.style.color = 'white';
+                                            note.style.padding = '10px 20px';
+                                            note.style.borderRadius = '5px';
+                                            note.style.display = 'flex';
+                                            note.style.gap = '10px';
+
+                                            const msg = document.createElement('span');
+                                            msg.innerText = data && data.message ? data.message : 'Sugestão ignorada.';
+                                            note.appendChild(msg);
+
+                                            const undoBtn = document.createElement('button');
+                                            undoBtn.innerText = 'Desfazer';
+                                            undoBtn.style.background = 'transparent';
+                                            undoBtn.style.color = 'white';
+                                            undoBtn.style.border = '1px solid rgba(255,255,255,0.4)';
+                                            undoBtn.style.padding = '4px 8px';
+                                            undoBtn.style.cursor = 'pointer';
+                                            note.appendChild(undoBtn);
+
+                                            document.body.appendChild(note);
+
+                                            // Tempo para desfazer (6s)
+                                            const undoTimeout = setTimeout(() => {
+                                                if (note.parentNode) note.parentNode.removeChild(note);
+                                            }, 6000);
+
+                                            undoBtn.addEventListener('click', function() {
+                                                clearTimeout(undoTimeout);
+                                                // chama DELETE para desfazer a ignorância
+                                                fetch(url, { method: 'DELETE', credentials: 'same-origin' })
+                                                    .then(r => {
+                                                        if (!r.ok) throw r;
+                                                        return r.json();
+                                                    })
+                                                    .then(d => {
+                                                        // Reinsere a linha no mesmo lugar
+                                                        const tableBody = document.querySelector('.application-table tbody');
+                                                        if (rowHTML && tableBody) {
+                                                            if (nextSibling && nextSibling.parentNode === tableBody) {
+                                                                nextSibling.insertAdjacentHTML('beforebegin', rowHTML);
+                                                            } else {
+                                                                tableBody.insertAdjacentHTML('beforeend', rowHTML);
+                                                            }
+                                                        }
+                                                        if (note.parentNode) note.parentNode.removeChild(note);
+                                                    }).catch(() => {
+                                                        alert('Não foi possível desfazer a remoção.');
+                                                    });
+                                            });
+
+                                        }).catch(async err => {
+                                            let msg = 'Erro ao ignorar sugestão.';
+                                            try {
+                                                const j = await err.json();
+                                                if (j && j.message) msg = j.message;
+                                            } catch (e) {}
+                                            alert(msg);
+                                        });
+
+                                        return;
+                                    }
+
+                                    const url = form.dataset.url;
+                                    // Chama endpoint DELETE
+                                    fetch(url, {
+                                        method: 'DELETE',
+                                        headers: {
+                                            'Accept': 'application/json'
+                                        },
+                                        credentials: 'same-origin'
+                                    }).then(resp => {
+                                        if (!resp.ok) throw resp;
+                                        return resp.json();
+                                    }).then(data => {
+                                        // Remove a linha correspondente
+                                        const row = form.closest('tr');
+                                        if (row) row.remove();
+
+                                        // Se não houver mais similares visíveis, exibe a linha de 'nenhum resultado'
+                                        const remaining = document.querySelectorAll('.similar-row');
+                                        const noResultsRow = document.getElementById('no-similar-results-row');
+                                        if (remaining.length === 0 && noResultsRow) {
+                                            noResultsRow.style.display = '';
+                                        }
+
+                                        // Notificação temporária
+                                        const note = document.createElement('div');
+                                        note.innerText = data && data.message ? data.message : 'Similar removido.';
+                                        note.style.position = 'fixed';
+                                        note.style.bottom = '20px';
+                                        note.style.left = '50%';
+                                        note.style.transform = 'translateX(-50%)';
+                                        note.style.backgroundColor = '#28a745';
+                                        note.style.color = 'white';
+                                        note.style.padding = '10px 20px';
+                                        note.style.borderRadius = '5px';
+                                        document.body.appendChild(note);
+                                        setTimeout(() => { document.body.removeChild(note); }, 2500);
+                                    }).catch(async err => {
+                                        let msg = 'Erro ao remover similar.';
+                                        try {
+                                            const j = await err.json();
+                                            if (j && j.message) msg = j.message;
+                                        } catch (e) {
+                                            // fallback
+                                        }
+                                        alert(msg);
+                                    });
+                                });
+                            });
+                        </script>
+                        {% endraw %}
+
+<!-- Modal para Adicionar a Favoritos -->
+<div class="modal fade" id="modalAdicionarFavorito" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <!-- Conteúdo carregado via AJAX -->
+        </div>
+    </div>
+</div>
+
+<script>
+function abrirModalAdicionar(produtoId) {
+    {% if current_user.is_authenticated %}
+        fetch(`{{ url_for('favorites.modal_adicionar') }}?produto_id=${produtoId}`)
+            .then(response => response.text())
+            .then(html => {
+                document.querySelector('#modalAdicionarFavorito .modal-content').innerHTML = html;
+                
+                // Configuração do modal para Bootstrap
+                if (typeof Bootstrap !== 'undefined' && Bootstrap.Modal) {
+                    const modal = new Bootstrap.Modal(document.getElementById('modalAdicionarFavorito'));
+                    modal.show();
+                } else if (typeof $ !== 'undefined' && $.fn.modal) {
+                    $('#modalAdicionarFavorito').modal('show');
+                } else {
+                    // Fallback - apenas mostra o modal
+                    document.getElementById('modalAdicionarFavorito').style.display = 'block';
+                    document.getElementById('modalAdicionarFavorito').classList.add('show');
+                }
+            })
+            .catch(error => {
+                console.error('Erro ao carregar modal de favoritos:', error);
+                if (typeof UXManager !== 'undefined') {
+                    UXManager.showToast('Erro ao carregar modal de favoritos', 'error');
+                } else {
+                    alert('Erro ao carregar modal de favoritos');
+                }
+            });
+    {% else %}
+        if (typeof UXManager !== 'undefined') {
+            UXManager.showToast('Faça login para usar os favoritos', 'warning');
+        } else {
+            alert('Faça login para usar os favoritos');
+        }
+        setTimeout(() => {
+            window.location.href = '{{ url_for("auth.login") }}';
+        }, 2000);
+    {% endif %}
+}
+
+// Adiciona estilos básicos para o modal se não houver framework CSS
+if (typeof Bootstrap === 'undefined' && typeof $ === 'undefined') {
+    const modalStyles = document.createElement('style');
+    modalStyles.textContent = `
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            z-index: 1050;
+            overflow: auto;
+        }
+        .modal.show {
+            display: flex !important;
+        }
+        .modal-dialog {
+            position: relative;
+            width: auto;
+            margin: 1.75rem;
+            pointer-events: none;
+            max-width: 500px;
+            margin: auto;
+            margin-top: 10%;
+        }
+        .modal-content {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            pointer-events: auto;
+            background-color: #fff;
+            background-clip: padding-box;
+            border: 1px solid rgba(0,0,0,.2);
+            border-radius: 0.3rem;
+            box-shadow: 0 0.25rem 0.5rem rgba(0,0,0,.5);
+        }
+        .modal-header {
+            display: flex;
+            flex-shrink: 0;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 1rem;
+            border-bottom: 1px solid #dee2e6;
+            border-top-left-radius: 0.3rem;
+            border-top-right-radius: 0.3rem;
+        }
+        .modal-title {
+            margin-bottom: 0;
+            line-height: 1.5;
+            font-size: 1.25rem;
+            font-weight: 500;
+        }
+        .close {
+            box-sizing: content-box;
+            width: 1em;
+            height: 1em;
+            padding: 0.25em 0.25em;
+            margin: -0.25em -0.25em -0.25em auto;
+            color: #000;
+            border: 0;
+            border-radius: 0.25rem;
+            opacity: 0.5;
+            background: transparent;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+        .close:hover {
+            opacity: 0.75;
+        }
+        .modal-body {
+            position: relative;
+            flex: 1 1 auto;
+            padding: 1rem;
+        }
+        .modal-footer {
+            display: flex;
+            flex-wrap: wrap;
+            flex-shrink: 0;
+            align-items: center;
+            justify-content: flex-end;
+            padding: 0.75rem;
+            border-top: 1px solid #dee2e6;
+            border-bottom-right-radius: 0.3rem;
+            border-bottom-left-radius: 0.3rem;
+        }
+    `;
+    document.head.appendChild(modalStyles);
+
+    // Event listener para fechar modal clicando fora
+    document.addEventListener('click', function(e) {
+        const modal = document.getElementById('modalAdicionarFavorito');
+        if (e.target === modal) {
+            modal.style.display = 'none';
+            modal.classList.remove('show');
+        }
+    });
+
+    // Event listener para fechar modal com ESC
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            const modal = document.getElementById('modalAdicionarFavorito');
+            if (modal.classList.contains('show')) {
+                modal.style.display = 'none';
+                modal.classList.remove('show');
+            }
+        }
+    });
+}
+</script>
+
+                    {% endblock %}

@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+
+{% block title %}Resultados da Busca{% endblock %}
+
+{% block head %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+{% endblock %}
+
+{% block content %}
+    <header>
+        <div class="results-header">
+            <h1>Resultados da Busca</h1>
+            {% if is_admin %}
+                <a class="button" href="{{ url_for('admin.exportar_csv', **search_args) }}" target="_blank">Exportar resultados para CSV</a>
+            {% endif %}
+        </div>
+    </header>
+
+    <div class="results-summary">
+        <p>
+            Exibindo {{ pagination.items|length }} de <strong>{{ pagination.total }}</strong> resultados encontrados.
+            {% if termo %}
+                Busca por: <mark>{{ termo }}</mark>
+            {% endif %}
+        </p>
+        {% if pagination.total == 0 %}
+            <div style="background-color: #fff3cd; border: 1px solid #ffeeba; color: #856404; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                <h4 style="margin: 0 0 10px 0;">⚠️ Nenhum resultado encontrado</h4>
+                <p style="margin: 0;">
+                    Tente:
+                    <br>• Verificar a ortografia dos termos
+                    <br>• Usar termos mais gerais (ex: "BANDEJA" em vez de "BANDEJA SUSPENSAO")
+                    <br>• Buscar apenas por parte do código (ex: "ALB" em vez de "ALB-4345")
+                    <br>• <strong>Clique no botão "🔄 Atualizar" para limpar o cache</strong>
+                </p>
+            </div>
+        {% else %}
+            <div style="background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; padding: 10px; border-radius: 6px; margin: 15px 0;">
+                ✅ <strong>{{ pagination.total }}</strong> produtos encontrados! Mostrando os primeiros {{ pagination.items|length }}.
+            </div>
+        {% endif %}
+    </div>
+
+    {% if pagination.items %}
+        <table class="application-table results-table" style="display: table !important; width: 100% !important; visibility: visible !important;">
+            <thead>
+                <tr>
+                    <th>Imagem</th>
+                    {# Macro para criar cabeçalhos ordenáveis #}
+                    {% macro sortable_header(column_key, display_name) %}
+                        {% set next_dir = 'desc' if sort_by == column_key and sort_dir == 'asc' else 'asc' %}
+                        <th class="sortable-header {% if sort_by == column_key %}active{% endif %}">
+                            <a href="{{ url_for('main.buscar', **(search_args|merge({'sort_by': column_key, 'sort_dir': next_dir}))) }}">
+                                {{ display_name }}
+                                <span class="sort-arrow">
+                                    {% if sort_by == column_key %}
+                                        {{ '▲' if sort_dir == 'asc' else '▼' }}
+                                    {% else %}
+                                        &#x2195; {# Seta dupla para indicar que é ordenável #}
+                                    {% endif %}
+                                </span>
+                            </a>
+                        </th>
+                    {% endmacro %}
+
+                    {{ sortable_header('codigo', 'Código') }}
+                    {{ sortable_header('nome', 'Nome') }}
+                    <th>Aplicações</th>
+                    <th>Motor</th>
+                    {% if current_user.is_authenticated %}
+                        <th style="width: 120px;">Ações</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for produto in pagination.items %}
+                <tr>
+                    <td>
+                        {% set link_params = {'id': produto.id} %}
+                        {% if montadora %}{% do link_params.update({'montadora_context': montadora}) %}{% endif %}
+                        {% if aplicacao_termo %}{% do link_params.update({'veiculo_context': aplicacao_termo}) %}{% endif %}
+                        <a href="{{ url_for('main.detalhe_peca', **link_params) }}">
+                            <img src="{% if produto.imagens %}{{ url_for('uploaded_file', filename=produto.imagens[0].filename) }}{% else %}https://via.placeholder.com/60x60/eee/aaa?text=N/A{% endif %}" alt="Imagem de {{ produto.nome }}" class="product-image-thumbnail">
+                        </a>
+                    </td>
+                    <td>{{ produto.codigo|highlight(termo) }}</td>
+                    <td>
+                        {% set link_params = {'id': produto.id} %}
+                        {% if montadora %}{% do link_params.update({'montadora_context': montadora}) %}{% endif %}
+                        {% if aplicacao_termo %}{% do link_params.update({'veiculo_context': aplicacao_termo}) %}{% endif %}
+                        <a href="{{ url_for('main.detalhe_peca', **link_params) }}" style="text-decoration: none; color: #0056b3; font-weight: bold;">
+                            {{ produto.nome|highlight(termo) }}
+                        </a>
+                    </td>
+                    <td>
+                        {% for aplicacao in produto.aplicacoes[:2] %}
+                            <span class="badge badge-manual">{{ aplicacao.montadora or '' }} {{ aplicacao.veiculo or '' }} {{ aplicacao.ano or '' }}</span><br>
+                        {% endfor %}
+                        {% if produto.aplicacoes|length > 2 %}
+                            <span style="font-size: 0.8em; color: #666;">... e mais {{ produto.aplicacoes|length - 2 }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% set motores = produto.aplicacoes|map(attribute='motor')|select|unique|list %}
+                        {% for motor in motores[:2] %}
+                            <span>{{ motor|highlight(termo) }}</span><br>
+                        {% endfor %}
+                        {% if motores|length > 2 %}
+                            <span style="font-size:0.8em;color:#666;">+{{ motores|length - 2 }}</span>
+                        {% endif %}
+                    </td>
+                    {% if current_user.is_authenticated %}
+                        <td>
+                            <form method="POST" action="{{ url_for('main.adicionar_ao_carrinho') }}" style="margin: 0; display: inline;">
+                                <input type="hidden" name="produto_id" value="{{ produto.id }}">
+                                <input type="hidden" name="quantidade" value="1">
+                                <button type="submit" class="button" style="padding: 5px 10px; font-size: 12px; background: #28a745; color: white;" title="Adicionar ao carrinho">
+                                    🛒+
+                                </button>
+                            </form>
+                        </td>
+                    {% endif %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {{ render_pagination(pagination, endpoint or 'main.buscar', search_args) }}
+    {% else %}
+        <p style="text-align: center; padding: 20px;">Nenhum produto encontrado para os critérios de busca.</p>
+    {% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Verifica se há resultados mas eles estão ocultos
+    const resultsTable = document.querySelector('.results-table');
+    const totalResults = {{ pagination.total if pagination else 0 }};
+    
+    if (totalResults > 0 && resultsTable) {
+        // Verifica se a tabela está visível
+        setTimeout(function() {
+            const tableRect = resultsTable.getBoundingClientRect();
+            const isVisible = tableRect.height > 0 && tableRect.width > 0;
+            
+            if (!isVisible) {
+                // Força a visibilidade da tabela
+                resultsTable.style.display = 'table';
+                resultsTable.style.visibility = 'visible';
+                resultsTable.style.opacity = '1';
+                
+                // Mostra alerta para o usuário
+                const alert = document.createElement('div');
+                alert.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #ffc107; color: #212529; padding: 15px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); z-index: 9999; max-width: 300px;';
+                alert.innerHTML = '<strong>🔧 Problema detectado!</strong><br>Os resultados estavam ocultos. Foram forçados a aparecer. Se o problema persistir, limpe o cache do navegador.';
+                document.body.appendChild(alert);
+                
+                setTimeout(() => alert.remove(), 5000);
+            }
+        }, 500);
+    }
+    
+    // Debug: mostra informações no console
+    console.log('Página de resultados carregada');
+    console.log('Total de resultados:', totalResults);
+    console.log('Resultados na página:', {{ pagination.items|length if pagination else 0 }});
+    
+    {% if termo %}
+    console.log('Termo buscado:', '{{ termo }}');
+    {% endif %}
+});
+</script>
+{% endblock %}
