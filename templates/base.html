@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Catálogo de Peças{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='responsive.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='ux_enhancements.css') }}">
+    
+    <!-- Enhancements para versão desktop -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='gui_enhancements.css') }}">
+    
+    <style>
+        :root {
+            --cor-principal: {{ config_aparencia.cor_principal|default('#ff6600') }};
+        }
+        
+        /* Configurações de plano de fundo personalizável */
+        body {
+            {% if config_aparencia.background_tipo == 'imagem' and config_aparencia.background_imagem %}
+                background-image: url('{{ url_for("uploaded_file", filename=config_aparencia.background_imagem) }}');
+                background-repeat: {{ config_aparencia.background_repeat|default('no-repeat') }};
+                background-position: {{ config_aparencia.background_position|default('center center') }};
+                background-size: {{ config_aparencia.background_size|default('cover') }};
+                background-attachment: fixed;
+            {% else %}
+                background-color: {{ config_aparencia.background_cor|default('#ffffff') }};
+            {% endif %}
+            
+            {% if config_aparencia.background_opacity and config_aparencia.background_opacity != 1.0 %}
+                position: relative;
+            {% endif %}
+        }
+        
+        {% if config_aparencia.background_opacity and config_aparencia.background_opacity != 1.0 %}
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: {{ config_aparencia.background_cor|default('#ffffff') }};
+            opacity: {{ 1.0 - config_aparencia.background_opacity }};
+            pointer-events: none;
+            z-index: -1;
+        }
+        {% endif %}
+        
+        /* Estilos para o menu dropdown */
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            right: 0;
+            background-color: #f9f9f9;
+            min-width: 160px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            z-index: 100;
+            border-radius: 5px;
+            overflow: hidden; /* Garante que os cantos arredondados se apliquem aos itens */
+        }
+        .dropdown-content a {
+            color: black;
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+            text-align: left;
+            background-color: #f9f9f9; /* Garante que o fundo não seja transparente */
+            border: none; /* Remove bordas do estilo .button */
+            width: 100%;
+        }
+        .dropdown-content a:hover {
+            background-color: #f1f1f1;
+        }
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
+    </style>
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <nav class="top-nav">
+        <div class="nav-content-wrapper">
+            <div class="nav-left">
+                <a href="{{ url_for('main.index') }}" class="logo-link">
+                    {% if config_aparencia.logo_path %}
+                        <img src="{{ url_for('uploaded_file', filename=config_aparencia.logo_path) }}" alt="Logo" class="logo-img" style="max-height: 40px; width: auto; vertical-align: middle;">
+                    {% else %}
+                        <span class="logo-text">Catálogo</span>
+                    {% endif %}
+                </a>
+            </div>
+
+            <div class="nav-center-group">
+                {% if show_top_search is not defined or show_top_search %}
+                    <div class="nav-center">
+                        <form action="{{ url_for('main.buscar') }}" method="GET" class="search-form">
+                            <input type="search" name="termo" placeholder="Buscar por código, nome, aplicação..." value="{{ termo or '' }}">
+                            <button type="submit" class="button">Buscar</button>
+                        </form>
+                    </div>
+                {% endif %}
+    
+                <div class="nav-right">
+                    <a href="{{ url_for('main.index') }}" class="button">Nova Busca</a>
+                    {% if current_user.is_authenticated %}
+                        <a href="{{ url_for('main.visualizar_carrinho') }}" class="button" style="position: relative;">
+                            🛒 Carrinho
+                            {% if cart_count > 0 %}
+                                <span style="background: #dc3545; color: white; border-radius: 50%; padding: 2px 6px; font-size: 11px; position: absolute; top: -5px; right: -8px; min-width: 18px; text-align: center;">
+                                    {{ cart_count }}
+                                </span>
+                            {% endif %}
+                        </a>
+                        <a href="{{ url_for('favorites.index') }}" class="button" style="position: relative;">
+                            ❤️ Favoritos
+                            <span style="background: #ff6600; color: white; border-radius: 50%; padding: 2px 6px; font-size: 11px; position: absolute; top: -5px; right: -8px; min-width: 18px; text-align: center; display: none;" id="favoritesCount">
+                                0
+                            </span>
+                        </a>
+                        <a href="{{ url_for('main.listar_contatos') }}" class="button">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: middle; margin-right: 5px;">
+                                <path d="M19.05 4.91A9.816 9.816 0 0 0 12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01zM12.04 20.15c-1.48 0-2.93-.4-4.2-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.264 8.264 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.24-8.24 2.2 0 4.27.86 5.82 2.42a8.183 8.183 0 0 1 2.41 5.83c.02 4.54-3.68 8.23-8.22 8.23zm4.52-6.16c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.12-.17.25-.64.81-.78.97-.14.17-.29.19-.54.06-.25-.12-1.05-.39-1.99-1.23-.74-.66-1.23-1.47-1.38-1.72-.14-.25-.02-.38.11-.51.11-.11.25-.29.37-.43.12-.14.16-.25.25-.41.08-.17.04-.31-.02-.43-.06-.12-.56-1.34-.76-1.84-.2-.48-.4-.42-.56-.43-.14-.01-.3-.01-.46-.01a.881.881 0 0 0-.64.3c-.22.25-.85.83-.85 2.02 0 1.19.87 2.34.99 2.5.12.17 1.75 2.67 4.23 3.74.59.26 1.05.41 1.41.53.59.19 1.13.16 1.56.1.48-.07 1.47-.6 1.67-1.18.21-.58.21-1.07.14-1.18s-.22-.16-.47-.28z"/>
+                            </svg>
+                            Contatos
+                        </a>
+                    {% endif %}
+                    {% if is_admin %}
+                        <div class="dropdown">
+                            <button class="button">Admin &#9662;</button>
+                            <div class="dropdown-content">
+                                <a href="{{ url_for('admin.dashboard') }}">📊 Dashboard</a>
+                                <a href="{{ url_for('admin.adicionar_peca') }}">Adicionar Peça</a>
+                                <a href="{{ url_for('admin.gerenciar_usuarios') }}">Usuários</a>
+                                <a href="{{ url_for('admin.pagina_tarefas') }}">Tarefas</a>
+                                <a href="{{ url_for('admin.configuracoes') }}">Configurações</a>
+                            </div>
+                        </div>
+                    {% endif %}
+                    {% if current_user.is_authenticated %}
+                        <div class="dropdown">
+                            <button class="button">{{ current_user.username }} &#9662;</button>
+                            <div class="dropdown-content">
+                                <a href="{{ url_for('auth.logout') }}">Sair</a>
+                            </div>
+                        </div>
+                    {% else %}
+                        <a href="{{ url_for('auth.login') }}" class="button">Login</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="flash-messages">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash-message flash-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        <!-- Banner de Atualização Melhorado -->
+        {% if is_admin and update_info %}
+        <div class="update-banner" id="updateBanner">
+            <div class="update-content">
+                <div class="update-icon">🔄</div>
+                <div class="update-info">
+                    <strong>Nova versão disponível: {{ update_info.latest_version }}</strong>
+                    <p>{{ update_info.release_notes }}</p>
+                    {% if update_info.update_size != 'Desconhecido' %}
+                        <small>Tamanho: {{ update_info.update_size }} MB</small>
+                    {% endif %}
+                </div>
+                <div class="update-actions">
+                    <form action="{{ url_for('admin.atualizar_aplicacao') }}" method="POST" style="display: inline;">
+                        <button type="submit" class="btn-update">Baixar e Instalar</button>
+                    </form>
+                    <button onclick="ignoreUpdate()" class="btn-ignore" title="Ignorar até reiniciar">Ignorar</button>
+                    <button onclick="closeUpdate()" class="btn-dismiss" title="Fechar">×</button>
+                </div>
+            </div>
+        </div>
+        <script>
+            function closeUpdate() {
+                document.getElementById('updateBanner').style.display = 'none';
+            }
+            
+            function ignoreUpdate() {
+                // Salva no sessionStorage para ignorar até reiniciar
+                sessionStorage.setItem('ignoreUpdate_{{ update_info.latest_version }}', 'true');
+                closeUpdate();
+            }
+            
+            // Verifica se usuário já ignorou esta versão nesta sessão
+            (function() {
+                var banner = document.getElementById('updateBanner');
+                if (banner && sessionStorage.getItem('ignoreUpdate_{{ update_info.latest_version }}') === 'true') {
+                    banner.style.display = 'none';
+                }
+            })();
+        </script>
+        {% endif %}
+    </div>
+
+    <main class="container">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="site-footer">
+        <p class="footer-center">Catálogo de Peças v{{ app_version }} - Desenvolvido com Flask.</p>
+    </footer>
+
+    {% block scripts %}
+    <script>
+        // Script para fechar as mensagens flash
+        document.addEventListener('DOMContentLoaded', function() {
+            const flashMessages = document.querySelectorAll('.flash-message');
+            flashMessages.forEach(function(message) {
+                message.addEventListener('click', function() {
+                    this.style.opacity = '0';
+                    setTimeout(() => this.remove(), 300);
+                });
+            });
+
+            // Lógica para fechar dropdowns ao clicar fora
+            window.addEventListener('click', function(e) {
+                document.querySelectorAll('.dropdown').forEach(function(dropdown) {
+                    if (!dropdown.contains(e.target)) {
+                        // Esconde o conteúdo se o clique foi fora do dropdown
+                        let content = dropdown.querySelector('.dropdown-content');
+                        if (content) {
+                           // A lógica de hover já controla isso, mas pode ser útil para mobile
+                           // content.style.display = 'none';
+                        }
+                    }
+                });
+            });
+        });
+    </script>
+    
+    <!-- UX Enhancements JavaScript -->
+    <script src="{{ url_for('static', filename='js/ux_enhancements.js') }}"></script>
+    
+    <!-- Enhancements JavaScript para versão desktop -->
+    <script src="{{ url_for('static', filename='gui_enhancements.js') }}"></script>
+    
+    {% endblock %}
+</body>
+</html>

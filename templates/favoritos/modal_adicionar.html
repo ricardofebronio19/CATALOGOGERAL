@@ -1,0 +1,499 @@
+<div class="modal-header">
+    <h5 class="modal-title">
+        <i class="fas fa-heart"></i> 
+        Adicionar {{ produto.codigo }} às Listas
+    </h5>
+    <button type="button" class="close" data-dismiss="modal">
+        <span>&times;</span>
+    </button>
+</div>
+
+<div class="modal-body">
+    <div class="produto-info">
+        <div class="produto-header">
+            <strong class="produto-codigo">{{ produto.codigo }}</strong>
+            <span class="produto-grupo">{{ produto.grupo }}</span>
+        </div>
+        <p class="produto-descricao">{{ produto.descricao }}</p>
+        <small class="produto-fornecedor">Fornecedor: {{ produto.fornecedor }}</small>
+    </div>
+
+    <div class="listas-section">
+        <h6><i class="fas fa-list"></i> Suas Listas de Favoritos</h6>
+        
+        {% if listas %}
+            <div class="listas-container">
+                {% for lista in listas %}
+                <div class="lista-item {% if lista.id in listas_com_produto %}lista-com-produto{% endif %}" 
+                     data-lista-id="{{ lista.id }}">
+                    
+                    <div class="lista-checkbox">
+                        <input type="checkbox" 
+                               id="lista_{{ lista.id }}" 
+                               class="lista-check"
+                               {% if lista.id in listas_com_produto %}checked disabled{% endif %}
+                               data-lista-id="{{ lista.id }}">
+                    </div>
+                    
+                    <div class="lista-visual" style="border-left-color: {{ lista.cor }};">
+                        <span class="lista-icone">{{ lista.icone }}</span>
+                        <div class="lista-details">
+                            <label for="lista_{{ lista.id }}" class="lista-nome">{{ lista.nome }}</label>
+                            <div class="lista-meta">
+                                <span class="total-itens">{{ lista.total_itens }} itens</span>
+                                {% if lista.publica %}
+                                    <span class="badge badge-info">Pública</span>
+                                {% endif %}
+                            </div>
+                            {% if lista.descricao %}
+                                <small class="lista-descricao">{{ lista.descricao }}</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="lista-status">
+                        {% if lista.id in listas_com_produto %}
+                            <span class="status-badge ja-adicionado">
+                                <i class="fas fa-check"></i> Já na lista
+                            </span>
+                        {% else %}
+                            <button type="button" 
+                                    class="btn btn-sm btn-outline-primary btn-adicionar"
+                                    onclick="adicionarALista({{ lista.id }})">
+                                Adicionar
+                            </button>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <div class="observacoes-section" style="display: none;">
+                <label for="observacoes">Observações (Opcional)</label>
+                <textarea id="observacoes" 
+                          class="form-control" 
+                          rows="2" 
+                          placeholder="Adicione suas observações sobre este produto..."></textarea>
+            </div>
+            
+        {% else %}
+            <div class="empty-listas">
+                <i class="fas fa-folder-open"></i>
+                <p>Você ainda não criou listas de favoritos.</p>
+                <a href="{{ url_for('favorites.criar_lista') }}" 
+                   class="btn btn-primary btn-sm" 
+                   target="_blank">
+                    <i class="fas fa-plus"></i> Criar Primeira Lista
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="modal-footer">
+    {% if listas %}
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Fechar</button>
+        <button type="button" 
+                class="btn btn-primary" 
+                id="btnAdicionarSelecionadas" 
+                onclick="adicionarListasSelecionadas()" 
+                disabled>
+            <i class="fas fa-heart"></i> Adicionar às Listas Selecionadas
+        </button>
+    {% else %}
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Fechar</button>
+    {% endif %}
+</div>
+
+<style>
+.modal-body {
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.produto-info {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border-left: 4px solid #ff6600;
+}
+
+.produto-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+}
+
+.produto-codigo {
+    font-size: 1.1rem;
+    color: #333;
+}
+
+.produto-grupo {
+    background: rgba(255, 102, 0, 0.1);
+    color: #e65100;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.produto-descricao {
+    margin: 8px 0;
+    color: #555;
+    font-weight: 500;
+    line-height: 1.4;
+}
+
+.produto-fornecedor {
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.listas-section h6 {
+    color: #333;
+    margin-bottom: 15px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.listas-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: 300px;
+    overflow-y: auto;
+    padding-right: 5px;
+}
+
+.lista-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    transition: all 0.2s;
+    background: white;
+}
+
+.lista-item:hover {
+    border-color: #ff6600;
+    box-shadow: 0 2px 8px rgba(255, 102, 0, 0.1);
+}
+
+.lista-item.lista-selecionada {
+    border-color: #28a745;
+    background: rgba(40, 167, 69, 0.05);
+}
+
+.lista-item.lista-com-produto {
+    border-color: #6c757d;
+    background: #f8f9fa;
+    opacity: 0.8;
+}
+
+.lista-checkbox {
+    flex-shrink: 0;
+}
+
+.lista-check {
+    transform: scale(1.2);
+    cursor: pointer;
+}
+
+.lista-check:disabled {
+    cursor: not-allowed;
+}
+
+.lista-visual {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-left: 4px solid #ff6600;
+    padding-left: 10px;
+}
+
+.lista-icone {
+    font-size: 1.3rem;
+    flex-shrink: 0;
+}
+
+.lista-details {
+    flex: 1;
+    min-width: 0;
+}
+
+.lista-nome {
+    display: block;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 3px;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+.lista-meta {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 3px;
+}
+
+.total-itens {
+    background: #e9ecef;
+    color: #666;
+    padding: 1px 6px;
+    border-radius: 10px;
+    font-size: 0.75rem;
+}
+
+.lista-descricao {
+    color: #666;
+    display: block;
+    font-size: 0.85rem;
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.lista-status {
+    flex-shrink: 0;
+}
+
+.status-badge {
+    background: #6c757d;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.status-badge.ja-adicionado {
+    background: #28a745;
+}
+
+.btn-adicionar {
+    font-size: 0.8rem;
+    padding: 4px 10px;
+    border-radius: 12px;
+}
+
+.observacoes-section {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #e9ecef;
+}
+
+.observacoes-section label {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 8px;
+    display: block;
+}
+
+.empty-listas {
+    text-align: center;
+    padding: 40px 20px;
+    color: #666;
+}
+
+.empty-listas i {
+    font-size: 3rem;
+    margin-bottom: 15px;
+    color: #ddd;
+}
+
+.empty-listas p {
+    margin-bottom: 20px;
+    font-size: 1.1rem;
+}
+
+/* Custom scrollbar */
+.listas-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.listas-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.listas-container::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+}
+
+.listas-container::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+@media (max-width: 576px) {
+    .lista-item {
+        padding: 10px;
+        gap: 8px;
+    }
+    
+    .lista-visual {
+        gap: 8px;
+    }
+    
+    .lista-meta {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 3px;
+    }
+    
+    .produto-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+</style>
+
+<script>
+let produtoId = {{ produto.id }};
+let listasSelecionadas = new Set();
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Event listeners para checkboxes
+    document.querySelectorAll('.lista-check:not(:disabled)').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const listaId = parseInt(this.dataset.listaId);
+            const listaItem = this.closest('.lista-item');
+            
+            if (this.checked) {
+                listasSelecionadas.add(listaId);
+                listaItem.classList.add('lista-selecionada');
+            } else {
+                listasSelecionadas.delete(listaId);
+                listaItem.classList.remove('lista-selecionada');
+            }
+            
+            atualizarBotaoAdicionar();
+            toggleObservacoes();
+        });
+    });
+    
+    atualizarBotaoAdicionar();
+});
+
+function adicionarALista(listaId) {
+    const checkbox = document.getElementById(`lista_${listaId}`);
+    if (checkbox && !checkbox.disabled) {
+        checkbox.checked = true;
+        checkbox.dispatchEvent(new Event('change'));
+    }
+}
+
+function atualizarBotaoAdicionar() {
+    const btnAdicionar = document.getElementById('btnAdicionarSelecionadas');
+    const count = listasSelecionadas.size;
+    
+    if (count > 0) {
+        btnAdicionar.disabled = false;
+        btnAdicionar.innerHTML = `<i class="fas fa-heart"></i> Adicionar a ${count} lista${count > 1 ? 's' : ''}`;
+    } else {
+        btnAdicionar.disabled = true;
+        btnAdicionar.innerHTML = '<i class="fas fa-heart"></i> Selecione uma lista';
+    }
+}
+
+function toggleObservacoes() {
+    const observacoesSection = document.querySelector('.observacoes-section');
+    if (listasSelecionadas.size > 0) {
+        observacoesSection.style.display = 'block';
+    } else {
+        observacoesSection.style.display = 'none';
+    }
+}
+
+function adicionarListasSelecionadas() {
+    if (listasSelecionadas.size === 0) {
+        UXManager.showToast('Selecione pelo menos uma lista', 'warning');
+        return;
+    }
+    
+    const observacoes = document.getElementById('observacoes').value;
+    const btnAdicionar = document.getElementById('btnAdicionarSelecionadas');
+    
+    btnAdicionar.disabled = true;
+    btnAdicionar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adicionando...';
+    
+    // Array de promessas para adicionar à múltiplas listas
+    const promises = Array.from(listasSelecionadas).map(listaId => {
+        return fetch('{{ url_for("favorites.adicionar_produto") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                lista_id: listaId,
+                produto_id: produtoId,
+                observacoes: observacoes.trim() || null
+            })
+        }).then(response => response.json());
+    });
+    
+    Promise.all(promises)
+        .then(results => {
+            const sucessos = results.filter(r => r.success);
+            const erros = results.filter(r => !r.success);
+            
+            if (sucessos.length > 0) {
+                UXManager.showToast(
+                    `Produto adicionado a ${sucessos.length} lista${sucessos.length > 1 ? 's' : ''} com sucesso!`, 
+                    'success'
+                );
+            }
+            
+            if (erros.length > 0) {
+                erros.forEach(erro => {
+                    UXManager.showToast(erro.message, 'error');
+                });
+            }
+            
+            if (sucessos.length > 0) {
+                // Fecha modal após sucesso
+                setTimeout(() => {
+                    $('#modalAdicionarLista').modal('hide');
+                }, 1500);
+            }
+        })
+        .catch(error => {
+            console.error('Erro ao adicionar produto:', error);
+            UXManager.showToast('Erro ao adicionar produto às listas', 'error');
+        })
+        .finally(() => {
+            btnAdicionar.disabled = false;
+            atualizarBotaoAdicionar();
+        });
+}
+
+// Atalhos de teclado
+document.addEventListener('keydown', function(e) {
+    // Enter para adicionar
+    if (e.key === 'Enter' && !e.ctrlKey && !e.shiftKey) {
+        e.preventDefault();
+        if (listasSelecionadas.size > 0) {
+            adicionarListasSelecionadas();
+        }
+    }
+    
+    // Escape para fechar
+    if (e.key === 'Escape') {
+        $('#modalAdicionarLista').modal('hide');
+    }
+});
+</script>
