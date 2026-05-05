@@ -1,5 +1,14 @@
 # Changelog
 
+## v2.1.2 - 2026-05-05
+
+### ✨ Novidades
+- Ordenação por clique nos cabeçalhos **Nome**, **Código** e **Veículo** na seção de Produtos Similares
+- Alternância de ordenação crescente/decrescente ao clicar no mesmo cabeçalho
+
+### 🛠️ Preparação de Release
+- Atualização dos arquivos de versão e configuração de update para publicação no GitHub
+
 ## v2.0.8 - 2026-04-20
 
 ### ✨ Novidades

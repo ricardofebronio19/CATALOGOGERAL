@@ -1,5 +1,7 @@
 #!/usr/bin/env powershell
-# Script para preparar release v2.0.7
+# Script para preparar release v2.1.2
+
+$Version = "2.1.2"
 
 param(
     [switch]$BuildOnly,
@@ -7,7 +9,7 @@ param(
     [switch]$SkipBuild
 )
 
-Write-Host "=== Preparando Release v2.0.7 ===" -ForegroundColor Green
+Write-Host "=== Preparando Release v$Version ===" -ForegroundColor Green
 
 # 1. Verificar se estamos no diretório correto
 if (!(Test-Path "build.bat")) {
@@ -49,7 +51,7 @@ if ($BuildOnly) {
 }
 
 # 4. Verificar se o instalador foi criado
-$installerPath = "Output\instalador_CatalogoDePecas_v2.0.7.exe"
+$installerPath = "Output\instalador_CatalogoDePecas_v$Version.exe"
 if (!(Test-Path $installerPath)) {
     Write-Error "Instalador não encontrado em: $installerPath"
     exit 1
@@ -58,28 +60,19 @@ if (!(Test-Path $installerPath)) {
 Write-Host "Instalador criado: $installerPath" -ForegroundColor Green
 
 # 5. Preparar informações do release
-$tagName = "v2.0.7"
-$releaseName = "CatalogoDePecas v2.0.7"
+$tagName = "v$Version"
+$releaseName = "CatalogoDePecas v$Version"
 $releaseNotes = @"
-# 🚀 Catálogo de Peças v2.0.7
+# 🚀 Catálogo de Peças v$Version
 
 ## Melhorias desta Versão
 
-### 🛠️ Correções e Melhorias
-- Correções de bugs reportados pelos usuários
-- Melhorias de estabilidade e performance geral
-- Otimizações no carregamento de dados
-- Ajustes de interface e experiência do usuário
-- Interface de busca responsiva com melhor layout
-- Feedback visual aprimorado nos resultados
-- Otimizações de CSS para diferentes tamanhos de tela
-- Refinamentos na navegação entre páginas
+### ✨ Novidades
+- Ordenação por clique nos cabeçalhos Nome, Código e Veículo na seção Produtos Similares
+- Alternância ascendente/descendente ao clicar no mesmo cabeçalho
 
-### 🛠️ Manutenção
-- Refatoração do código de busca FTS
-- Limpeza e otimização de queries SQL
-- Melhoria no tratamento de erros de busca
-- Atualizações no instalador e build system
+### 🛠️ Preparação de Release
+- Atualização dos arquivos de versão e configuração de update para publicação no GitHub
 
 ## 📦 Instalação
 
@@ -94,11 +87,11 @@ $releaseNotes = @"
 
 ## 📋 Arquivos de Release
 
-- **instalador_CatalogoDePecas_v2.0.7.exe** - Instalador completo (~35MB)
+- **instalador_CatalogoDePecas_v$Version.exe** - Instalador completo (~37MB)
 
 ---
 **Compatibilidade:** Windows 10/11
-**Data:** 15/04/2026
+**Data:** 05/05/2026
 "@
 
 # 6. Criar release no GitHub (se solicitado)
@@ -125,10 +118,10 @@ if ($CreateRelease) {
         Write-Host "Atualizando configuração de atualização..." -ForegroundColor Yellow
         
         $updateConfig = @{
-            latest_version = "1.7.2"
-            download_url = "https://github.com/ricardofebronio19/CATALOGOGERAL/releases/download/v1.7.2/instalador_CatalogoDePecas_v1.7.2.exe"
-            release_notes = "🚀 Sistema de Atualização Automática`n✨ Interface visual melhorada`n🎨 Destaque das montadoras e alternância de cores`n🔧 Correções de bugs e melhorias de performance"
-            size_mb = "35"
+            latest_version = $Version
+            download_url = "https://github.com/ricardofebronio19/CATALOGOGERAL/releases/download/v$Version/instalador_CatalogoDePecas_v$Version.exe"
+            release_notes = "v$Version — Ordenação em Produtos Similares`n`n✨ NOVIDADES:`n- Ordenação por clique nos cabeçalhos Nome, Código e Veículo na seção Produtos Similares`n- Alternância ascendente/descendente ao clicar no mesmo cabeçalho"
+            size_mb = "37"
         } | ConvertTo-Json -Depth 10
         
         $updateConfig | Out-File -FilePath "update_config.json" -Encoding UTF8
@@ -145,7 +138,7 @@ if ($CreateRelease) {
 
 Write-Host "`n=== Preparação Concluída ===" -ForegroundColor Green
 Write-Host "Instalador: $installerPath" -ForegroundColor White
-Write-Host "Notas de release: RELEASE_NOTES_v1.7.2.md" -ForegroundColor White
+Write-Host "Notas de release: incluídas no script (releaseNotes)" -ForegroundColor White
 Write-Host "Config de atualização: update_config.json" -ForegroundColor White
 
 if (!$CreateRelease) {

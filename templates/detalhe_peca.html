@@ -230,13 +230,13 @@
                             {% if produto.similares or sugestoes_similares %}
                             <div id="similar-products-section" class="application-section similar-section">
                                 <h3>Produtos Similares</h3>
-                                <table class="application-table">
+                                <table id="similar-products-table" class="application-table">
                                     <thead>
                                         <tr>
                                             <th>Imagem</th>
-                                            <th>Nome</th>
-                                            <th>Código</th>
-                                            <th>Veículo</th>
+                                            <th class="similar-sortable" data-sort-key="nome" title="Clique para ordenar por nome">Nome</th>
+                                            <th class="similar-sortable" data-sort-key="codigo" title="Clique para ordenar por código">Código</th>
+                                            <th class="similar-sortable" data-sort-key="veiculo" title="Clique para ordenar por veículo">Veículo</th>
                                             <th>Ano</th>
                                             <th>Motor</th>
                                             <th>Ações</th>
@@ -519,6 +519,24 @@
                                     color: #555;
                                 }
                                 .filter-help-text img { width: 16px; height: 16px; }
+                                #similar-products-table th.similar-sortable {
+                                    cursor: pointer;
+                                    user-select: none;
+                                    white-space: nowrap;
+                                }
+                                #similar-products-table th.similar-sortable::after {
+                                    content: ' ↕';
+                                    font-size: 0.9em;
+                                    color: #6c757d;
+                                }
+                                #similar-products-table th.similar-sortable.sort-asc::after {
+                                    content: ' ▲';
+                                    color: #0d6efd;
+                                }
+                                #similar-products-table th.similar-sortable.sort-desc::after {
+                                    content: ' ▼';
+                                    color: #0d6efd;
+                                }
                             </style>
 
                     {% endblock %}
@@ -1141,10 +1159,96 @@
                                 });
                                 }
 
+                                function setupSimilarHeaderSorting() {
+                                    const similarTable = document.getElementById('similar-products-table');
+                                    if (!similarTable) return;
+
+                                    const headers = Array.from(similarTable.querySelectorAll('th.similar-sortable'));
+                                    const placeholderBody = document.getElementById('no-similar-results-row');
+                                    if (!headers.length || !placeholderBody) return;
+
+                                    const collator = new Intl.Collator('pt-BR', {
+                                        numeric: true,
+                                        sensitivity: 'base'
+                                    });
+
+                                    const sortState = {
+                                        key: null,
+                                        direction: 'asc'
+                                    };
+
+                                    function getCellValue(row, key) {
+                                        const cells = row.cells;
+                                        if (!cells || cells.length < 4) return '';
+
+                                        if (key === 'nome') {
+                                            return (cells[1].innerText || cells[1].textContent || '').trim();
+                                        }
+
+                                        if (key === 'codigo') {
+                                            return (cells[2].innerText || cells[2].textContent || '').trim();
+                                        }
+
+                                        if (key === 'veiculo') {
+                                            const firstVehicle = cells[3].querySelector('.vertical-list > div:not(.more-apps)');
+                                            const fallback = cells[3].innerText || cells[3].textContent || '';
+                                            return ((firstVehicle && firstVehicle.textContent) ? firstVehicle.textContent : fallback).trim();
+                                        }
+
+                                        return '';
+                                    }
+
+                                    function compareRows(a, b, key, direction) {
+                                        const left = getCellValue(a, key);
+                                        const right = getCellValue(b, key);
+                                        const result = collator.compare(left, right);
+                                        return direction === 'asc' ? result : -result;
+                                    }
+
+                                    function clearHeaderState() {
+                                        headers.forEach(h => {
+                                            h.classList.remove('sort-asc', 'sort-desc');
+                                        });
+                                    }
+
+                                    function applySort(key) {
+                                        if (sortState.key === key) {
+                                            sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc';
+                                        } else {
+                                            sortState.key = key;
+                                            sortState.direction = 'asc';
+                                        }
+
+                                        const rows = Array.from(similarTable.querySelectorAll('tr.similar-row'));
+                                        rows.sort((a, b) => compareRows(a, b, sortState.key, sortState.direction));
+
+                                        const targetBody = similarTable.tBodies[0];
+                                        if (!targetBody) return;
+
+                                        rows.forEach(row => targetBody.appendChild(row));
+                                        targetBody.parentNode.appendChild(placeholderBody);
+
+                                        clearHeaderState();
+                                        const activeHeader = headers.find(h => h.dataset.sortKey === sortState.key);
+                                        if (activeHeader) {
+                                            activeHeader.classList.add(sortState.direction === 'asc' ? 'sort-asc' : 'sort-desc');
+                                        }
+                                    }
+
+                                    headers.forEach(header => {
+                                        header.addEventListener('click', () => {
+                                            const key = header.dataset.sortKey;
+                                            if (!key) return;
+                                            applySort(key);
+                                        });
+                                    });
+                                }
+
                                 // Inicializa todos os módulos da página
                                 try { setupImageModal(); } catch (e) { console.error('Erro modal:', e); }
                                 try { setupInteractiveConversions(); } catch (e) { console.error('Erro conversões:', e); }
                                 try { setupSimilarFiltering(); } catch (e) { console.error('Erro filtros:', e); }
+                                try { setupSimilarHeaderSorting(); } catch (e) { console.error('Erro ordenação similares:', e); }
                                 try { setupApplicationSearch(); } catch (e) { console.error('Erro busca:', e); }
                                 
                                 // === FUNÇÕES DE DEBUG PARA TESTES ===
