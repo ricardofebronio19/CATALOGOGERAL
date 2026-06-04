@@ -94,6 +94,39 @@
                                         box-shadow: 0 2px 8px rgba(0,0,0,0.15);
                                         transition: all 0.2s ease;
                                     }
+
+                                    /* Melhora a divisao visual apenas da tabela de aplicacoes */
+                                    #application-main-table {
+                                        border: 2px solid #cfd6dc;
+                                        border-radius: 8px;
+                                        overflow: hidden;
+                                    }
+
+                                    #application-main-table thead th {
+                                        border-bottom: 2px solid #c1c9d0;
+                                        background: #eef2f6;
+                                    }
+
+                                    #application-main-table .fabricante-header td {
+                                        border-top: 3px solid #d4470a;
+                                        border-bottom: 2px solid #c03f09;
+                                        letter-spacing: 0.2px;
+                                    }
+
+                                    #application-main-table .application-row td {
+                                        border-top: 1px solid #d7dde3;
+                                        border-bottom: 1px solid #d7dde3;
+                                        padding-top: 7px;
+                                        padding-bottom: 7px;
+                                    }
+
+                                    #application-main-table .application-row:nth-child(even) td {
+                                        background-color: #f6f8fa;
+                                    }
+
+                                    #application-main-table .application-row:nth-child(odd) td {
+                                        background-color: #ffffff;
+                                    }
                                 </style>
                                 <!-- Seção de Conversões (Esquerda) -->
                                 {% if produto.conversoes %}
@@ -151,7 +184,7 @@
 
                                     {% if aplicacoes_agrupadas %}
                     
-                                        <table class="application-table">
+                                        <table id="application-main-table" class="application-table">
                                             <thead>
                                                 <tr>
                                                     <th>Veículo</th>
@@ -519,6 +552,61 @@
                                     color: #555;
                                 }
                                 .filter-help-text img { width: 16px; height: 16px; }
+
+                                /* Divisoes mais visiveis na tabela de similares */
+                                #similar-products-section {
+                                    --similar-divider-outer: #b7c0c9;
+                                    --similar-divider-strong: #aeb8c2;
+                                    --similar-divider-mid: #bcc6d0;
+                                    --similar-divider-soft: #cfd7df;
+                                    --similar-divider-inner: #d9e0e6;
+                                }
+
+                                #similar-products-section .application-table {
+                                    border: 2px solid var(--similar-divider-outer);
+                                    border-radius: 8px;
+                                    overflow: hidden;
+                                }
+
+                                #similar-products-section .application-table thead th {
+                                    background: #eef2f6;
+                                    border-bottom: 2px solid var(--similar-divider-strong);
+                                }
+
+                                #similar-products-section .application-table td,
+                                #similar-products-section .application-table th {
+                                    border-color: var(--similar-divider-soft);
+                                }
+
+                                #similar-products-section .application-table td:nth-child(4),
+                                #similar-products-section .application-table td:nth-child(5),
+                                #similar-products-section .application-table td:nth-child(6),
+                                #similar-products-section .application-table th:nth-child(4),
+                                #similar-products-section .application-table th:nth-child(5),
+                                #similar-products-section .application-table th:nth-child(6) {
+                                    border-left: 2px solid var(--similar-divider-mid);
+                                }
+
+                                #similar-products-section .application-table .similar-row td:nth-child(4) .vertical-list > div:not(.more-apps):not(.custom-tooltip),
+                                #similar-products-section .application-table .similar-row td:nth-child(5) .vertical-list > div:not(.more-apps):not(.custom-tooltip),
+                                #similar-products-section .application-table .similar-row td:nth-child(6) .vertical-list > div:not(.more-apps):not(.custom-tooltip) {
+                                    padding: 3px 0;
+                                    border-bottom: 1px solid var(--similar-divider-inner);
+                                }
+
+                                #similar-products-section .application-table .similar-row td:nth-child(4) .vertical-list > div:not(.more-apps):not(.custom-tooltip):last-of-type,
+                                #similar-products-section .application-table .similar-row td:nth-child(5) .vertical-list > div:not(.more-apps):not(.custom-tooltip):last-of-type,
+                                #similar-products-section .application-table .similar-row td:nth-child(6) .vertical-list > div:not(.more-apps):not(.custom-tooltip):last-of-type {
+                                    border-bottom: 0;
+                                }
+
+                                #similar-products-section .application-table .similar-row td:nth-child(4) .vertical-list .more-apps,
+                                #similar-products-section .application-table .similar-row td:nth-child(5) .vertical-list .more-apps,
+                                #similar-products-section .application-table .similar-row td:nth-child(6) .vertical-list .more-apps {
+                                    margin-top: 3px;
+                                    padding-top: 4px;
+                                    border-top: 1px dashed var(--similar-divider-mid);
+                                }
                             </style>
 
                     {% endblock %}
@@ -959,11 +1047,88 @@
                                  */
                                 function setupSimilarFiltering() {
                                     const tableBody = document.getElementById('application-table-body');
-                                    const similarRows = document.querySelectorAll('.similar-row');
                                     const noResultsRow = document.getElementById('no-similar-results-row');
                                     const clearFilterBtn = document.getElementById('clear-filter-btn');
+                                    const originalSimilarColumns = new WeakMap();
 
                                     if (!tableBody || !clearFilterBtn) return;
+
+                                    function getCurrentSimilarRows() {
+                                        return Array.from(document.querySelectorAll('.similar-row'));
+                                    }
+
+                                    function escapeHtml(text) {
+                                        const value = String(text || '');
+                                        return value
+                                            .replace(/&/g, '&amp;')
+                                            .replace(/</g, '&lt;')
+                                            .replace(/>/g, '&gt;')
+                                            .replace(/"/g, '&quot;')
+                                            .replace(/'/g, '&#39;');
+                                    }
+
+                                    function saveOriginalColumns(row) {
+                                        if (originalSimilarColumns.has(row)) return;
+                                        const cells = row.cells;
+                                        if (!cells || cells.length < 6) return;
+                                        originalSimilarColumns.set(row, {
+                                            veiculo: cells[3].innerHTML,
+                                            ano: cells[4].innerHTML,
+                                            motor: cells[5].innerHTML
+                                        });
+                                    }
+
+                                    function restoreOriginalColumns(row) {
+                                        const original = originalSimilarColumns.get(row);
+                                        const cells = row.cells;
+                                        if (!original || !cells || cells.length < 6) return;
+                                        cells[3].innerHTML = original.veiculo;
+                                        cells[4].innerHTML = original.ano;
+                                        cells[5].innerHTML = original.motor;
+                                    }
+
+                                    function renderSingleApplication(row, app) {
+                                        const cells = row.cells;
+                                        if (!cells || cells.length < 6) return;
+                                        const veiculo = escapeHtml(app.veiculo || '');
+                                        const ano = escapeHtml(app.ano || '');
+                                        const motor = escapeHtml(app.motor || '');
+                                        cells[3].innerHTML = veiculo ? '<div class="vertical-list"><div>' + veiculo + '</div></div>' : '-';
+                                        cells[4].innerHTML = ano ? '<div class="vertical-list"><div>' + ano + '</div></div>' : '-';
+                                        cells[5].innerHTML = motor ? '<div class="vertical-list"><div>' + motor + '</div></div>' : '-';
+                                    }
+
+                                    function getBestVehicleMatch(applications, filtroVeiculo) {
+                                        if (!applications || applications.length === 0) return null;
+                                        const normalizedFilter = normalizeString(filtroVeiculo || '');
+                                        if (!normalizedFilter) return null;
+
+                                        let best = null;
+                                        let bestScore = -1;
+
+                                        applications.forEach((app) => {
+                                            const appVeic = normalizeString(app.veiculo || '');
+                                            if (!appVeic) return;
+
+                                            let score = -1;
+                                            if (appVeic === normalizedFilter) {
+                                                score = 3;
+                                            } else if (appVeic.includes(normalizedFilter)) {
+                                                score = 2;
+                                            } else if (normalizedFilter.includes(appVeic)) {
+                                                score = 1;
+                                            }
+
+                                            if (score > bestScore) {
+                                                bestScore = score;
+                                                best = app;
+                                            }
+                                        });
+
+                                        return bestScore >= 0 ? best : null;
+                                    }
+
+                                    getCurrentSimilarRows().forEach(saveOriginalColumns);
             
                                 /**
                                  * Converte uma string de ano (ex: "2010", "2010/2015", "2018/...") 
@@ -1060,16 +1225,16 @@
                                     }
 
                                     currentSimilarRows.forEach((row) => {
+                                        saveOriginalColumns(row);
                                         const applications = JSON.parse(row.dataset.applications || '[]');
-                                        const hasVehicle = applications.some(app => {
-                                            const appVeic = normalizeString(app.veiculo || '');
-                                            return appVeic === filtroVeiculo || appVeic.includes(filtroVeiculo) || filtroVeiculo.includes(appVeic);
-                                        });
-                                        if (hasVehicle) {
+                                        const matchedApp = getBestVehicleMatch(applications, filtroVeiculo);
+                                        if (matchedApp) {
                                             row.style.display = '';
+                                            renderSingleApplication(row, matchedApp);
                                             visibleCount++;
                                         } else {
                                             row.style.display = 'none';
+                                            restoreOriginalColumns(row);
                                         }
                                     });
 
@@ -1085,7 +1250,10 @@
 
                                 function clearFilter() {
                                     tableBody.querySelectorAll('.application-row.active-filter').forEach(row => row.classList.remove('active-filter'));
-                                    similarRows.forEach(row => row.style.display = '');
+                                    getCurrentSimilarRows().forEach(row => {
+                                        row.style.display = '';
+                                        restoreOriginalColumns(row);
+                                    });
                                     noResultsRow.style.display = 'none';
                                     clearFilterBtn.style.display = 'none';
                                 }
@@ -1099,7 +1267,7 @@
                                             ano: clickedRow.dataset.ano,
                                             motor: clickedRow.dataset.motor
                                         });
-                                        console.log('Similar rows encontradas:', similarRows.length);
+                                        console.log('Similar rows encontradas:', getCurrentSimilarRows().length);
                                         filterSimilars(clickedRow);
                                     }
                                 });
@@ -1124,14 +1292,17 @@
 
                                         // Filtra os similares para exibir somente os que possuem essa aplicação
                                         let visibleCount = 0;
-                                        similarRows.forEach(row => {
+                                        getCurrentSimilarRows().forEach(row => {
+                                            saveOriginalColumns(row);
                                             const applications = JSON.parse(row.dataset.applications || '[]');
-                                            const hasMatch = applications.some(app => (app.veiculo || '').trim().toLowerCase() === vehicleName.toLowerCase());
-                                            if (hasMatch) {
+                                            const matchedApp = getBestVehicleMatch(applications, vehicleName);
+                                            if (matchedApp) {
                                                 row.style.display = '';
+                                                renderSingleApplication(row, matchedApp);
                                                 visibleCount++;
                                             } else {
                                                 row.style.display = 'none';
+                                                restoreOriginalColumns(row);
                                             }
                                         });
 

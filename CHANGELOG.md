@@ -1,5 +1,36 @@
 # Changelog
 
+## v2.1.4 - 2026-06-03
+
+### ✨ Novidades
+- Melhor divisão visual da tabela de aplicações na página de detalhes
+- Melhorias visuais de separação na tabela de produtos similares
+- Refinamento do filtro de similares com preservação das colunas originais e melhor correspondência por veículo
+
+### 🛠️ Preparação de Release
+- Atualização dos arquivos de versão e configuração de update para publicação da v2.1.4 no GitHub
+
+## v2.1.3 - 2026-05-21
+
+### ✨ Novidades
+- **Ordenação de Produtos Similares**: Clique nos cabeçalhos **Nome**, **Código** ou **Veículo** para ordenar a tabela de similares (crescente/decrescente com indicadores visuais)
+- **Configuração de Cores de Conversões**: Novos campos na aba Configurações para personalizar a cor do texto do Fabricante e do Código na seção de Conversões
+- Prévia visual em tempo real das cores de conversões na tela de configurações
+
+### 🛠️ Melhorias
+- Integração dos filtros de ordenação com filtros por aplicação (clique em aplicação continua funcionando)
+- Melhoria na responsividade da tabela de similares
+- Indicadores visuais (↕ ▲ ▼) nos cabeçalhos ordenáveis
+
+## v2.1.2 - 2026-05-05
+
+### ✨ Novidades
+- Ordenação por clique nos cabeçalhos **Nome**, **Código** e **Veículo** na seção de Produtos Similares
+- Alternância de ordenação crescente/decrescente ao clicar no mesmo cabeçalho
+
+### 🛠️ Preparação de Release
+- Atualização dos arquivos de versão e configuração de update para publicação no GitHub
+
 ## v2.0.8 - 2026-04-20
 
 ### ✨ Novidades

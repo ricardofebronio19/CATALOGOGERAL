@@ -17,7 +17,7 @@ if "%APP_VERSION%"=="" (
     for /f "usebackq delims=" %%i in (`git describe --tags --abbrev^=0 2^>nul`) do set APP_VERSION=%%i
 )
 if "%APP_VERSION%"=="" (
-    set APP_VERSION=2.0.7
+    set APP_VERSION=2.1.4
 )
 set ENTRY_SCRIPT=run.py
 set ICON_FILE=static\favicon.ico
@@ -116,7 +116,7 @@ if "%INCLUDE_DB%"=="1" (
 :: Escreve version.json para ser empacotado junto ao executável (lido pelo app)
 echo {"version":"%APP_VERSION%"} > version.json
 
-call "%PY_CMD%" -m PyInstaller --noconfirm --onefile --windowed --name "CatalogoDePecas" --icon="%ICON_FILE%" --add-data "templates;templates" --add-data "static;static" --add-data "version.json;." %ENTRY_SCRIPT%
+call "%PY_CMD%" -m PyInstaller --noconfirm --onefile --windowed --name "CatalogoDePecas" --icon="%ICON_FILE%" --additional-hooks-dir "hooks" --hidden-import "_overlapped" --hidden-import "asyncio.windows_events" --add-data "templates;templates" --add-data "static;static" --add-data "version.json;." %ENTRY_SCRIPT%
 
 :: Verificação de erro do PyInstaller
 if errorlevel 1 (
