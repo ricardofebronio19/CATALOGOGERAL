@@ -1,0 +1,691 @@
+{% extends "base.html" %}
+{% block title %}Histórico de Visualizações - Favoritos{% endblock %}
+
+{% block content %}
+<div class="historico-container">
+    <div class="page-header">
+        <div class="header-content">
+            <h1><i class="fas fa-history"></i> Histórico de Visualizações</h1>
+            <p class="subtitle">Produtos que você visualizou recentemente</p>
+        </div>
+        <div class="header-actions">
+            <a href="{{ url_for('favorites.index') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Voltar aos Favoritos
+            </a>
+        </div>
+    </div>
+
+    {% if visualizacoes.items %}
+        <div class="historico-stats">
+            <div class="stat-item">
+                <i class="fas fa-eye"></i>
+                <div class="stat-content">
+                    <strong>{{ visualizacoes.total }}</strong>
+                    <span>Visualizações Totais</span>
+                </div>
+            </div>
+            <div class="stat-item">
+                <i class="fas fa-clock"></i>
+                <div class="stat-content">
+                    <strong>Hoje</strong>
+                    <span>Última Atividade</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="filtros-section">
+            <div class="search-box">
+                <input type="text" 
+                       id="searchHistorico" 
+                       class="form-control" 
+                       placeholder="Buscar no histórico...">
+                <i class="fas fa-search"></i>
+            </div>
+            
+            <div class="filtro-periodo">
+                <select id="filtroPeriodo" class="form-control">
+                    <option value="">Todos os períodos</option>
+                    <option value="hoje">Hoje</option>
+                    <option value="semana">Última semana</option>
+                    <option value="mes">Último mês</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="historico-timeline" id="historicoTimeline">
+            {% for view in visualizacoes.items %}
+            <div class="historico-item" 
+                 data-codigo="{{ view.produto.codigo }}" 
+                 data-descricao="{{ view.produto.descricao }}" 
+                 data-grupo="{{ view.produto.grupo }}"
+                 data-timestamp="{{ view.visualizado_em.timestamp() }}">
+                
+                <div class="item-timestamp">
+                    <div class="data">{{ view.visualizado_em.strftime('%d/%m') }}</div>
+                    <div class="hora">{{ view.visualizado_em.strftime('%H:%M') }}</div>
+                </div>
+
+                <div class="item-content">
+                    <div class="produto-image">
+                        {% if view.produto.imagem_principal %}
+                            <img src="/uploads/{{ view.produto.imagem_principal.nome_arquivo }}" 
+                                 alt="{{ view.produto.descricao }}"
+                                 onclick="window.location.href='{{ url_for('detalhe_peca', id=view.produto.id) }}'">
+                        {% else %}
+                            <div class="sem-imagem" 
+                                 onclick="window.location.href='{{ url_for('detalhe_peca', id=view.produto.id) }}'">
+                                <i class="fas fa-image"></i>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="produto-info">
+                        <h3 class="produto-codigo">{{ view.produto.codigo }}</h3>
+                        <p class="produto-descricao">{{ view.produto.descricao }}</p>
+                        
+                        <div class="produto-meta">
+                            <span class="grupo">{{ view.produto.grupo }}</span>
+                            <span class="fornecedor">{{ view.produto.fornecedor }}</span>
+                            {% if view.origem and view.origem != 'web' %}
+                                <span class="origem" data-origem="{{ view.origem }}">
+                                    {{ view.origem.title() }}
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="item-actions">
+                        <button class="btn btn-sm btn-outline-primary" 
+                                onclick="abrirModalAdicionar({{ view.produto.id }})">
+                            <i class="fas fa-heart"></i>
+                        </button>
+                        <a href="{{ url_for('detalhe_peca', id=view.produto.id) }}" 
+                           class="btn btn-sm btn-primary">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="timeline-connector"></div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Paginação -->
+        {% if visualizacoes.pages > 1 %}
+        <div class="pagination-section">
+            <nav aria-label="Navegação do histórico">
+                <ul class="pagination">
+                    {% if visualizacoes.has_prev %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('favorites.historico', page=visualizacoes.prev_num) }}">
+                                <i class="fas fa-chevron-left"></i> Anterior
+                            </a>
+                        </li>
+                    {% endif %}
+
+                    {% for page_num in visualizacoes.iter_pages() %}
+                        {% if page_num %}
+                            {% if page_num != visualizacoes.page %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('favorites.historico', page=page_num) }}">{{ page_num }}</a>
+                                </li>
+                            {% else %}
+                                <li class="page-item active">
+                                    <span class="page-link">{{ page_num }}</span>
+                                </li>
+                            {% endif %}
+                        {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">…</span>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if visualizacoes.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('favorites.historico', page=visualizacoes.next_num) }}">
+                                Próxima <i class="fas fa-chevron-right"></i>
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+
+    {% else %}
+        <div class="empty-state">
+            <div class="empty-icon">
+                <i class="fas fa-history"></i>
+            </div>
+            <h3>Nenhum histórico encontrado</h3>
+            <p>Você ainda não visualizou produtos. Explore o catálogo para começar a construir seu histórico!</p>
+            
+            <div class="empty-actions">
+                <a href="{{ url_for('main.index') }}" class="btn btn-primary">
+                    <i class="fas fa-search"></i> Explorar Produtos
+                </a>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Modal para Adicionar a Listas -->
+<div class="modal fade" id="modalAdicionarLista" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <!-- Conteúdo carregado via AJAX -->
+        </div>
+    </div>
+</div>
+
+<style>
+.historico-container {
+    padding: 20px;
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 30px;
+    background: white;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    gap: 20px;
+}
+
+.header-content h1 {
+    color: #333;
+    margin: 0 0 5px 0;
+    font-size: 2.2rem;
+}
+
+.subtitle {
+    color: #666;
+    font-size: 1.1rem;
+    margin: 0;
+}
+
+.header-actions {
+    display: flex;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.historico-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.stat-item {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.stat-item i {
+    width: 50px;
+    height: 50px;
+    background: linear-gradient(135deg, #6c757d, #858585);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.5rem;
+}
+
+.stat-content strong {
+    display: block;
+    font-size: 1.8rem;
+    color: #333;
+}
+
+.stat-content span {
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.filtros-section {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    margin-bottom: 25px;
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    flex-wrap: wrap;
+}
+
+.search-box {
+    position: relative;
+    flex: 1;
+    min-width: 250px;
+}
+
+.search-box input {
+    padding-right: 40px;
+    border-radius: 6px;
+    border: 1px solid #ddd;
+    padding: 10px;
+}
+
+.search-box i {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #666;
+}
+
+.filtro-periodo select {
+    min-width: 180px;
+}
+
+.historico-timeline {
+    position: relative;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.historico-timeline::before {
+    content: '';
+    position: absolute;
+    left: 80px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #e9ecef;
+    z-index: 1;
+}
+
+.historico-item {
+    display: flex;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid #f8f9fa;
+    position: relative;
+    transition: background 0.2s;
+}
+
+.historico-item:hover {
+    background: #f8f9fa;
+}
+
+.historico-item:last-child {
+    border-bottom: none;
+}
+
+.historico-item::before {
+    content: '';
+    position: absolute;
+    left: 75px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 12px;
+    height: 12px;
+    background: #6c757d;
+    border-radius: 50%;
+    border: 3px solid white;
+    z-index: 2;
+}
+
+.item-timestamp {
+    width: 60px;
+    text-align: center;
+    margin-right: 30px;
+    flex-shrink: 0;
+}
+
+.data {
+    font-weight: 600;
+    color: #333;
+    font-size: 0.9rem;
+}
+
+.hora {
+    color: #666;
+    font-size: 0.8rem;
+}
+
+.item-content {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex: 1;
+}
+
+.produto-image {
+    width: 80px;
+    height: 80px;
+    border-radius: 8px;
+    overflow: hidden;
+    flex-shrink: 0;
+    cursor: pointer;
+}
+
+.produto-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.2s;
+}
+
+.produto-image:hover img {
+    transform: scale(1.05);
+}
+
+.sem-imagem {
+    width: 100%;
+    height: 100%;
+    background: #f8f9fa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #999;
+    border: 1px solid #e9ecef;
+    transition: background 0.2s;
+}
+
+.sem-imagem:hover {
+    background: #e9ecef;
+}
+
+.sem-imagem i {
+    font-size: 2rem;
+}
+
+.produto-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.produto-codigo {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 5px;
+}
+
+.produto-descricao {
+    color: #555;
+    margin-bottom: 8px;
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.produto-meta {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.grupo, .fornecedor, .origem {
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.grupo {
+    background: rgba(255, 102, 0, 0.1);
+    color: #e65100;
+}
+
+.fornecedor {
+    background: rgba(0, 123, 255, 0.1);
+    color: #0056b3;
+}
+
+.origem[data-origem="api"] {
+    background: rgba(138, 43, 226, 0.1);
+    color: #6f2c91;
+}
+
+.origem[data-origem="search"] {
+    background: rgba(40, 167, 69, 0.1);
+    color: #1e7e34;
+}
+
+.item-actions {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.pagination-section {
+    margin-top: 30px;
+    display: flex;
+    justify-content: center;
+}
+
+.pagination {
+    display: flex;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    gap: 5px;
+}
+
+.page-item {
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.page-link {
+    display: block;
+    padding: 8px 12px;
+    text-decoration: none;
+    color: #495057;
+    background: white;
+    border: 1px solid #dee2e6;
+    transition: all 0.2s;
+}
+
+.page-link:hover {
+    color: #0056b3;
+    background: #e9ecef;
+    text-decoration: none;
+}
+
+.page-item.active .page-link {
+    background: #ff6600;
+    border-color: #ff6600;
+    color: white;
+}
+
+.page-item.disabled .page-link {
+    color: #6c757d;
+    background: #fff;
+    border-color: #dee2e6;
+    cursor: not-allowed;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 80px 20px;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.empty-icon i {
+    font-size: 5rem;
+    color: #ddd;
+    margin-bottom: 25px;
+}
+
+.empty-state h3 {
+    color: #333;
+    margin-bottom: 15px;
+    font-size: 1.8rem;
+}
+
+.empty-state p {
+    color: #666;
+    font-size: 1.1rem;
+    max-width: 500px;
+    margin: 0 auto 30px auto;
+    line-height: 1.5;
+}
+
+.empty-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+    .page-header {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .page-header h1 {
+        font-size: 1.8rem;
+    }
+    
+    .historico-stats {
+        grid-template-columns: 1fr;
+    }
+    
+    .filtros-section {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .historico-timeline::before {
+        display: none;
+    }
+    
+    .historico-item {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+        gap: 15px;
+    }
+    
+    .historico-item::before {
+        display: none;
+    }
+    
+    .item-timestamp {
+        width: auto;
+        margin-right: 0;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #e9ecef;
+    }
+    
+    .item-content {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .produto-image {
+        align-self: center;
+    }
+    
+    .item-actions {
+        justify-content: center;
+        margin-top: 10px;
+    }
+}
+</style>
+
+<script>
+function abrirModalAdicionar(produtoId) {
+    fetch(`{{ url_for('favorites.modal_adicionar') }}?produto_id=${produtoId}`)
+        .then(response => response.text())
+        .then(html => {
+            document.querySelector('#modalAdicionarLista .modal-content').innerHTML = html;
+            $('#modalAdicionarLista').modal('show');
+        })
+        .catch(error => {
+            console.error('Erro ao carregar modal:', error);
+            UXManager.showToast('Erro ao carregar modal de favoritos', 'error');
+        });
+}
+
+// Filtros de busca
+document.getElementById('searchHistorico').addEventListener('input', filtrarHistorico);
+document.getElementById('filtroPeriodo').addEventListener('change', filtrarHistorico);
+
+function filtrarHistorico() {
+    const searchTerm = document.getElementById('searchHistorico').value.toLowerCase();
+    const periodoFilter = document.getElementById('filtroPeriodo').value;
+    
+    const items = document.querySelectorAll('.historico-item');
+    const agora = new Date();
+    
+    items.forEach(item => {
+        const codigo = item.dataset.codigo.toLowerCase();
+        const descricao = item.dataset.descricao.toLowerCase();
+        const grupo = item.dataset.grupo.toLowerCase();
+        const timestamp = parseFloat(item.dataset.timestamp) * 1000;
+        const dataView = new Date(timestamp);
+        
+        // Filtro por texto
+        const matchesSearch = !searchTerm || 
+            codigo.includes(searchTerm) || 
+            descricao.includes(searchTerm) || 
+            grupo.includes(searchTerm);
+        
+        // Filtro por período
+        let matchesPeriodo = true;
+        if (periodoFilter) {
+            const diffTime = agora - dataView;
+            const diffDays = diffTime / (1000 * 60 * 60 * 24);
+            
+            switch (periodoFilter) {
+                case 'hoje':
+                    matchesPeriodo = diffDays < 1;
+                    break;
+                case 'semana':
+                    matchesPeriodo = diffDays < 7;
+                    break;
+                case 'mes':
+                    matchesPeriodo = diffDays < 30;
+                    break;
+            }
+        }
+        
+        if (matchesSearch && matchesPeriodo) {
+            item.style.display = 'flex';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+}
+
+// Adiciona smooth scroll para paginação
+document.querySelectorAll('.page-link').forEach(link => {
+    link.addEventListener('click', function(e) {
+        if (this.href && this.href.includes('#')) {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute('href'));
+            if (target) {
+                target.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

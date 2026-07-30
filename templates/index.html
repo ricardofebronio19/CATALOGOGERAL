@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+
+{% block title %}Página Inicial{% endblock %}
+
+{% block content %}
+
+    <div class="main-layout homepage-index">
+        <aside class="sidebar homepage-sidebar">
+            <h2>MONTADORAS</h2>
+            <div class="sidebar-body">
+                <ul>
+                    {% for montadora, veiculos in montadoras_com_veiculos.items() %}
+                        <li class="montadora-item">
+                            <div class="montadora-header">
+                                <a href="{{ url_for('main.buscar', montadora=montadora) }}">
+                                    {% set slug = montadora.lower().replace(' ', '-').replace('--', '-') %}
+                                    {% set custom_icon = (config_aparencia.montadora_icons.get(slug) if config_aparencia and config_aparencia.montadora_icons else None) %}
+                                    {% if custom_icon %}
+                                        <img src="{{ url_for('uploaded_file', filename=custom_icon) }}" alt="Logo {{ montadora }}" class="montadora-logo">
+                                    {% else %}
+                                        <img src="{{ url_for('static', filename='images/logos/' + slug + '.png') }}" alt="Logo {{ montadora }}" class="montadora-logo" onerror="this.style.display='none'">
+                                    {% endif %}
+                                    <span>{{ montadora }}</span>
+                                </a>
+                                {% if veiculos %}<span class="toggle-veiculos">+</span>{% endif %}
+                            </div>
+                            {% if veiculos %}
+                            <ul class="veiculos-list" style="display: none;">
+                                {% for veiculo in veiculos|sort %}
+                                    <li><a href="{{ url_for('main.buscar', montadora=montadora, aplicacao=veiculo) }}" class="veiculo-link">{{ veiculo }}</a></li>
+                                {% endfor %}
+                            </ul>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <div class="sidebar-footer">
+                <div class="footer-label">marcas cadastradas -----&gt;</div>
+                <div class="footer-logos">
+                    {% for logo_name in ['fiat.png','ford.png','honda.png','toyota.png','volkswagen.png','bmw.png','nissan.png'] %}
+                        <img src="{{ url_for('static', filename='images/logos/' ~ logo_name) }}" alt="{{ logo_name.split('.')[0] | capitalize }}" class="footer-logo">
+                    {% endfor %}
+                </div>
+            </div>
+        </aside>
+
+        <div class="main-content">
+            <div class="homepage-search-card">
+                <form action="{{ url_for('main.buscar') }}" method="GET" class="homepage-search-form">
+                    <div class="homepage-search-top">
+                        <div class="homepage-search-title">PESQUISA GERAL</div>
+                        <div class="homepage-search-bar">
+                            <input type="text" name="termo" value="{{ request.args.get('termo', '') }}" placeholder="Informe a descrição, aplicação e/ou código do produto">
+                            <button type="submit" class="button homepage-search-submit">🔎</button>
+                        </div>
+                    </div>
+
+                    <div class="homepage-search-fields">
+                        <div class="homepage-search-field">
+                            <label for="codigo_produto">CÓDIGO / CONVERSÃO</label>
+                            <input type="text" id="codigo_produto" name="codigo_produto" placeholder="Ex: AL-123" value="{{ request.args.get('codigo_produto', '') }}">
+                        </div>
+                        <div class="homepage-search-field">
+                            <label for="marca">MARCA</label>
+                            <input type="text" id="marca" name="marca" placeholder="Ex: Magneti Marelli" value="{{ request.args.get('marca', '') }}">
+                        </div>
+                        <div class="homepage-search-field">
+                            <label for="montadora">MONTADORA</label>
+                            <input type="text" id="montadora" name="montadora" placeholder="Ex: Fiat" value="{{ request.args.get('montadora', '') }}">
+                        </div>
+                        <div class="homepage-search-field">
+                            <label for="aplicacao">VEÍCULO</label>
+                            <input type="text" id="aplicacao" name="aplicacao" placeholder="Ex: Palio 1.0" value="{{ request.args.get('aplicacao', '') }}">
+                        </div>
+                        <div class="homepage-search-field homepage-full-width">
+                            <label for="grupo">LINHA</label>
+                            <input type="text" id="grupo" name="grupo" placeholder="Ex: Suspensão" value="{{ request.args.get('grupo', '') }}">
+                        </div>
+                    </div>
+
+                    <div class="homepage-search-actions">
+                        <button type="submit" class="button button-primary">BUSCAR</button>
+                        <button type="reset" class="button button-secondary">LIMPAR</button>
+                        <button type="button" class="button button-accent" id="recent-items-btn">ADC. RECENTES</button>
+                    </div>
+                </form>
+            </div>
+
+            {% if carousel_media %}
+            <div id="recent-items-carousel" class="homepage-carousel" aria-label="Itens adicionados recentemente">
+                <div class="carousel-slides">
+                    {% for item in carousel_media %}
+                        <a href="{% if item.produto_id %}{{ url_for('main.detalhe_peca', id=item.produto_id) }}{% else %}#{% endif %}" class="carousel-slide{% if loop.index0 == 0 %} active{% endif %}" aria-hidden="{% if loop.index0 == 0 %}false{% else %}true{% endif %}">
+                            <div class="carousel-media">
+                                {% if item.type == 'image' %}
+                                    <img src="{{ item.url }}" alt="{{ item.alt | e }}" loading="lazy">
+                                {% else %}
+                                    <video src="{{ item.url }}" playsinline muted loop preload="metadata"></video>
+                                {% endif %}
+                            </div>
+                            <div class="carousel-caption">
+                                <strong>{{ item.alt }}</strong>
+                                {% if item.produto_id %}
+                                    <span>Ver detalhes</span>
+                                {% endif %}
+                            </div>
+                        </a>
+                    {% endfor %}
+                </div>
+                <button class="carousel-prev" aria-label="Anterior">‹</button>
+                <button class="carousel-next" aria-label="Próximo">›</button>
+                <div class="carousel-indicators">
+                    {% for item in carousel_media %}
+                        <button class="carousel-indicator{% if loop.index0 == 0 %} active{% endif %}" data-index="{{ loop.index0 }}" aria-label="Ir para slide {{ loop.index }}"></button>
+                    {% endfor %}
+                </div>
+            </div>
+            {% else %}
+            <div class="homepage-teaser-card">
+                <div class="homepage-teaser-content">
+                    <p>Adicionar aqui slide com os itens adicionados recentes</p>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="homepage-brand-strip">
+                <div class="brand-strip-label">marcas cadastradas</div>
+                <div class="brand-strip-logos">
+                    {% for logo_name in ['fiat.png','ford.png','honda.png','toyota.png','volkswagen.png','bmw.png','nissan.png'] %}
+                        <img src="{{ url_for('static', filename='images/logos/' ~ logo_name) }}" alt="{{ logo_name.split('.')[0] | capitalize }}" class="brand-strip-logo">
+                    {% endfor %}
+                    <a href="https://wa.me/5566996178029" target="_blank" class="brand-strip-whatsapp" title="WhatsApp">
+                        <span>📞</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Delegação de evento para os cabeçalhos das montadoras
+            document.querySelector('.sidebar ul').addEventListener('click', function(e) {
+                // Encontra o cabeçalho da montadora que foi clicado
+                const header = e.target.closest('.montadora-header');
+                if (!header) return; // Sai se o clique não foi no cabeçalho
+
+                // Encontra a lista de veículos correspondente
+                const veiculosList = header.nextElementSibling;
+                if (!veiculosList || !veiculosList.classList.contains('veiculos-list')) return;
+
+                // Encontra o ícone de toggle
+                const toggle = header.querySelector('.toggle-veiculos');
+
+                // Alterna a exibição da lista
+                if (veiculosList.style.display === 'none') {
+                    veiculosList.style.display = 'block';
+                    if (toggle) toggle.textContent = '−'; // Símbolo de menos
+                } else {
+                    veiculosList.style.display = 'none';
+                    if (toggle) toggle.textContent = '+';
+                }
+            });
+            // Carrossel: comportamento de troca automática e controles
+            (function() {
+                const carousel = document.querySelector('.homepage-carousel');
+                if (!carousel) return;
+                const slides = Array.from(carousel.querySelectorAll('.carousel-slide'));
+                const prevBtn = carousel.querySelector('.carousel-prev');
+                const nextBtn = carousel.querySelector('.carousel-next');
+                const indicators = Array.from(carousel.querySelectorAll('.carousel-indicator'));
+                let current = slides.findIndex(s => s.classList.contains('active')) || 0;
+                let interval = null;
+                const delay = 5000;
+
+                function show(index) {
+                    if (index < 0) index = slides.length - 1;
+                    if (index >= slides.length) index = 0;
+                    slides.forEach((s, i) => {
+                        s.classList.toggle('active', i === index);
+                        s.setAttribute('aria-hidden', i === index ? 'false' : 'true');
+                        if (indicators[i]) indicators[i].classList.toggle('active', i === index);
+                        // pause/play videos
+                        const vid = s.querySelector('video');
+                        if (vid) {
+                            if (i === index) { try { vid.play(); } catch(e){} } else { try { vid.pause(); vid.currentTime = 0; } catch(e){} }
+                        }
+                    });
+                    current = index;
+                }
+
+                function next() { show(current + 1); }
+                function prev() { show(current - 1); }
+
+                if (nextBtn) nextBtn.addEventListener('click', () => { next(); resetInterval(); });
+                if (prevBtn) prevBtn.addEventListener('click', () => { prev(); resetInterval(); });
+
+                indicators.forEach(btn => btn.addEventListener('click', (e) => { const idx = parseInt(btn.dataset.index || '0', 10); show(idx); resetInterval(); }));
+
+                function startInterval() { interval = setInterval(next, delay); }
+                function resetInterval() { if (interval) clearInterval(interval); startInterval(); }
+
+                carousel.addEventListener('mouseenter', () => { if (interval) clearInterval(interval); });
+                carousel.addEventListener('mouseleave', () => { resetInterval(); });
+
+                // Inicializa
+                show(current || 0);
+                startInterval();
+            })();
+
+            // Garante que clicks em links de veículo sempre naveguem (evita interferência de outros handlers)
+            document.querySelectorAll('.veiculo-link').forEach(a => {
+                a.addEventListener('click', function(e) {
+                    // Respeita abertura em nova aba/janela pelo usuário
+                    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
+                    e.stopPropagation();
+                    e.preventDefault();
+                    window.location.href = this.href;
+                });
+            });
+            const recentButton = document.getElementById('recent-items-btn');
+            if (recentButton) {
+                recentButton.addEventListener('click', function() {
+                    const carousel = document.getElementById('recent-items-carousel');
+                    if (carousel) {
+                        carousel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                });
+            }        });
+    </script>
+{% endblock %}

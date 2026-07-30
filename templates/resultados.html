@@ -1,0 +1,526 @@
+﻿{% extends "base.html" %}
+
+{% block title %}Resultados da Busca{% endblock %}
+
+{% block head %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+{% endblock %}
+
+{% block content %}
+    <header class="results-page-header">
+        <div>
+            <h1>Resultados da Busca</h1>
+            <p class="results-subtitle">Exibindo {{ pagination.items|length }} de <strong>{{ pagination.total }}</strong> resultados{% if termo %} para "<strong>{{ termo }}</strong>"{% endif %}.</p>
+        </div>
+        <form action="{{ url_for('main.buscar') }}" method="GET" class="results-search-bar">
+            <input type="search" name="termo" placeholder="Buscar por código, descrição ou aplicação..." value="{{ termo }}">
+            {% for key, value in search_args.items() %}
+                {% if key not in ['termo', 'page', 'selected_id'] %}
+                    <input type="hidden" name="{{ key }}" value="{{ value }}">
+                {% endif %}
+            {% endfor %}
+            <button type="submit" class="button">Pesquisar</button>
+        </form>
+    </header>
+
+    <div class="search-results-page">
+        <div class="results-top-layout">
+            <section class="results-main-block">
+                <div class="results-summary results-summary-card">
+                    {% if pagination.total == 0 %}
+                        <div class="empty-result-box">
+                            <h4>⚠️ Nenhum resultado encontrado</h4>
+                            <p>Verifique a ortografia, use termos mais gerais ou tente apenas o código.</p>
+                        </div>
+                    {% else %}
+                        <div class="results-status-box">
+                           ✅ <strong>{{ pagination.total }}</strong> produtos encontrados.
+                        </div>
+                    {% endif %}
+                </div>
+
+                {% if pagination.items %}
+                    <div class="results-table-card">
+                        <table class="results-table">
+                            <thead>
+                                <tr>
+                                    <th class="favorite-col"></th>
+                                    <th>Código</th>
+                                    <th style="width: 40%;">Descrição</th>
+                                    <th>Grupo</th>
+                                    <th>Fornecedor</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for produto in pagination.items %}
+                                    <tr class="results-row{% if selected_produto and selected_produto.id == produto.id %} selected{% endif %}" data-product-id="{{ produto.id }}">
+                                        <td class="icon-cell">{% if selected_produto and selected_produto.id == produto.id %}★{% else %}☆{% endif %}</td>
+                                        <td>{{ produto.codigo|highlight(termo) }}</td>
+                                        <td>{{ produto.nome|highlight(termo) }}</td>
+                                        <td>{{ produto.grupo or 'N/A' }}</td>
+                                        <td>{{ produto.fornecedor or 'N/A' }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="pagination-wrapper">
+                        {{ render_pagination(pagination, endpoint or 'main.buscar', search_args) }}
+                    </div>
+                {% endif %}
+            </section>
+
+            <aside class="results-sidebar-block">
+                <div class="details-column">
+                    <div class="detail-card" id="resultsDetailCard">
+                        <div class="detail-card-header">
+                            <div>
+                                <span class="detail-badge">Informações técnicas</span>
+                                <h3>{{ selected_produto.nome if selected_produto else 'Selecione um produto' }}</h3>
+                            </div>
+                        </div>
+
+                        {% if selected_produto %}
+                            <div class="detail-image-box">
+                                <img src="{% if selected_produto.imagens %}{{ url_for('uploaded_file', filename=selected_produto.imagens[0].filename) }}{% else %}https://via.placeholder.com/360x260/eee/aaa?text=Sem+Imagem{% endif %}" alt="Imagem do produto" class="detail-image" id="resultsProductImage" style="cursor: zoom-in;">
+                            </div>
+                            <dl class="detail-info-list">
+                                <div>
+                                    <dt>Código</dt>
+                                    <dd class="product-code">{{ selected_produto.codigo }}</dd>
+                                </div>
+                                <div>
+                                    <dt>Fornecedor</dt>
+                                    <dd class="product-supplier">{{ selected_produto.fornecedor or 'N/A' }}</dd>
+                                </div>
+                                {% if selected_produto.medidas and selected_produto.medidas.strip() %}
+                                    <div>
+                                        <dt>Medidas</dt>
+                                        <dd>{{ selected_produto.medidas }}</dd>
+                                    </div>
+                                {% endif %}
+                                {% if selected_produto.observacoes and selected_produto.observacoes.strip() %}
+                                    <div>
+                                        <dt>Observação</dt>
+                                        <dd>{{ selected_produto.observacoes }}</dd>
+                                    </div>
+                                {% endif %}
+                            </dl>
+                            <div class="detail-actions">
+                                <a href="{{ url_for('main.detalhe_peca', id=selected_produto.id) }}" class="button button-primary" style="background-color: #0052cc;">Ver detalhes completos</a>
+                                {% if current_user.is_authenticated %}
+                                    <form method="POST" action="{{ url_for('main.adicionar_ao_carrinho') }}" class="detail-add-form">
+                                        <input type="hidden" name="produto_id" value="{{ selected_produto.id }}">
+                                        <input type="hidden" name="quantidade" value="1">
+                                        <button type="submit" class="button button-accent">Adicionar ao carrinho</button>
+                                    </form>
+                                {% endif %}
+                            </div>
+                        {% else %}
+                            <p class="no-selection-text">Selecione um produto na lista para ver suas informações.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </aside>
+        </div>
+
+        <div id="resultsSecondaryContainer">
+            {% if selected_produto %}
+                {% set layout_order = (config_aparencia.results_layout.order if config_aparencia.results_layout and config_aparencia.results_layout.order else ['conversions', 'applications', 'details']) %}
+                {% set has_conversions_data = grouped_conversions and grouped_conversions|length > 0 %}
+                {% set has_applications_data = selected_produto.aplicacoes and selected_produto.aplicacoes|length > 0 %}
+                <section class="results-secondary-block">
+                    {% for block in layout_order %}
+                        {% if block == 'conversions' and has_conversions_data %}
+                            <div class="conversions-column">
+                                <div class="conversions-card mt-3">
+                                    <div class="conversions-card-header" style="background-color: #17a2b8;">Conversões</div>
+                                    <div class="conversions-card-body">
+                                        <ul class="conversion-list-group">
+                                            {% for brand, codes in grouped_conversions.items() %}
+                                                <li class="conversion-list-item">
+                                                    <span class="conversion-brand-title">{{ brand }}</span>
+                                                    <div class="conversion-codes-wrapper">
+                                                        {% for code in codes %}
+                                                            <span class="conversion-code-item clickable" onclick="copyToClipboard(this, '{{ code }}')">{{ code }}</span>
+                                                        {% endfor %}
+                                                    </div>
+                                                </li>
+                                            {% endfor %}
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div class="group-footer">Grupo {{ selected_produto.grupo or 'N/A' }}</div>
+                            </div>
+                        {% elif block == 'applications' and has_applications_data %}
+                            <div class="applications-column">
+                                <div class="conversions-card bloco-conversoes-custom">
+                                    <div class="conversions-card-header">Aplicações</div>
+                                    <div class="conversions-card-body">
+                                        <table class="conversions-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Veículo</th>
+                                                    <th>Ano</th>
+                                                    <th>Motor</th>
+                                                    <th>Conf. Motor</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for aplicacao in selected_produto.aplicacoes %}
+                                                <tr>
+                                                    <td>{{ aplicacao.veiculo or 'N/A' }}</td>
+                                                    <td>{{ aplicacao.ano or 'N/A' }}</td>
+                                                    <td>{{ aplicacao.motor or 'N/A' }}</td>
+                                                    <td>{{ aplicacao.conf_mtr or 'N/A' }}</td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if 'conversions' not in layout_order and has_conversions_data %}
+                        <div class="conversions-column">
+                            <div class="conversions-card mt-3">
+                                <div class="conversions-card-header" style="background-color: #17a2b8;">Conversões</div>
+                                <div class="conversions-card-body">
+                                    <ul class="conversion-list-group">
+                                        {% for brand, codes in grouped_conversions.items() %}
+                                            <li class="conversion-list-item">
+                                                <span class="conversion-brand-title">{{ brand }}</span>
+                                                <div class="conversion-codes-wrapper">
+                                                    {% for code in codes %}
+                                                        <span class="conversion-code-item clickable" onclick="copyToClipboard(this, '{{ code }}')">{{ code }}</span>
+                                                    {% endfor %}
+                                                </div>
+                                            </li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="group-footer">Grupo {{ selected_produto.grupo or 'N/A' }}</div>
+                        </div>
+                    {% endif %}
+
+                    {% if 'applications' not in layout_order and has_applications_data %}
+                        <div class="applications-column">
+                            <div class="conversions-card bloco-conversoes-custom">
+                                <div class="conversions-card-header">Aplicações</div>
+                                <div class="conversions-card-body">
+                                    <table class="conversions-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Veículo</th>
+                                                <th>Ano</th>
+                                                <th>Motor</th>
+                                                <th>Conf. Motor</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for aplicacao in selected_produto.aplicacoes %}
+                                            <tr>
+                                                <td>{{ aplicacao.veiculo or 'N/A' }}</td>
+                                                <td>{{ aplicacao.ano or 'N/A' }}</td>
+                                                <td>{{ aplicacao.motor or 'N/A' }}</td>
+                                                <td>{{ aplicacao.conf_mtr or 'N/A' }}</td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    {% if related_products %}
+                        <div class="related-card results-suggestions-block">
+                            <div class="detail-card-header">
+                                <h3>Sugestão de produtos</h3>
+                            </div>
+                            <ul class="related-products-list">
+                                {% for related in related_products %}
+                                    {% set related_apps = related_products_apps_sorted.get(related.id, related.aplicacoes) %}
+                                    <li>
+                                        <div class="related-product-card related-product-card-suggestion">
+                                            <div class="related-product-main-row">
+                                                <a href="{{ url_for('main.detalhe_peca', id=related.id) }}" class="related-product-link-suggestion">
+                                                    <img src="{% if related.imagens %}{{ url_for('uploaded_file', filename=related.imagens[0].filename) }}{% else %}https://via.placeholder.com/80x60/eee/aaa?text=N/A{% endif %}" alt="{{ related.codigo }}" class="related-product-image-suggestion">
+                                                    <div class="related-product-info-suggestion">
+                                                        <strong>{{ related.codigo }}</strong>
+                                                        <span>{{ related.nome }}</span>
+                                                    </div>
+                                                </a>
+
+                                                <div class="related-product-applications-row">
+                                                    <div class="related-product-applications">
+                                                        {% if related_apps %}
+                                                            <table class="conversions-table suggestion-applications-table">
+                                                                <thead>
+                                                                    <tr>
+                                                                        <th>Veículo</th>
+                                                                        <th>Ano</th>
+                                                                        <th>Motor</th>
+                                                                        <th>Conf. Motor</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    {% for app in related_apps[:3] %}
+                                                                        <tr>
+                                                                            <td>{{ app.veiculo or 'N/A' }}</td>
+                                                                            <td>{{ app.ano or 'N/A' }}</td>
+                                                                            <td>{{ app.motor or 'N/A' }}</td>
+                                                                            <td>{{ app.conf_mtr or 'N/A' }}</td>
+                                                                        </tr>
+                                                                    {% endfor %}
+                                                                </tbody>
+                                                            </table>
+                                                            {% if related_apps|length > 3 %}
+                                                                <div class="related-apps-more">+{{ related_apps|length - 3 }} aplicação(ões)</div>
+                                                            {% endif %}
+                                                        {% else %}
+                                                            <span class="related-apps-empty">Sem aplicações cadastradas</span>
+                                                        {% endif %}
+                                                    </div>
+
+                                                    {% if is_admin %}
+                                                        <div class="related-suggestion-actions">
+                                                            <form method="POST" class="remove-similar-form" data-suggestion="1" data-url="{{ url_for('admin.ignorar_sugestao', produto_id=selected_produto.id, sugestao_id=related.id) }}">
+                                                                <button type="button" class="button remove-similar-action remove-suggestion-btn">Remover das sugestões</button>
+                                                            </form>
+                                                        </div>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% endif %}
+                </section>
+            {% endif %}
+        </div>
+    </div>
+    <div id="resultsImageModal" class="image-modal" style="display: none;">
+        <button id="resultsCloseModalBtn" class="button modal-close-btn" type="button" title="Fechar (Esc)">&times;</button>
+        <div class="modal-image-container">
+            <img id="resultsModalImage" class="modal-image" alt="Imagem ampliada">
+        </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function buildSelectedUrl(productId) {
+    const params = new URLSearchParams(window.location.search);
+    params.set('selected_id', productId);
+    return window.location.pathname + '?' + params.toString();
+}
+
+function isTypingTarget(target) {
+    if (!target) return false;
+    const tag = (target.tagName || '').toUpperCase();
+    return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable;
+}
+
+function setSelectedRowVisual(productId) {
+    document.querySelectorAll('.results-row').forEach(function(row) {
+        const isSelected = Number(row.dataset.productId) === Number(productId);
+        row.classList.toggle('selected', isSelected);
+        const iconCell = row.querySelector('.icon-cell');
+        if (iconCell) {
+            iconCell.textContent = isSelected ? '★' : '☆';
+        }
+    });
+}
+
+async function loadSelectedProduct(productId) {
+    const url = buildSelectedUrl(productId);
+    const response = await fetch(url, {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        credentials: 'same-origin'
+    });
+    if (!response.ok) throw new Error('Falha ao carregar item selecionado.');
+
+    const html = await response.text();
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+
+    const currentDetail = document.getElementById('resultsDetailCard');
+    const nextDetail = doc.getElementById('resultsDetailCard');
+    if (currentDetail && nextDetail) {
+        currentDetail.replaceWith(nextDetail);
+    }
+
+    const currentSecondary = document.getElementById('resultsSecondaryContainer');
+    const nextSecondary = doc.getElementById('resultsSecondaryContainer');
+    if (currentSecondary && nextSecondary) {
+        currentSecondary.replaceWith(nextSecondary);
+    }
+
+    setSelectedRowVisual(productId);
+    history.replaceState({}, '', url);
+    setupResultsImageModal();
+}
+
+function getRows() {
+    return Array.from(document.querySelectorAll('.results-row'));
+}
+
+function getSelectedIndex(rows) {
+    return rows.findIndex(function(row) {
+        return row.classList.contains('selected');
+    });
+}
+
+function selectByOffset(offset) {
+    const rows = getRows();
+    if (!rows.length) return;
+
+    const currentIndex = getSelectedIndex(rows);
+    const baseIndex = currentIndex >= 0 ? currentIndex : 0;
+    const nextIndex = Math.max(0, Math.min(rows.length - 1, baseIndex + offset));
+    if (nextIndex === currentIndex) return;
+
+    const row = rows[nextIndex];
+    const productId = row && row.dataset ? row.dataset.productId : null;
+    if (!productId) return;
+
+    loadSelectedProduct(productId).then(function() {
+        row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }).catch(function(err) {
+        console.error(err);
+        window.location.href = buildSelectedUrl(productId);
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.results-row').forEach(function(row) {
+        row.addEventListener('click', function() {
+            const productId = this.dataset.productId;
+            if (!productId) return;
+            loadSelectedProduct(productId).catch(function(err) {
+                console.error(err);
+                window.location.href = buildSelectedUrl(productId);
+            });
+        });
+    });
+
+    document.addEventListener('keydown', function(e) {
+        const modal = document.getElementById('resultsImageModal');
+        if (modal && modal.style.display === 'flex') return;
+        if (isTypingTarget(e.target)) return;
+        if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+            e.preventDefault();
+            selectByOffset(1);
+        } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+            e.preventDefault();
+            selectByOffset(-1);
+        }
+    });
+});
+
+// Função JavaScript para copiar para a área de transferência
+function copyToClipboard(element, text) {
+    navigator.clipboard.writeText(text).then(function() {
+        // Feedback visual temporário
+        element.classList.add('copied');
+        const originalText = element.textContent;
+        element.textContent = 'Copiado!';
+        setTimeout(function() {
+            element.classList.remove('copied');
+            element.textContent = originalText; // Restaura o texto original
+        }, 1500);
+    }, function(err) {
+        console.error('Erro ao copiar texto: ', err);
+        alert('Falha ao copiar o código. Por favor, copie manualmente.');
+    });
+}
+
+function setupResultsImageModal() {
+    const modal = document.getElementById('resultsImageModal');
+    const modalImage = document.getElementById('resultsModalImage');
+    const closeBtn = document.getElementById('resultsCloseModalBtn');
+    const trigger = document.getElementById('resultsProductImage');
+
+    if (!modal || !modalImage || !trigger) return;
+
+    trigger.onclick = function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        modalImage.src = trigger.src;
+        document.body.classList.add('modal-open');
+        modal.style.display = 'flex';
+    };
+
+    if (closeBtn) {
+        closeBtn.onclick = function() {
+            document.body.classList.remove('modal-open');
+            modal.style.display = 'none';
+        };
+    }
+
+    modal.onclick = function(e) {
+        if (e.target === modal) {
+            document.body.classList.remove('modal-open');
+            modal.style.display = 'none';
+        }
+    };
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    setupResultsImageModal();
+
+    document.addEventListener('keydown', function(e) {
+        const modal = document.getElementById('resultsImageModal');
+        if (modal && modal.style.display === 'flex' && e.key === 'Escape') {
+            document.body.classList.remove('modal-open');
+            modal.style.display = 'none';
+        }
+    });
+
+    document.addEventListener('click', function(e) {
+        const btn = e.target.closest('.remove-similar-action');
+        if (!btn) return;
+        e.preventDefault();
+
+        const form = btn.closest('.remove-similar-form');
+        if (!form) return;
+
+        if (!confirm('Confirma remoção desta sugestão? Esta ação é irreversível.')) return;
+
+        const url = form.dataset.url;
+        if (!url) return;
+
+        const item = form.closest('li');
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            credentials: 'same-origin'
+        }).then(resp => {
+            if (!resp.ok) throw resp;
+            return resp.json();
+        }).then(() => {
+            if (item) item.remove();
+
+            const list = document.querySelector('.related-products-list');
+            if (list && !list.querySelector('li')) {
+                const block = document.querySelector('.results-suggestions-block');
+                if (block) block.remove();
+            }
+        }).catch(err => {
+            console.error('Erro ao remover sugestão:', err);
+            alert('Não foi possível remover a sugestão.');
+        });
+    });
+});
+</script>
+{% endblock %}

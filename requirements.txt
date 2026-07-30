@@ -1,0 +1,12 @@
+Flask
+Flask-SQLAlchemy
+Flask-Login
+requests
+waitress
+tqdm
+packaging
+# pywebview  # Comentado temporariamente - problemas de compatibilidade com Python 3.14
+beautifulsoup4
+lxml
+reportlab
+weasyprint

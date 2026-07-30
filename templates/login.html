@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Catálogo de Peças</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='responsive.css') }}">
+</head>
+<body class="auth-page">
+    <div class="container auth-card">
+        <header>
+            <h1>Login</h1>
+        </header>
+
+    <form method="POST" action="{{ url_for('auth.login') }}" class="search-section" style="flex-direction: column;">
+            <div class="search-field" style="width: 100%;">
+                <label for="username">Usuário:</label>
+                <input type="text" id="username" name="username" required>
+            </div>
+            <div class="search-field" style="width: 100%;">
+                <label for="password">Senha:</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+
+            <div style="width: 100%; margin: 6px 0 12px 0; display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" id="remember_me" name="remember_me">
+                <label for="remember_me" style="margin: 0;">Permanecer logado</label>
+            </div>
+            
+            <button type="submit" style="align-self: flex-start;">Entrar</button>
+        </form>
+        
+        <div style="margin-top: 20px; text-align: center;">
+            <p>Se o usuário 'admin' foi criado na inicialização, a senha temporária é exibida no terminal onde o servidor foi iniciado.</p>
+        </div>
+    </div>
+</body>
+</html>
