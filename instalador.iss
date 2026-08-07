@@ -9,7 +9,7 @@
 ; --- Valores Padrão (para compilação manual/IDE) ---
 ; Se as variáveis não forem passadas pela linha de comando, use estes valores.
 #ifndef MyAppVersion
-  #define MyAppVersion "2.2.2"
+  #define MyAppVersion "2.2.6"
 #endif
 #ifndef MyExeName
   #define MyExeName "CatalogoDePecas.exe"

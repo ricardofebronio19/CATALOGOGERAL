@@ -79,6 +79,166 @@ def _relation_list(value: Any) -> list[Any]:
     return list(value or []) if value is not None else []
 
 
+def _build_application_relationship_index(aplicacoes: list[Aplicacao] | None) -> dict[str, Any]:
+    """Prepara um índice de aplicações para comparar relacionamento entre produtos."""
+    vehicles: set[str] = set()
+    motors: set[str] = set()
+    makers: set[str] = set()
+    vehicle_year_ranges: dict[str, list[tuple[int, int]]] = {}
+    exact_app_signatures: set[tuple[str, str, str]] = set()
+
+    for app in aplicacoes or []:
+        veiculo_norm = _normalize_for_search(app.veiculo or "")
+        motor_norm = _normalize_for_search(app.motor or "")
+        ano_norm = _normalize_for_search(app.ano or "")
+        maker_norm = _normalize_for_search(app.montadora or "")
+
+        if veiculo_norm:
+            vehicles.add(veiculo_norm)
+        if motor_norm:
+            motors.add(motor_norm)
+        if maker_norm:
+            makers.add(maker_norm)
+
+        if veiculo_norm and ano_norm:
+            year_range = _parse_year_range(app.ano)
+            if year_range != (-1, -1):
+                vehicle_year_ranges.setdefault(veiculo_norm, []).append(year_range)
+
+        exact_app_signatures.add((veiculo_norm, ano_norm, motor_norm))
+
+    return {
+        "vehicles": vehicles,
+        "motors": motors,
+        "makers": makers,
+        "vehicle_year_ranges": vehicle_year_ranges,
+        "exact_app_signatures": exact_app_signatures,
+    }
+
+
+def _build_exact_application_signature_set(aplicacoes: list[Aplicacao] | None) -> set[tuple[str, str, str]]:
+    """Gera assinaturas canônicas das aplicações para comparação estrita."""
+    signatures: set[tuple[str, str, str]] = set()
+
+    for app in aplicacoes or []:
+        veiculo_norm = _normalize_for_search(app.veiculo or "")
+        motor_norm = _normalize_for_search(app.motor or "")
+        ano_norm = _normalize_for_search(app.ano or "")
+
+        if veiculo_norm and ano_norm:
+            signatures.add((veiculo_norm, ano_norm, motor_norm))
+
+    return signatures
+
+
+def _score_related_product_relationship(produto: Produto, candidate: Produto) -> int:
+    """Calcula um score de relacionamento entre dois produtos usando código, veículo, ano e motor."""
+    score = 0
+
+    selected_group_norm = _normalize_for_search(produto.grupo or "")
+    candidate_group_norm = _normalize_for_search(candidate.grupo or "")
+    if not selected_group_norm or not candidate_group_norm or selected_group_norm != candidate_group_norm:
+        return 0
+
+    selected_apps = _relation_list(produto.aplicacoes)
+    candidate_apps = _relation_list(candidate.aplicacoes)
+    selected_index = _build_application_relationship_index(selected_apps)
+    candidate_index = _build_application_relationship_index(candidate_apps)
+
+    selected_vehicles: set[str] = selected_index["vehicles"]
+    candidate_vehicles: set[str] = candidate_index["vehicles"]
+    shared_vehicles = selected_vehicles & candidate_vehicles
+
+    # Quando há dados de aplicação em ambos os lados, exige ao menos um veículo em comum.
+    if selected_vehicles and candidate_vehicles:
+        if not shared_vehicles:
+            return 0
+        score += 180 + (min(len(shared_vehicles), 3) * 35)
+    # Se somente um dos lados possui veículo, não há base confiável para sugerir.
+    elif selected_vehicles or candidate_vehicles:
+        return 0
+
+    selected_code_norm = _normalize_for_search(produto.codigo or "")
+    candidate_code_norm = _normalize_for_search(candidate.codigo or "")
+    if selected_code_norm and candidate_code_norm:
+        if selected_code_norm == candidate_code_norm:
+            score += 400
+        elif selected_code_norm[:4] and candidate_code_norm.startswith(selected_code_norm[:4]):
+            score += 90
+
+    selected_conversions_norm = _normalize_for_search(produto.conversoes or "")
+    candidate_conversions_norm = _normalize_for_search(candidate.conversoes or "")
+    if selected_code_norm and candidate_conversions_norm and selected_code_norm in candidate_conversions_norm:
+        score += 220
+    if candidate_code_norm and selected_conversions_norm and candidate_code_norm in selected_conversions_norm:
+        score += 220
+
+    score += 120
+
+    selected_supplier_norm = _normalize_for_search(produto.fornecedor or "")
+    candidate_supplier_norm = _normalize_for_search(candidate.fornecedor or "")
+    if selected_supplier_norm and candidate_supplier_norm and selected_supplier_norm == candidate_supplier_norm:
+        score += 60
+
+    selected_app_signatures = _build_exact_application_signature_set(selected_apps)
+    candidate_app_signatures = _build_exact_application_signature_set(candidate_apps)
+    exact_overlap = selected_app_signatures & candidate_app_signatures
+    if exact_overlap:
+        score += min(len(exact_overlap), 4) * 140
+
+    shared_motors = selected_index["motors"] & candidate_index["motors"]
+    if shared_motors:
+        score += min(len(shared_motors), 3) * 50
+
+    shared_makers = selected_index["makers"] & candidate_index["makers"]
+    if shared_makers:
+        score += min(len(shared_makers), 2) * 20
+
+    if shared_vehicles:
+        overlapping_vehicle_ranges = 0
+        for veiculo_norm in shared_vehicles:
+            selected_ranges = selected_index["vehicle_year_ranges"].get(veiculo_norm, [])
+            candidate_ranges = candidate_index["vehicle_year_ranges"].get(veiculo_norm, [])
+            if selected_ranges and candidate_ranges and any(
+                _ranges_overlap(selected_range, candidate_range)
+                for selected_range in selected_ranges
+                for candidate_range in candidate_ranges
+            ):
+                overlapping_vehicle_ranges += 1
+        if overlapping_vehicle_ranges:
+            score += min(overlapping_vehicle_ranges, 3) * 90
+
+    for app in candidate_apps:
+        veiculo_norm = _normalize_for_search(app.veiculo or "")
+        motor_norm = _normalize_for_search(app.motor or "")
+        ano_norm = _normalize_for_search(app.ano or "")
+        maker_norm = _normalize_for_search(app.montadora or "")
+
+        if veiculo_norm and veiculo_norm in selected_index["vehicles"]:
+            score += 55
+        if motor_norm and motor_norm in selected_index["motors"]:
+            score += 45
+        if maker_norm and maker_norm in selected_index["makers"]:
+            score += 15
+
+        if (veiculo_norm, ano_norm, motor_norm) in selected_index["exact_app_signatures"]:
+            score += 120
+        elif veiculo_norm and motor_norm:
+            if veiculo_norm in selected_index["vehicles"] and motor_norm in selected_index["motors"]:
+                score += 70
+            elif veiculo_norm in selected_index["vehicles"] or motor_norm in selected_index["motors"]:
+                score += 35
+
+        if veiculo_norm and veiculo_norm in selected_index["vehicle_year_ranges"]:
+            current_range = _parse_year_range(app.ano)
+            if current_range != (-1, -1):
+                ranges = selected_index["vehicle_year_ranges"].get(veiculo_norm, [])
+                if any(_ranges_overlap(r, current_range) for r in ranges):
+                    score += 50
+
+    return score
+
+
 def _is_conversion_brand_line(line: str) -> bool:
     """Heurística para identificar linhas de marca/fornecedor em conversões."""
     cleaned = (line or "").strip()
@@ -88,13 +248,27 @@ def _is_conversion_brand_line(line: str) -> bool:
     partes = cleaned.split()
     digit_count = sum(c.isdigit() for c in cleaned)
 
-    # Compatibilidade com comportamento anterior: uma palavra com poucos dígitos.
-    if len(partes) == 1 and digit_count < len(cleaned) / 2:
-        return True
+    def _token_looks_like_brand(token: str) -> bool:
+        token = token.strip()
+        if not token:
+            return False
 
-    # Suporta marcas com múltiplas palavras (ex.: "METAL LEVE").
-    # Considera marca quando não há dígitos e os termos são curtos.
-    if 1 < len(partes) <= 4 and digit_count == 0:
+        token_sem_separadores = (
+            token.replace("-", "")
+            .replace("&", "")
+            .replace("/", "")
+            .replace(".", "")
+            .replace("'", "")
+        )
+        return bool(token_sem_separadores) and token_sem_separadores.isalpha()
+
+    # Linhas com dígitos e hífen costumam ser códigos, não fabricantes.
+    if len(partes) == 1:
+        return digit_count == 0 and _token_looks_like_brand(partes[0])
+
+    # Compatibilidade com marcas com múltiplas palavras (ex.: "METAL LEVE").
+    # Só aceita termos sem dígitos e com aparência de nome de fabricante.
+    if 1 < len(partes) <= 4 and digit_count == 0 and all(_token_looks_like_brand(parte) for parte in partes):
         return True
 
     return False
@@ -259,7 +433,9 @@ def buscar():
     sort_dir = request.args.get("sort_dir", "asc")
     selected_id = request.args.get("selected_id", type=int)
 
-    PER_PAGE = 20
+    # A tela de resultados usa rolagem interna na tabela, então carregamos todos
+    # os itens na primeira página para que o restante possa ser acessado pelo scroll.
+    PER_PAGE = 5000
     query = _build_search_query(
         termo, codigo_produto, montadora, aplicacao_termo, grupo, medidas,
         largura=largura, altura=altura, comprimento=comprimento,
@@ -400,110 +576,21 @@ def buscar():
                 ranked_related_map[candidate.id] = {"produto": candidate, "score": score}
 
         def _score_product_similarity(candidate):
-            score = 0
-            candidate_group_norm = _normalize_for_search(candidate.grupo or "")
-            candidate_supplier_norm = _normalize_for_search(candidate.fornecedor or "")
-            candidate_name_norm = _normalize_for_search(candidate.nome or "")
-            candidate_code_norm = _normalize_for_search(candidate.codigo or "")
-            candidate_measures_norm = _normalize_for_search(candidate.medidas or "")
-
-            if selected_group_norm and candidate_group_norm == selected_group_norm:
-                score += 240
-
-            if selected_supplier_norm and candidate_supplier_norm == selected_supplier_norm:
-                score += 120
-
-            if selected_code_norm and candidate_code_norm and selected_code_norm != candidate_code_norm:
-                if selected_code_norm[:4] and candidate_code_norm.startswith(selected_code_norm[:4]):
-                    score += 35
-
-            candidate_name_tokens = {
-                token
-                for token in candidate_name_norm.split()
-                if len(token) >= 3
-            }
-            common_tokens = selected_name_tokens & candidate_name_tokens
-            if common_tokens:
-                score += min(90, len(common_tokens) * 18)
-
-            if selected_measures_norm and candidate_measures_norm:
-                if selected_measures_norm == candidate_measures_norm:
-                    score += 80
-                elif selected_measures_norm in candidate_measures_norm or candidate_measures_norm in selected_measures_norm:
-                    score += 35
-
-            candidate_apps = list(candidate.aplicacoes or [])
-            exact_app_overlap = 0
-            vehicle_overlap = 0
-            motor_overlap = 0
-            maker_overlap = 0
-            year_overlap = 0
-
-            selected_app_keys = {
-                (
-                    _normalize_for_search(app.veiculo or ""),
-                    _normalize_for_search(app.ano or ""),
-                    _normalize_for_search(app.motor or ""),
-                )
-                for app in selected_apps
-                if app.veiculo or app.ano or app.motor
-            }
-
-            for app in candidate_apps:
-                veiculo_norm = _normalize_for_search(app.veiculo or "")
-                motor_norm = _normalize_for_search(app.motor or "")
-                maker_norm = _normalize_for_search(app.montadora or "")
-                ano_norm = _normalize_for_search(app.ano or "")
-
-                if veiculo_norm and veiculo_norm in selected_vehicles:
-                    vehicle_overlap += 1
-                if motor_norm and motor_norm in selected_motors:
-                    motor_overlap += 1
-                if maker_norm and maker_norm in selected_makers:
-                    maker_overlap += 1
-
-                if (veiculo_norm, ano_norm, motor_norm) in selected_app_keys:
-                    exact_app_overlap += 1
-
-                if veiculo_norm and veiculo_norm in selected_vehicle_year_ranges:
-                    current_range = _parse_year_range(app.ano)
-                    if current_range != (-1, -1):
-                        ranges = selected_vehicle_year_ranges.get(veiculo_norm, [])
-                        if any(_ranges_overlap(r, current_range) for r in ranges):
-                            year_overlap += 1
-
-            if exact_app_overlap:
-                score += min(180, exact_app_overlap * 90)
-            if vehicle_overlap:
-                score += min(175, vehicle_overlap * 35)
-            if motor_overlap:
-                score += min(90, motor_overlap * 30)
-            if maker_overlap:
-                score += min(70, maker_overlap * 20)
-            if year_overlap:
-                score += min(120, year_overlap * 40)
-
-            return score
+            return _score_related_product_relationship(selected_produto, candidate)
 
         # Similares definidos manualmente seguem prioridade alta, mas ainda respeitam ignorados.
         for similar in selected_produto.similares or []:
             _register_related_candidate(similar, 10000)
 
+        # Filtros para encontrar candidatos relevantes
         candidate_filters = [Produto.id != selected_produto.id]
         if ignored_ids:
             candidate_filters.append(Produto.id.notin_(ignored_ids))
 
-        relevance_filters = []
-        if selected_produto.grupo:
-            relevance_filters.append(Produto.grupo == selected_produto.grupo)
-        if selected_produto.fornecedor:
-            relevance_filters.append(Produto.fornecedor == selected_produto.fornecedor)
-        if selected_vehicles:
-            relevance_filters.append(Produto.aplicacoes.any(Aplicacao.veiculo.in_(list(selected_vehicles))))
-
-        if relevance_filters:
-            candidate_filters.append(or_(*relevance_filters))
-
+        # A busca por candidatos agora é restrita ao mesmo grupo.
+        if selected_group_norm:
+            candidate_filters.append(Produto.grupo == selected_produto.grupo)
+        
         candidate_pool = (
             Produto.query
             .filter(*candidate_filters)
@@ -511,7 +598,7 @@ def buscar():
                 _selectinload_relationship(Produto.aplicacoes),
                 _selectinload_relationship(Produto.imagens),
             )
-            .limit(200)
+            .limit(150) # Reduzido para focar em qualidade
             .all()
         )
 
@@ -611,28 +698,30 @@ def buscar():
             related_products_apps_sorted[related.id] = apps_ordenadas
 
     # Prepare search_args for template
-    search_args = {
-        'termo': termo,
-        'codigo_produto': codigo_produto,
-        'montadora': montadora,
-        'aplicacao': aplicacao_termo,
-        'grupo': grupo,
-        'medidas': medidas,
-        'largura': largura,
-        'altura': altura,
-        'comprimento': comprimento,
-        'diametro_externo': diametro_externo,
-        'diametro_interno': diametro_interno,
-        'elo': elo,
-        'estrias_internas': estrias_internas,
-        'estrias_externas': estrias_externas,
-        'sort_by': sort_by,
-        'sort_dir': sort_dir,
-    }
+    # search_args = {
+    #     'termo': termo,
+    #     'codigo_produto': codigo_produto,
+    #     'montadora': montadora,
+    #     'aplicacao': aplicacao_termo,
+    #     'grupo': grupo,
+    #     'medidas': medidas,
+    #     'largura': largura,
+    #     'altura': altura,
+    #     'comprimento': comprimento,
+    #     'diametro_externo': diametro_externo,
+    #     'diametro_interno': diametro_interno,
+    #     'elo': elo,
+    #     'estrias_internas': estrias_internas,
+    #     'estrias_externas': estrias_externas,
+    #     'sort_by': sort_by,
+    #     'sort_dir': sort_dir,
+    # }
+    search_args = request.args.copy()
     if selected_id:
         search_args['selected_id'] = str(selected_id)
 
-    search_args = {k: v for k, v in search_args.items() if v}
+    # Remove 'page' para que o macro de paginação possa injetá-lo sem duplicata
+    search_args = {k: v for k, v in search_args.items() if v and k != 'page'}
 
     return render_template(
         "resultados.html",
@@ -650,6 +739,7 @@ def buscar():
         search_args=search_args,
         is_admin=current_user.is_authenticated and getattr(current_user, 'is_admin', False),
         endpoint=request.endpoint,
+        medidas_dict=_parsear_medidas_para_dict(selected_produto.medidas) if selected_produto else {},
     )
 
 
@@ -724,8 +814,7 @@ def detalhe_peca(id):
         montadora_chave = aplicacao.montadora or "Sem Montadora"
         aplicacoes_agrupadas[montadora_chave].append(aplicacao)
 
-    # Lógica para encontrar produtos sugeridos
-    sugestoes_similares_dict = {}
+    # Lógica para encontrar produtos sugeridos com base em código, veículo, ano e motor.
     ids_ja_relacionados = (
         {p.id for p in _relation_list(produto.similares)}
         | {p.id for p in _relation_list(getattr(produto, "similar_to", []))}
@@ -740,78 +829,43 @@ def detalhe_peca(id):
     )
     ignored_ids = {r[0] for r in ignored_rows} if ignored_rows else set()
 
-    codigos_conversao = [
-        c.strip() for c in (produto.conversoes or "").split(",") if c.strip()
-    ]
     query_sugestoes = Produto.query.filter(Produto.id.notin_(ids_ja_relacionados))
     if ignored_ids:
         query_sugestoes = query_sugestoes.filter(Produto.id.notin_(ignored_ids))
+    selected_group_norm = _normalize_for_search(produto.grupo or "")
+    if selected_group_norm:
+        query_sugestoes = query_sugestoes.filter(Produto.grupo == produto.grupo)
 
-    if codigos_conversao:
-        sugestoes_por_conversao = (
-            query_sugestoes.filter(Produto.codigo.in_(codigos_conversao))
-            .options(_selectinload_relationship(Produto.aplicacoes), _selectinload_relationship(Produto.imagens)) # type: ignore
+    try:
+        candidatos = (
+            query_sugestoes
+            .options(
+                _selectinload_relationship(Produto.aplicacoes),
+                _selectinload_relationship(Produto.imagens),
+            )
+            .limit(200)
             .all()
         )
-        for p in sugestoes_por_conversao:
-            sugestoes_similares_dict[p.id] = p
 
-    sugestoes_por_codigo_produto = (
-        query_sugestoes.filter(
-            Produto.conversoes.ilike(f"%{produto.codigo}%") # type: ignore
-        )
-        .options(selectinload(Produto.aplicacoes), selectinload(Produto.imagens)) # type: ignore
-        .all()
-    )
-    for p in sugestoes_por_codigo_produto:
-        sugestoes_similares_dict[p.id] = p
+        sugestoes_similares_ranked = {}
+        for candidato in candidatos:
+            score = _score_related_product_relationship(produto, candidato)
+            if score > 0:
+                sugestoes_similares_ranked[candidato.id] = {"produto": candidato, "score": score}
 
-    # Otimização: Em vez de fazer uma query por aplicação, fazemos uma única query
-    # para todos os veículos relevantes e depois filtramos em Python.
-    try:
-        if produto.grupo and aplicacoes_produto and produto.grupo.strip():
-            # 1. Coleta todos os veículos e seus intervalos de ano do produto principal
-            veiculos_principais = {
-                    app.veiculo: _parse_year_range(app.ano)
-                    for app in aplicacoes_produto
-                    if app.veiculo and _parse_year_range(app.ano) != (-1, -1)
-                }
-            if veiculos_principais:
-                # 2. Busca todos os candidatos de uma só vez
-                filter_criteria = [
-                    Produto.id.notin_(ids_ja_relacionados | set(sugestoes_similares_dict.keys())),
-                    Produto.grupo == produto.grupo,
-                    Produto.aplicacoes.any(Aplicacao.veiculo.in_(veiculos_principais.keys())),
-                ]
-                if ignored_ids:
-                    filter_criteria.append(Produto.id.notin_(ignored_ids))
-
-                candidatos_gerais = (
-                    Produto.query
-                    .filter(*filter_criteria)
-                    .options(
-                        _selectinload_relationship(Produto.aplicacoes),
-                        _selectinload_relationship(Produto.imagens),
-                    )
-                    .all()
-                )
-
-                # 3. Processa os candidatos em memória para verificar a sobreposição de anos
-                for candidato in candidatos_gerais:
-                    for app_candidata in candidato.aplicacoes:
-                        # Verifica se o veículo do candidato está na lista de veículos do produto principal
-                        if app_candidata.veiculo in veiculos_principais:
-                            range_principal = veiculos_principais[app_candidata.veiculo]
-                            range_candidato = _parse_year_range(app_candidata.ano)
-                            if range_candidato != (-1, -1) and _ranges_overlap(range_principal, range_candidato):
-                                sugestoes_similares_dict[candidato.id] = candidato
-                                break  # Adiciona o candidato uma vez e vai para o próximo
+        sugestoes_similares = [
+            item["produto"]
+            for item in sorted(
+                sugestoes_similares_ranked.values(),
+                key=lambda item: (
+                    -item["score"],
+                    _normalize_for_search(item["produto"].codigo or ""),
+                ),
+            )[:4]
+        ]
     except Exception as e:
         current_app.logger.error(f"Erro ao gerar sugestões similares para produto {produto.id}: {e}")
-        # Se houver um erro aqui, as sugestões similares ficarão vazias, mas a página deve carregar.
-        sugestoes_similares_dict = {} # Clear any partial suggestions
-
-    sugestoes_similares = list(sugestoes_similares_dict.values())
+        sugestoes_similares = []
 
     # Agrupa conversões por marca (mesmo algoritmo da tela de resultados)
     grouped_conversions_detail = collections.defaultdict(list)
@@ -852,6 +906,7 @@ def detalhe_peca(id):
         aplicacoes_agrupadas=aplicacoes_agrupadas,
         sugestoes_similares=sugestoes_similares,
         grouped_conversions=dict(grouped_conversions_detail),
+        medidas_dict=_parsear_medidas_para_dict(produto.medidas),
         voltar_url=voltar_url,
         veiculo_context=veiculo_context,
         montadora_context=montadora_context,
@@ -1025,6 +1080,23 @@ def editar_peca(id):
         )
         .get(id)
     )
+    # Adiciona um cache de aplicações do produto principal para otimizar a comparação
+    # com os similares. Isso evita recalcular a normalização para cada similar.
+    if produto:
+        produto.cached_app_signatures = {
+            (
+                _normalize_for_search(app.veiculo or ""),
+                _normalize_for_search(app.ano or ""),
+                _normalize_for_search(app.motor or ""),
+            )
+            for app in produto.aplicacoes
+        }
+    else:
+        # Se o produto não for encontrado, redireciona com uma mensagem de erro.
+        flash("Produto não encontrado.", "danger")
+        return redirect(url_for("main.index"))
+
+
     if not produto:
         flash("Produto não encontrado.", "danger")
         return redirect(url_for("main.index"))
@@ -1210,15 +1282,16 @@ def clonar_peca(id):
     for similar in _relation_list(produto_original.similares):
         novo_produto.similares.append(similar)
 
+    db.session.add(novo_produto)
+    db.session.flush()
+
     for aplicacao_original in _relation_list(produto_original.aplicacoes):
         nova_aplicacao = Aplicacao()
-        nova_aplicacao.produto_id = novo_produto.id
         for c in aplicacao_original.__table__.columns:
             if c.name not in ["id", "produto_id"]:
                 setattr(nova_aplicacao, c.name, getattr(aplicacao_original, c.name))
-        db.session.add(nova_aplicacao)
+        novo_produto.aplicacoes.append(nova_aplicacao)
 
-    db.session.add(novo_produto)
     db.session.commit()
     invalidate_search_cache()
 

@@ -29,7 +29,7 @@ def _carregar_versao() -> str:
     Ordem:
     1) Variável de ambiente APP_VERSION (injeção no build/CI)
     2) Arquivo version.json empacotado (criado pelo build)
-    3) Fallback para '1.0.0'
+    3) Fallback para '2.2.6'
     """
     # 1) Ambiente
     env_version = os.getenv("APP_VERSION")
@@ -53,7 +53,7 @@ def _carregar_versao() -> str:
         pass
 
     # 3) Default
-    return "1.0.0"
+    return "2.2.6"
 
 
 VERSION = _carregar_versao()

@@ -16,7 +16,13 @@ except ModuleNotFoundError as exc:
     Menu = MenuAction = MenuSeparator = None
     WEBVIEW_IMPORT_ERROR = exc
 
-from waitress import serve
+try:
+    from waitress import serve  # type: ignore
+except Exception:
+    serve = None
+    _WAITRESS_MISSING = True
+else:
+    _WAITRESS_MISSING = False
 
 from app import APP_DATA_PATH, VERSION, create_app, inicializar_banco, schedule_periodic_update_check
 from run import executar_atualizacao, executar_restauracao_de_backup
@@ -180,9 +186,13 @@ def iniciar_servidor_background(host="127.0.0.1", port=8000):
         threading.Timer(5.0, schedule_periodic_update_check, args=[app]).start()
         print("[SERVIDOR] Sistema de atualizações agendado")
         
-        # Servidor Waitress em thread para não bloquear a GUI
+        # Servidor em thread para não bloquear a GUI
         print(f"[SERVIDOR] Aguardando conexões em http://{host}:{port}")
-        serve(app, host=host, port=port, _quiet=False)
+        if _WAITRESS_MISSING or serve is None:
+            print("[SERVIDOR] Aviso: pacote 'waitress' não encontrado. Usando Flask dev server.")
+            app.run(host=host, port=port, threaded=True)
+        else:
+            serve(app, host=host, port=port, _quiet=False)
     except Exception as e:
         print(f"[SERVIDOR] ERRO CRÍTICO: {e}")
         import traceback

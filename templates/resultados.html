@@ -40,7 +40,18 @@
                 </div>
 
                 {% if pagination.items %}
-                    <div class="results-table-card">
+                    <div class="results-table-card results-table-scroll-container">
+                        <div class="results-table-card-header">
+                            <div class="results-table-card-title">
+                                <h2>Resultados</h2>
+                                <span>Controle de altura da lista</span>
+                            </div>
+                            <div class="results-scroll-control">
+                                <label for="resultsRowsBeforeScroll">Linhas antes da rolagem</label>
+                                <input type="number" id="resultsRowsBeforeScroll" min="1" max="100" step="1" inputmode="numeric" placeholder="10" value="">
+                                <small>Deixe em branco para usar 10 linhas.</small>
+                            </div>
+                        </div>
                         <table class="results-table">
                             <thead>
                                 <tr>
@@ -97,7 +108,36 @@
                                 {% if selected_produto.medidas and selected_produto.medidas.strip() %}
                                     <div>
                                         <dt>Medidas</dt>
-                                        <dd>{{ selected_produto.medidas }}</dd>
+                                        {% if medidas_dict %}
+                                            <dd class="product-measures">
+                                                {% for label, key in [
+                                                    ('Largura (mm)', 'largura'),
+                                                    ('Altura (mm)', 'altura'),
+                                                    ('Comprimento (mm)', 'comprimento'),
+                                                    ('Diâmetro Externo (mm)', 'diametro_externo'),
+                                                    ('Diâmetro Interno (mm)', 'diametro_interno'),
+                                                    ('Elo', 'elo'),
+                                                    ('Estrias Internas', 'estrias_internas'),
+                                                    ('Estrias Externas', 'estrias_externas')
+                                                ] %}
+                                                    {% if medidas_dict[key] %}
+                                                        <span class="measure-item">
+                                                            <span class="measure-label">{{ label }}</span>
+                                                            <span class="measure-separator">:</span>
+                                                            <span class="measure-value">{{ medidas_dict[key] }}</span>
+                                                        </span>
+                                                    {% endif %}
+                                                {% endfor %}
+                                                {% if medidas_dict.medidas_adicionais %}
+                                                    <span class="measure-item measure-item--stacked">
+                                                        <span class="measure-label">Medidas adicionais</span>
+                                                        <span class="measure-value">{{ medidas_dict.medidas_adicionais }}</span>
+                                                    </span>
+                                                {% endif %}
+                                            </dd>
+                                        {% else %}
+                                            <dd>{{ selected_produto.medidas }}</dd>
+                                        {% endif %}
                                     </div>
                                 {% endif %}
                                 {% if selected_produto.observacoes and selected_produto.observacoes.strip() %}
@@ -130,7 +170,7 @@
                 {% set layout_order = (config_aparencia.results_layout.order if config_aparencia.results_layout and config_aparencia.results_layout.order else ['conversions', 'applications', 'details']) %}
                 {% set has_conversions_data = grouped_conversions and grouped_conversions|length > 0 %}
                 {% set has_applications_data = selected_produto.aplicacoes and selected_produto.aplicacoes|length > 0 %}
-                <section class="results-secondary-block">
+                <section class="results-secondary-block{% if not has_conversions_data %} results-secondary-block--applications-full{% endif %}">
                     {% for block in layout_order %}
                         {% if block == 'conversions' and has_conversions_data %}
                             <div class="conversions-column">
@@ -242,7 +282,11 @@
                             <div class="detail-card-header">
                                 <h3>Sugestão de produtos</h3>
                             </div>
-                            <ul class="related-products-list">
+                            <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px; flex-wrap:wrap;">
+                                <input type="text" id="relatedVehicleFilterInput" placeholder="Filtrar por veículo..." style="padding:6px 10px; border:1px solid #ced4da; border-radius:4px; min-width:220px;">
+                                <button type="button" id="clearRelatedVehicleFilterBtn" class="button" style="display:none; background-color:#6c757d; padding:6px 10px;">Limpar</button>
+                            </div>
+                            <ul class="related-products-list" id="relatedProductsSuggestionsList">
                                 {% for related in related_products %}
                                     {% set related_apps = related_products_apps_sorted.get(related.id, related.aplicacoes) %}
                                     <li>
@@ -366,6 +410,7 @@ async function loadSelectedProduct(productId) {
     setSelectedRowVisual(productId);
     history.replaceState({}, '', url);
     setupResultsImageModal();
+    setupRelatedProductsVehicleFilter();
 }
 
 function getRows() {
@@ -376,6 +421,31 @@ function getSelectedIndex(rows) {
     return rows.findIndex(function(row) {
         return row.classList.contains('selected');
     });
+}
+
+function parseVisibleRowsValue(value) {
+    const parsed = Number.parseInt(value, 10);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+        return 10;
+    }
+    return Math.min(parsed, 100);
+}
+
+function updateResultsTableScrollHeight() {
+    const input = document.getElementById('resultsRowsBeforeScroll');
+    const container = document.querySelector('.results-table-scroll-container');
+    const table = container ? container.querySelector('.results-table') : null;
+    if (!container || !table) return;
+
+    const visibleRows = parseVisibleRowsValue(input ? input.value : '');
+    const headerRow = table.querySelector('thead tr');
+    const firstBodyRow = table.querySelector('tbody tr');
+
+    const headerHeight = headerRow ? headerRow.getBoundingClientRect().height : 52;
+    const rowHeight = firstBodyRow ? firstBodyRow.getBoundingClientRect().height : 48;
+    const extraPadding = 4;
+
+    container.style.maxHeight = `${Math.ceil(headerHeight + (rowHeight * visibleRows) + extraPadding)}px`;
 }
 
 function selectByOffset(offset) {
@@ -400,6 +470,14 @@ function selectByOffset(offset) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+    const rowsBeforeScrollInput = document.getElementById('resultsRowsBeforeScroll');
+    if (rowsBeforeScrollInput) {
+        rowsBeforeScrollInput.addEventListener('input', updateResultsTableScrollHeight);
+        rowsBeforeScrollInput.addEventListener('change', updateResultsTableScrollHeight);
+    }
+
+    updateResultsTableScrollHeight();
+
     document.querySelectorAll('.results-row').forEach(function(row) {
         row.addEventListener('click', function() {
             const productId = this.dataset.productId;
@@ -442,6 +520,57 @@ function copyToClipboard(element, text) {
     });
 }
 
+function normalizeTextFilter(value) {
+    if (!value) return '';
+    return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\p{L}\p{N} ]+/gu, ' ').replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
+function setupRelatedProductsVehicleFilter() {
+    const input = document.getElementById('relatedVehicleFilterInput');
+    const clearBtn = document.getElementById('clearRelatedVehicleFilterBtn');
+    const list = document.getElementById('relatedProductsSuggestionsList');
+
+    if (!input || !list) return;
+
+    function getCardVehicleText(card) {
+        const rows = card.querySelectorAll('.suggestion-applications-table tbody tr');
+        return Array.from(rows)
+            .map(function(row) {
+                return row.cells && row.cells[0] ? row.cells[0].textContent : '';
+            })
+            .filter(Boolean)
+            .join(' ');
+    }
+
+    function applyFilter() {
+        const term = normalizeTextFilter(input.value);
+        const items = Array.from(list.querySelectorAll('li'));
+        let visibleCount = 0;
+
+        items.forEach(function(item) {
+            const card = item.querySelector('.related-product-card');
+            const cardText = normalizeTextFilter(getCardVehicleText(card));
+            const matches = !term || cardText.includes(term);
+            item.style.display = matches ? '' : 'none';
+            if (matches) visibleCount++;
+        });
+
+        if (clearBtn) {
+            clearBtn.style.display = term ? 'inline-block' : 'none';
+        }
+    }
+
+    input.addEventListener('input', applyFilter);
+    if (clearBtn) {
+        clearBtn.addEventListener('click', function() {
+            input.value = '';
+            applyFilter();
+        });
+    }
+
+    applyFilter();
+}
+
 function setupResultsImageModal() {
     const modal = document.getElementById('resultsImageModal');
     const modalImage = document.getElementById('resultsModalImage');
@@ -475,6 +604,8 @@ function setupResultsImageModal() {
 
 document.addEventListener('DOMContentLoaded', function() {
     setupResultsImageModal();
+    setupRelatedProductsVehicleFilter();
+    updateResultsTableScrollHeight();
 
     document.addEventListener('keydown', function(e) {
         const modal = document.getElementById('resultsImageModal');

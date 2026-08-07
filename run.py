@@ -1,5 +1,7 @@
 import argparse
 import os
+
+
 import shutil
 import subprocess
 import sys
@@ -60,6 +62,40 @@ except Exception:
 # para permitir opções de linha de comando que possam alterar o arquivo de DB
 # antes da inicialização (ex: --use-repo-db).
 app = None
+
+
+def _safe_extract_zip(zip_file, destination_dir):
+    """Extrai zip bloqueando path traversal."""
+    destination_abs = os.path.abspath(destination_dir)
+    for member in zip_file.infolist():
+        member_path = os.path.abspath(os.path.join(destination_abs, member.filename))
+        if not (
+            member_path == destination_abs
+            or member_path.startswith(destination_abs + os.sep)
+        ):
+            raise ValueError(
+                f"Caminho inseguro no pacote zip: {member.filename}"
+            )
+    zip_file.extractall(destination_abs)
+
+
+def _get_max_request_body_size(default_size=536870912):
+    """Lê MAX_REQUEST_BODY_SIZE com fallback seguro."""
+    raw_value = os.getenv("MAX_REQUEST_BODY_SIZE")
+    if raw_value is None:
+        return default_size
+
+    try:
+        parsed = int(raw_value)
+        if parsed <= 0:
+            raise ValueError
+        return parsed
+    except ValueError:
+        print(
+            "Valor inválido em MAX_REQUEST_BODY_SIZE. "
+            f"Usando padrão {default_size} bytes."
+        )
+        return default_size
 
 
 def executar_restauracao_de_backup():
@@ -138,7 +174,7 @@ def executar_restauracao_de_backup():
         try:
             temp_extract_dir = tempfile.mkdtemp(prefix="catalogo_restore_")
             with zipfile.ZipFile(temp_restore, "r") as zf:  # type: ignore
-                zf.extractall(temp_extract_dir)
+                _safe_extract_zip(zf, temp_extract_dir)
 
             # Função auxiliar: copia/mescla recusivamente, sobrescrevendo quando possível
             def _merge_copy(src_root, dst_root):
@@ -223,7 +259,7 @@ def executar_atualizacao():
 
         # Extrai o conteúdo do zip para o diretório de instalação, sobrescrevendo os arquivos existentes
         with zipfile.ZipFile(update_package, "r") as zip_ref:
-            zip_ref.extractall(install_dir)
+            _safe_extract_zip(zip_ref, install_dir)
 
         os.remove(update_package)  # Remove o pacote de atualização após a extração
         print("Atualização aplicada com sucesso!")
@@ -283,7 +319,7 @@ def iniciar_servidor(app_instance, host, port, abrir_navegador):
     # Use host='0.0.0.0' para permitir acesso de outras máquinas na rede
     # Ajusta `max_request_body_size` para permitir uploads grandes (padrão 512MB),
     # pode ser sobrescrito pela variável de ambiente `MAX_REQUEST_BODY_SIZE`.
-    max_body = int(os.getenv("MAX_REQUEST_BODY_SIZE", 536870912))
+    max_body = _get_max_request_body_size()
     if _WAITRESS_MISSING or serve is None:
         _fallback_serve(app_instance, host, port, _max_request_body_size=max_body)
     else:

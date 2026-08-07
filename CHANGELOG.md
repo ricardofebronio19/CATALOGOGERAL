@@ -1,5 +1,33 @@
 # Changelog
 
+## v2.2.6 - 2026-08-06
+
+### ✨ Novidades
+- Preparação da versão 2.2.6 para distribuição.
+- Sugestões de itens similares mais inteligentes com base em grupo da peça e dados do veículo.
+
+### 🛠️ Correções e Melhorias
+- Ajuste da lógica de similares para priorizar sobreposição real de veículo, ano e motor.
+- Sincronização dos arquivos de versionamento e atualização automática para a release 2.2.6.
+
+## v2.2.3 - 2026-07-31
+
+### ✨ Novidades
+- Preparação da versão 2.2.3 para distribuição.
+
+### 🛠️ Correções e Melhorias
+- Melhorias gerais de estabilidade e correções de bugs.
+
+## v2.2.2 - 2026-07-29
+
+### ✨ Novidades
+- Preparação da versão 2.2.2 para distribuição oficial
+- Ajustes de versionamento e build para o processo de release
+
+### 🛠️ Correções e Melhorias
+- Atualização do arquivo de versão utilizado pelo app e pelos instaladores
+- Sincronização do fluxo de atualização automática com a nova versão
+
 ## v2.0.8 - 2026-04-20
 
 ### ✨ Novidades

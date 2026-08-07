@@ -10,7 +10,7 @@ if "%APP_VERSION%"=="" (
     for /f "usebackq delims=" %%i in (`git describe --tags --abbrev^=0 2^>nul`) do set APP_VERSION=%%i
 )
 if "%APP_VERSION%"=="" (
-    set APP_VERSION=2.0.0
+    set APP_VERSION=2.2.6
 )
 set ENTRY_SCRIPT=run_gui.py
 set ICON_FILE=static\favicon.ico
@@ -31,12 +31,18 @@ if exist ".venv\Scripts\python.exe" (
 
 echo [INFO] Usando Python: %PY_CMD%
 
-:: Instala pywebview se necessário
+:: Instala dependências de build se necessário
 echo [1/4] Verificando dependencias...
 "%PY_CMD%" -m pip show pywebview >nul 2>&1
 if errorlevel 1 (
     echo [INFO] Instalando pywebview...
     "%PY_CMD%" -m pip install pywebview
+)
+
+"%PY_CMD%" -m pip show pyinstaller >nul 2>&1
+if errorlevel 1 (
+    echo [INFO] Instalando PyInstaller...
+    "%PY_CMD%" -m pip install pyinstaller
 )
 
 :: Limpeza

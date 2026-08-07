@@ -85,6 +85,35 @@
                 border-radius: 6px;
                 min-width: 0;
             }
+            .info-section-lateral.medidas .product-measures {
+                display: grid;
+                gap: 6px;
+            }
+            .info-section-lateral.medidas .measure-item {
+                display: inline-flex;
+                flex-wrap: wrap;
+                gap: 4px;
+                align-items: baseline;
+            }
+            .info-section-lateral.medidas .measure-item--stacked {
+                display: grid;
+                gap: 4px;
+            }
+            .info-section-lateral.medidas .measure-item--stacked .measure-value {
+                white-space: pre-line;
+            }
+            .info-section-lateral.medidas .measure-label {
+                color: #1d4ed8;
+                font-weight: 700;
+            }
+            .info-section-lateral.medidas .measure-separator {
+                color: #6b7280;
+                font-weight: 600;
+            }
+            .info-section-lateral.medidas .measure-value {
+                color: #dc2626;
+                font-weight: 700;
+            }
             .application-section {
                 min-width: 0;
                 width: 100%;
@@ -314,7 +343,36 @@
                             {% elif block == 'details' and produto.medidas %}
                                 <div class="info-section-lateral medidas">
                                     <h3>Medidas</h3>
-                                    <pre>{{ produto.medidas | highlight(termo) }}</pre>
+                                    {% if medidas_dict %}
+                                        <div class="product-measures">
+                                            {% for label, key in [
+                                                ('Largura (mm)', 'largura'),
+                                                ('Altura (mm)', 'altura'),
+                                                ('Comprimento (mm)', 'comprimento'),
+                                                ('Diâmetro Externo (mm)', 'diametro_externo'),
+                                                ('Diâmetro Interno (mm)', 'diametro_interno'),
+                                                ('Elo', 'elo'),
+                                                ('Estrias Internas', 'estrias_internas'),
+                                                ('Estrias Externas', 'estrias_externas')
+                                            ] %}
+                                                {% if medidas_dict[key] %}
+                                                    <span class="measure-item">
+                                                        <span class="measure-label">{{ label }}</span>
+                                                        <span class="measure-separator">:</span>
+                                                        <span class="measure-value">{{ medidas_dict[key] }}</span>
+                                                    </span>
+                                                {% endif %}
+                                            {% endfor %}
+                                            {% if medidas_dict.medidas_adicionais %}
+                                                <span class="measure-item measure-item--stacked">
+                                                    <span class="measure-label">Medidas adicionais</span>
+                                                    <span class="measure-value">{{ medidas_dict.medidas_adicionais }}</span>
+                                                </span>
+                                            {% endif %}
+                                        </div>
+                                    {% else %}
+                                        <pre>{{ produto.medidas | highlight(termo) }}</pre>
+                                    {% endif %}
                                 </div>
                             {% endif %}
                         {% endfor %}
@@ -332,6 +390,10 @@
                     {% if produto.similares or sugestoes_similares %}
                     <div id="similar-products-section" class="application-section similar-section">
                                 <h3>Produtos Similares</h3>
+                                <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px; flex-wrap:wrap;">
+                                    <input type="text" id="similarVehicleFilterInput" placeholder="Filtrar por veículo..." style="padding:6px 10px; border:1px solid #ced4da; border-radius:4px; min-width:220px;">
+                                    <button type="button" id="clear-similar-filter-btn" class="button" style="display:none; background-color:#6c757d; padding:6px 10px;">Limpar</button>
+                                </div>
                                 <table class="application-table">
                                     <thead>
                                         <tr>
@@ -1094,11 +1156,57 @@
                                  */
                                 function setupSimilarFiltering() {
                                     const tableBody = document.getElementById('application-table-body');
-                                    const similarRows = document.querySelectorAll('.similar-row');
                                     const noResultsRow = document.getElementById('no-similar-results-row');
                                     const clearFilterBtn = document.getElementById('clear-filter-btn');
+                                    const vehicleFilterInput = document.getElementById('similarVehicleFilterInput');
+                                    const clearVehicleFilterBtn = document.getElementById('clear-similar-filter-btn');
 
                                     if (!tableBody || !clearFilterBtn) return;
+
+                                    function getSimilarRows() {
+                                        return Array.from(document.querySelectorAll('.similar-row'));
+                                    }
+
+                                    function applySimilarFilters() {
+                                        const vehicleTerm = normalizeString(vehicleFilterInput ? vehicleFilterInput.value : '');
+                                        const activeApplicationRow = tableBody.querySelector('.application-row.active-filter');
+                                        const similarRows = getSimilarRows();
+                                        let visibleCount = 0;
+
+                                        similarRows.forEach((row) => {
+                                            let matches = true;
+
+                                            if (activeApplicationRow) {
+                                                const filtroVeiculo = normalizeString(activeApplicationRow.dataset.veiculo || '');
+                                                const applications = JSON.parse(row.dataset.applications || '[]');
+                                                matches = applications.some(app => {
+                                                    const appVeic = normalizeString(app.veiculo || '');
+                                                    return appVeic === filtroVeiculo || appVeic.includes(filtroVeiculo) || filtroVeiculo.includes(appVeic);
+                                                });
+                                            }
+
+                                            if (matches && vehicleTerm) {
+                                                const applications = JSON.parse(row.dataset.applications || '[]');
+                                                matches = applications.some(app => {
+                                                    const appVeic = normalizeString(app.veiculo || '');
+                                                    return appVeic.includes(vehicleTerm) || vehicleTerm.includes(appVeic);
+                                                });
+                                            }
+
+                                            row.style.display = matches ? '' : 'none';
+                                            if (matches) visibleCount++;
+                                        });
+
+                                        if (noResultsRow) {
+                                            noResultsRow.style.display = visibleCount === 0 ? '' : 'none';
+                                        }
+                                        if (clearFilterBtn) {
+                                            clearFilterBtn.style.display = activeApplicationRow || vehicleTerm ? 'inline-block' : 'none';
+                                        }
+                                        if (clearVehicleFilterBtn) {
+                                            clearVehicleFilterBtn.style.display = vehicleTerm ? 'inline-block' : 'none';
+                                        }
+                                    }
             
                                 /**
                                  * Converte uma string de ano (ex: "2010", "2010/2015", "2018/...") 
@@ -1179,39 +1287,10 @@
                                 }
 
                                 function filterSimilars(clickedRow) {
-                                    // Captura todos os dados da aplicação clicada
-                                    // Filtro simples por veículo: mostra apenas similares que tenham o mesmo veículo nas aplicações
-                                    const filtroVeiculo = normalizeString(clickedRow.dataset.veiculo || '');
-                                    let visibleCount = 0;
-
-                                    // Limpa o filtro ativo anterior e marca o atual
                                     tableBody.querySelectorAll('.application-row.active-filter').forEach(row => row.classList.remove('active-filter'));
                                     clickedRow.classList.add('active-filter');
+                                    applySimilarFilters();
 
-                                    // Reconsulta as linhas atuais de similares (podem ter sido removidas dinamicamente)
-                                    const currentSimilarRows = Array.from(document.querySelectorAll('.similar-row'));
-                                    if (currentSimilarRows.length === 0) {
-                                        console.log('filterSimilars: nenhum similar encontrado na página');
-                                    }
-
-                                    currentSimilarRows.forEach((row) => {
-                                        const applications = JSON.parse(row.dataset.applications || '[]');
-                                        const hasVehicle = applications.some(app => {
-                                            const appVeic = normalizeString(app.veiculo || '');
-                                            return appVeic === filtroVeiculo || appVeic.includes(filtroVeiculo) || filtroVeiculo.includes(appVeic);
-                                        });
-                                        if (hasVehicle) {
-                                            row.style.display = '';
-                                            visibleCount++;
-                                        } else {
-                                            row.style.display = 'none';
-                                        }
-                                    });
-
-                                    noResultsRow.style.display = visibleCount === 0 ? '' : 'none';
-                                    clearFilterBtn.style.display = 'inline-block';
-
-                                    // Rola até a seção de produtos similares para foco do usuário
                                     const similarSection = document.getElementById('similar-products-section');
                                     if (similarSection) {
                                         similarSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1220,9 +1299,10 @@
 
                                 function clearFilter() {
                                     tableBody.querySelectorAll('.application-row.active-filter').forEach(row => row.classList.remove('active-filter'));
-                                    similarRows.forEach(row => row.style.display = '');
-                                    noResultsRow.style.display = 'none';
-                                    clearFilterBtn.style.display = 'none';
+                                    if (vehicleFilterInput) {
+                                        vehicleFilterInput.value = '';
+                                    }
+                                    applySimilarFilters();
                                 }
 
                                 // Event Delegation: Adiciona um único listener ao corpo da tabela
@@ -1234,12 +1314,17 @@
                                             ano: clickedRow.dataset.ano,
                                             motor: clickedRow.dataset.motor
                                         });
-                                        console.log('Similar rows encontradas:', similarRows.length);
                                         filterSimilars(clickedRow);
                                     }
                                 });
 
                                 clearFilterBtn.addEventListener('click', clearFilter);
+                                if (clearVehicleFilterBtn) {
+                                    clearVehicleFilterBtn.addEventListener('click', clearFilter);
+                                }
+                                if (vehicleFilterInput) {
+                                    vehicleFilterInput.addEventListener('input', applySimilarFilters);
+                                }
             
                                 // Permite clicar em links de veículo (por exemplo na lista lateral) para filtrar similares
                                 const veiculoLinks = document.querySelectorAll('.veiculo-link');
@@ -1248,7 +1333,9 @@
                                         e.preventDefault();
                                         const vehicleName = (link.textContent || link.innerText || '').trim();
                                         if (!vehicleName) return;
-                                        // Marca/desmarca linhas na tabela de aplicações para mostrar a seleção
+                                        if (vehicleFilterInput) {
+                                            vehicleFilterInput.value = vehicleName;
+                                        }
                                         tableBody.querySelectorAll('.application-row').forEach(row => {
                                             if (normalizeString(row.dataset.veiculo || '') === normalizeString(vehicleName)) {
                                                 row.classList.add('active-filter');
@@ -1256,24 +1343,11 @@
                                                 row.classList.remove('active-filter');
                                             }
                                         });
-
-                                        // Filtra os similares para exibir somente os que possuem essa aplicação
-                                        let visibleCount = 0;
-                                        similarRows.forEach(row => {
-                                            const applications = JSON.parse(row.dataset.applications || '[]');
-                                            const hasMatch = applications.some(app => (app.veiculo || '').trim().toLowerCase() === vehicleName.toLowerCase());
-                                            if (hasMatch) {
-                                                row.style.display = '';
-                                                visibleCount++;
-                                            } else {
-                                                row.style.display = 'none';
-                                            }
-                                        });
-
-                                        noResultsRow.style.display = visibleCount === 0 ? '' : 'none';
-                                        clearFilterBtn.style.display = 'inline-block';
+                                        applySimilarFilters();
                                     });
                                 });
+
+                                applySimilarFilters();
                                 }
 
                                 // Inicializa todos os módulos da página

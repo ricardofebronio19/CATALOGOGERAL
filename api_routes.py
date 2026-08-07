@@ -4,7 +4,7 @@ Fornece endpoints RESTful para integração externa
 """
 
 from datetime import datetime
-from flask import Blueprint, jsonify, request, current_app
+from flask import Blueprint, jsonify, request
 from flask_login import login_required, login_user, logout_user, current_user
 from sqlalchemy.orm import selectinload
 from sqlalchemy import func, desc
@@ -741,20 +741,21 @@ def delete_contato(contato_id):
 
 # ===== CARRINHO =====
 
-def _cart_response(app_instance):
+def _cart_response():
     """Helper: retorna estado atual do carrinho como dict"""
     from utils.cart_utils import get_cart_items, get_cart_count, get_cart_summary
-    items = get_cart_items(app_instance)
-    count = get_cart_count(app_instance)
-    summary = get_cart_summary(app_instance)
+    items = get_cart_items()
+    count = get_cart_count()
+    summary = get_cart_summary()
     return {
         'items': [
             {
-                'produto_id': item['produto_id'],
-                'codigo': item.get('codigo'),
-                'nome': item.get('nome'),
+                'produto_id': item['produto'].id,
+                'codigo': item['produto'].codigo,
+                'nome': item['produto'].nome,
                 'quantidade': item.get('quantidade', 1),
-                'imagem': item.get('imagem'),
+                'observacoes': item.get('observacoes', ''),
+                'imagem': item['produto'].imagens[0].filename if getattr(item['produto'], 'imagens', None) else None,
             }
             for item in (items or [])
         ],
@@ -767,21 +768,21 @@ def _cart_response(app_instance):
 @login_required
 def api_get_carrinho():
     """Retorna o carrinho atual"""
-    return api_response(data=_cart_response(current_app._get_current_object()))
+    return api_response(data=_cart_response())
 
 
 @api_bp.route('/carrinho/adicionar', methods=['POST'])
 @login_required
 def api_add_carrinho():
     """Adiciona produto ao carrinho"""
-    from utils.cart_utils import add_to_cart
     data = request.get_json()
     produto_id = data.get('produto_id') if data else None
     quantidade = int(data.get('quantidade', 1)) if data else 1
+    observacoes = data.get('observacoes', '') if data else ''
     if not produto_id:
         return api_response(error="produto_id é obrigatório", status_code=400)
-    add_to_cart(current_app._get_current_object(), produto_id, quantidade)
-    return api_response(data=_cart_response(current_app._get_current_object()),
+    add_to_cart(produto_id, quantidade, observacoes)
+    return api_response(data=_cart_response(),
                         message="Produto adicionado ao carrinho")
 
 
@@ -789,13 +790,12 @@ def api_add_carrinho():
 @login_required
 def api_remove_carrinho():
     """Remove produto do carrinho"""
-    from utils.cart_utils import remove_from_cart
     data = request.get_json()
     produto_id = data.get('produto_id') if data else None
     if not produto_id:
         return api_response(error="produto_id é obrigatório", status_code=400)
-    remove_from_cart(current_app._get_current_object(), produto_id)
-    return api_response(data=_cart_response(current_app._get_current_object()),
+    remove_from_cart(produto_id)
+    return api_response(data=_cart_response(),
                         message="Produto removido do carrinho")
 
 
@@ -803,14 +803,14 @@ def api_remove_carrinho():
 @login_required
 def api_update_carrinho():
     """Atualiza quantidade de um item no carrinho"""
-    from utils.cart_utils import update_cart_item
     data = request.get_json()
     produto_id = data.get('produto_id') if data else None
     quantidade = int(data.get('quantidade', 1)) if data else 1
+    observacoes = data.get('observacoes', '') if data else ''
     if not produto_id:
         return api_response(error="produto_id é obrigatório", status_code=400)
-    update_cart_item(current_app._get_current_object(), produto_id, quantidade)
-    return api_response(data=_cart_response(current_app._get_current_object()),
+    update_cart_item(produto_id, quantidade, observacoes)
+    return api_response(data=_cart_response(),
                         message="Carrinho atualizado")
 
 
@@ -818,9 +818,8 @@ def api_update_carrinho():
 @login_required
 def api_limpar_carrinho():
     """Limpa o carrinho"""
-    from utils.cart_utils import clear_cart
-    clear_cart(current_app._get_current_object())
-    return api_response(data=_cart_response(current_app._get_current_object()),
+    clear_cart()
+    return api_response(data=_cart_response(),
                         message="Carrinho limpo")
 
 

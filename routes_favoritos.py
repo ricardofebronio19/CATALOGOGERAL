@@ -20,6 +20,18 @@ from core_utils import _normalize_for_search
 favorites_bp = Blueprint('favorites', __name__, url_prefix='/favoritos')
 
 
+def _parse_bool_value(value):
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return False
+    if isinstance(value, (int, float)):
+        return value != 0
+    if isinstance(value, str):
+        return value.strip().lower() in {'1', 'true', 'yes', 'on', 'sim'}
+    return bool(value)
+
+
 @favorites_bp.route('/')
 @login_required
 def index():
@@ -276,7 +288,7 @@ def criar_compartilhamento():
         lista_id = int(data.get('lista_id'))
         email_usuario = data.get('email_usuario', '').strip()
         permissao = data.get('permissao', 'read')
-        gerar_link_publico = data.get('link_publico') == True
+        gerar_link_publico = _parse_bool_value(data.get('link_publico'))
         
         lista = ListaFavoritos.query.get_or_404(lista_id)
         if lista.user_id != current_user.id:
