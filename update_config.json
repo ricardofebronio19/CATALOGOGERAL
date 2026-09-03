@@ -1,6 +1,6 @@
 {
-  "latest_version": "2.2.6",
-  "download_url": "https://github.com/ricardofebronio19/CATALOGOGERAL/releases/download/v2.2.6/instalador_CatalogoDePecas_v2.2.6.exe",
-  "release_notes": "🚀 Catálogo de Peças v2.2.6`n✨ Sugestões de itens similares mais inteligentes por grupo e veículo.`n🔧 Ajustes de versionamento para a nova release.",
-  "size_mb": "39"
+  "latest_version": "2.2.8",
+  "download_url": "https://github.com/ricardofebronio19/CATALOGOGERAL/releases/download/v2.2.8/instalador_CatalogoDePecas_v2.2.8.exe",
+  "release_notes": "🚀 Catálogo de Peças v2.2.8\n✨ Corrige a comparação de versionamento para atualizações com prefixo v e sincroniza os metadados da release.\n🔧 Mantém o fluxo de atualização do catálogo consistente entre app, build e instalador.",
+  "size_mb": "42"
 }

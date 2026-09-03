@@ -23,18 +23,30 @@ login_manager.login_view = "auth.login"  # Aponta para o blueprint de autentica�
 
 
 # --- Configurações de Atualização ---
+def _normalizar_version(value: str | None) -> str:
+    """Remove prefixos de release como 'v' e preserva apenas a versão semântica."""
+    if value is None:
+        return ""
+    text = str(value).strip()
+    if not text:
+        return ""
+    return text.lstrip("vV")
+
+
 def _carregar_versao() -> str:
     """Obtém a versão da aplicação de forma resiliente.
 
     Ordem:
     1) Variável de ambiente APP_VERSION (injeção no build/CI)
     2) Arquivo version.json empacotado (criado pelo build)
-    3) Fallback para '2.2.6'
+    3) Fallback para '2.2.8'
     """
     # 1) Ambiente
     env_version = os.getenv("APP_VERSION")
     if env_version:
-        return env_version
+        normalized = _normalizar_version(env_version)
+        if normalized:
+            return normalized
 
     # 2) Arquivo version.json (no diretório do app ou no sys._MEIPASS quando congelado)
     try:
@@ -48,12 +60,14 @@ def _carregar_versao() -> str:
             with open(version_file, "r", encoding="utf-8") as vf:
                 data = json.load(vf)
                 if isinstance(data, dict) and "version" in data and data["version"]:
-                    return str(data["version"])
+                    normalized = _normalizar_version(data["version"])
+                    if normalized:
+                        return normalized
     except Exception:
         pass
 
     # 3) Default
-    return "2.2.6"
+    return "2.2.8"
 
 
 VERSION = _carregar_versao()
@@ -511,8 +525,23 @@ def check_for_updates(app):
 
             latest_version = update_data.get("latest_version", update_data.get("version"))
 
+            def _normalize_version(raw_version):
+                if raw_version is None:
+                    return None
+                text = str(raw_version).strip()
+                if not text:
+                    return None
+                return text.lstrip("vV")
+
+            latest_version_normalized = _normalize_version(latest_version)
+            current_version_normalized = _normalize_version(VERSION)
+
             # Usa a biblioteca packaging para comparação de versão mais robusta
-            if latest_version and pkg_version.parse(latest_version) > pkg_version.parse(VERSION):
+            if (
+                latest_version_normalized
+                and current_version_normalized
+                and pkg_version.parse(latest_version_normalized) > pkg_version.parse(current_version_normalized)
+            ):
                 print(f"Nova versão encontrada: {latest_version}")
                 app.config["UPDATE_INFO"] = {
                     "latest_version": latest_version,

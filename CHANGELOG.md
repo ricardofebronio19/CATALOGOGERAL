@@ -1,5 +1,15 @@
 # Changelog
 
+## v2.2.8 - 2026-09-03
+
+### ✨ Novidades
+- Preparação da versão 2.2.8 para distribuição.
+- Sincronização do versionamento entre build, app e instalador.
+
+### 🛠️ Correções e Melhorias
+- Correção da comparação de versões na atualização automática para aceitar versões com prefixo `v`.
+- Validação do fluxo de download e reinício da atualização do catálogo.
+
 ## v2.2.6 - 2026-08-06
 
 ### ✨ Novidades
