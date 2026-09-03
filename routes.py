@@ -1652,38 +1652,82 @@ def configuracoes():
     config = carregar_config_aparencia()
 
     if request.method == "POST":
+        def form_value(name: str, default: Any) -> Any:
+            return request.form.get(name, default) if name in request.form else default
+
         # Cor principal
-        config["cor_principal"] = request.form.get("cor_principal", "#ff6600")
+        config["cor_principal"] = form_value("cor_principal", config.get("cor_principal", "#ff6600"))
         # Cores das colunas em Detalhes do Produto
-        config["cor_coluna_conversoes"] = request.form.get("cor_coluna_conversoes", config.get("cor_coluna_conversoes", "#fff3cd"))
-        config["cor_coluna_medidas"] = request.form.get("cor_coluna_medidas", config.get("cor_coluna_medidas", "#d1ecf1"))
+        config["cor_coluna_conversoes"] = form_value("cor_coluna_conversoes", config.get("cor_coluna_conversoes", "#fff3cd"))
+        config["cor_coluna_medidas"] = form_value("cor_coluna_medidas", config.get("cor_coluna_medidas", "#d1ecf1"))
         
         # Configurações de plano de fundo
-        config["background_tipo"] = request.form.get("background_tipo", "cor")
-        config["background_cor"] = request.form.get("background_cor", "#ffffff")
-        config["background_repeat"] = request.form.get("background_repeat", "no-repeat")
-        config["background_position"] = request.form.get("background_position", "center center")
-        config["background_size"] = request.form.get("background_size", "cover")
+        config["background_tipo"] = form_value("background_tipo", config.get("background_tipo", "cor"))
+        config["background_cor"] = form_value("background_cor", config.get("background_cor", "#ffffff"))
+        config["background_repeat"] = form_value("background_repeat", config.get("background_repeat", "no-repeat"))
+        config["background_position"] = form_value("background_position", config.get("background_position", "center center"))
+        config["background_size"] = form_value("background_size", config.get("background_size", "cover"))
         
         # Opacidade do plano de fundo
-        try:
-            opacity = float(request.form.get("background_opacity", 1.0))
-            config["background_opacity"] = max(0.0, min(1.0, opacity))
-        except (ValueError, TypeError):
-            config["background_opacity"] = 1.0
+        if "background_opacity" in request.form:
+            try:
+                opacity = float(request.form.get("background_opacity", 1.0))
+                config["background_opacity"] = max(0.0, min(1.0, opacity))
+            except (ValueError, TypeError):
+                config["background_opacity"] = config.get("background_opacity", 1.0)
+
+        # Configurações visuais avançadas
+        allowed_font_families = {"segoe", "roboto", "arial", "verdana", "georgia"}
+        if "interface_font_family" in request.form:
+            font_family = (request.form.get("interface_font_family", "segoe") or "segoe").strip().lower()
+            config["interface_font_family"] = (
+                font_family if font_family in allowed_font_families else config.get("interface_font_family", "segoe")
+            )
+
+        if "interface_font_size" in request.form:
+            try:
+                font_size = int(request.form.get("interface_font_size", 16))
+            except (ValueError, TypeError):
+                font_size = int(config.get("interface_font_size", 16))
+            config["interface_font_size"] = max(13, min(22, font_size))
+
+        if "card_border_radius" in request.form:
+            try:
+                card_radius = int(request.form.get("card_border_radius", 18))
+            except (ValueError, TypeError):
+                card_radius = int(config.get("card_border_radius", 18))
+            config["card_border_radius"] = max(8, min(28, card_radius))
+
+        allowed_shadow_levels = {"soft", "medium", "strong"}
+        if "card_shadow_intensity" in request.form:
+            shadow_level = (request.form.get("card_shadow_intensity", "medium") or "medium").strip().lower()
+            config["card_shadow_intensity"] = (
+                shadow_level if shadow_level in allowed_shadow_levels else config.get("card_shadow_intensity", "medium")
+            )
+
+        allowed_sidebar_positions = {"right", "left", "bottom"}
+        if "results_sidebar_position" in request.form:
+            sidebar_position = (request.form.get("results_sidebar_position", "right") or "right").strip().lower()
+            config["results_sidebar_position"] = (
+                sidebar_position if sidebar_position in allowed_sidebar_positions else config.get("results_sidebar_position", "right")
+            )
         
         # Pesquisa externa desabilitada permanentemente
         config["pesquisa_externa_ativa"] = False
 
         # Layout da página de resultados
-        results_layout = config.get("results_layout", {})
-        results_layout["columns"] = request.form.get("results_layout_columns", "minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr)")
-        order_str = request.form.get("results_layout_order", "conversions,applications,details")
-        ordered_blocks = [item.strip() for item in order_str.split(',') if item.strip()]
-        if not ordered_blocks:
-            ordered_blocks = ["conversions", "applications", "details"]
-        results_layout["order"] = ordered_blocks
-        config["results_layout"] = results_layout
+        if "results_layout_columns" in request.form or "results_layout_order" in request.form:
+            results_layout = config.get("results_layout", {})
+            results_layout["columns"] = form_value(
+                "results_layout_columns",
+                results_layout.get("columns", "minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr)"),
+            )
+            order_str = form_value("results_layout_order", "conversions,applications,details")
+            ordered_blocks = [item.strip() for item in str(order_str).split(',') if item.strip()]
+            if not ordered_blocks:
+                ordered_blocks = ["conversions", "applications", "details"]
+            results_layout["order"] = ordered_blocks
+            config["results_layout"] = results_layout
 
         # Logo principal do sistema
         if "logo" in request.files:
@@ -1751,6 +1795,11 @@ def restaurar_cores_padrao():
     config["background_position"] = "center center"
     config["background_size"] = "cover"
     config["background_opacity"] = 1.0
+    config["interface_font_family"] = "segoe"
+    config["interface_font_size"] = 16
+    config["card_border_radius"] = 18
+    config["card_shadow_intensity"] = "medium"
+    config["results_sidebar_position"] = "right"
     salvar_config_aparencia(config)
     flash("Cores e configurações de aparência restauradas para o padrão com sucesso!", "success")
     return redirect(url_for("admin.configuracoes"))
@@ -2233,7 +2282,7 @@ def exportar_csv():
             # Escapa aspas duplas dentro dos campos e envolve cada campo com aspas
             row = (
                 ",".join(
-                    [f'"{str(field).replace("\"", "\"\"")}"' for field in row_data]
+                    [f'"{str(field).replace(chr(34), chr(34) * 2)}"' for field in row_data]
                 )
                 + "\n"
             )

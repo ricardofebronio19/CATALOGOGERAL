@@ -10,17 +10,6 @@ from werkzeug.utils import secure_filename
 from core_utils import allowed_file
 
 
-def _extension_from_url(url: str) -> str | None:
-    try:
-        path = urlparse(url).path
-        _, ext = os.path.splitext(path)
-        if ext:
-            return ext.lstrip(".")
-    except Exception:
-        return None
-    return None
-
-
 def _extension_from_content_type(ct: str | None) -> str | None:
     if not ct:
         return None

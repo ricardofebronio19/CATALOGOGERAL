@@ -50,6 +50,54 @@
                         </div>
                     </div>
 
+                    <div class="config-subsection">
+                        <h3 class="config-subsection-title">🧱 Estilo da Interface</h3>
+
+                        <div class="search-field">
+                            <label for="interface_font_family">Fonte da Interface:</label>
+                            <select id="interface_font_family" name="interface_font_family">
+                                <option value="segoe" {% if config.interface_font_family|default('segoe') == 'segoe' %}selected{% endif %}>Segoe UI (Padrão)</option>
+                                <option value="roboto" {% if config.interface_font_family == 'roboto' %}selected{% endif %}>Roboto</option>
+                                <option value="arial" {% if config.interface_font_family == 'arial' %}selected{% endif %}>Arial</option>
+                                <option value="verdana" {% if config.interface_font_family == 'verdana' %}selected{% endif %}>Verdana</option>
+                                <option value="georgia" {% if config.interface_font_family == 'georgia' %}selected{% endif %}>Georgia</option>
+                            </select>
+                        </div>
+
+                        <div class="search-field">
+                            <label for="interface_font_size">Tamanho base da fonte (px):</label>
+                            <input type="number" id="interface_font_size" name="interface_font_size" min="13" max="22" step="1" value="{{ config.interface_font_size|default(16) }}">
+                            <small class="config-help-text">Controla o tamanho geral de textos e campos da interface.</small>
+                        </div>
+
+                        <div class="search-field">
+                            <label for="card_border_radius">Arredondamento dos cards (px):</label>
+                            <input type="number" id="card_border_radius" name="card_border_radius" min="8" max="28" step="1" value="{{ config.card_border_radius|default(18) }}">
+                        </div>
+
+                        <div class="search-field">
+                            <label for="card_shadow_intensity">Intensidade da sombra dos cards:</label>
+                            <select id="card_shadow_intensity" name="card_shadow_intensity">
+                                <option value="soft" {% if config.card_shadow_intensity == 'soft' %}selected{% endif %}>Suave</option>
+                                <option value="medium" {% if config.card_shadow_intensity|default('medium') == 'medium' %}selected{% endif %}>Média</option>
+                                <option value="strong" {% if config.card_shadow_intensity == 'strong' %}selected{% endif %}>Forte</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="config-subsection">
+                        <h3 class="config-subsection-title">🗂️ Posição dos Cards na Busca</h3>
+                        <div class="search-field">
+                            <label for="results_sidebar_position">Card de detalhes na tela "Resultados da Busca":</label>
+                            <select id="results_sidebar_position" name="results_sidebar_position">
+                                <option value="right" {% if config.results_sidebar_position|default('right') == 'right' %}selected{% endif %}>À direita da lista</option>
+                                <option value="left" {% if config.results_sidebar_position == 'left' %}selected{% endif %}>À esquerda da lista</option>
+                                <option value="bottom" {% if config.results_sidebar_position == 'bottom' %}selected{% endif %}>Abaixo da lista</option>
+                            </select>
+                            <small class="config-help-text">Aplica à coluna de detalhes do produto na página de resultados.</small>
+                        </div>
+                    </div>
+
                     <div class="search-field">
                         <label for="logo">Logo do Catálogo (substituir):</label>
                         <input type="file" id="logo" name="logo" accept="image/*">
@@ -159,7 +207,7 @@
                 </form>
 
                 <form action="{{ url_for('admin.restaurar_cores_padrao') }}" method="POST" class="config-reset-form">
-                    <button type="submit" class="button" style="background-color: #6c757d; width: 100%;" onclick="return confirm('Tem certeza que deseja restaurar todas as cores para o padrão do sistema?');">↺ Restaurar Cores Padrão</button>
+                    <button type="submit" class="button" style="background-color: #6c757d; width: 100%;" onclick="return confirm('Tem certeza que deseja restaurar as configurações visuais para o padrão do sistema?');">↺ Restaurar Padrões Visuais</button>
                 </form>
             </div>
 
@@ -703,6 +751,56 @@ function showCatalogLoading(event) {
                     });
                 }
             });
+
+            const fontMap = {
+                segoe: '"Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+                roboto: '"Roboto", "Segoe UI", Arial, sans-serif',
+                arial: 'Arial, "Helvetica Neue", sans-serif',
+                verdana: 'Verdana, Geneva, sans-serif',
+                georgia: 'Georgia, "Times New Roman", serif'
+            };
+
+            const shadowMap = {
+                soft: '0 8px 22px rgba(15, 23, 42, 0.05)',
+                medium: '0 16px 34px rgba(15, 23, 42, 0.08)',
+                strong: '0 24px 48px rgba(15, 23, 42, 0.14)'
+            };
+
+            const fontSelect = document.getElementById('interface_font_family');
+            if (fontSelect) {
+                fontSelect.addEventListener('change', function() {
+                    const selected = fontMap[this.value] || fontMap.segoe;
+                    document.documentElement.style.setProperty('--app-font-family', selected);
+                });
+            }
+
+            const fontSizeInput = document.getElementById('interface_font_size');
+            if (fontSizeInput) {
+                fontSizeInput.addEventListener('input', function() {
+                    const size = Number(this.value);
+                    if (!Number.isNaN(size) && size >= 13 && size <= 22) {
+                        document.documentElement.style.setProperty('--app-font-size', size + 'px');
+                    }
+                });
+            }
+
+            const radiusInput = document.getElementById('card_border_radius');
+            if (radiusInput) {
+                radiusInput.addEventListener('input', function() {
+                    const radius = Number(this.value);
+                    if (!Number.isNaN(radius) && radius >= 8 && radius <= 28) {
+                        document.documentElement.style.setProperty('--app-card-radius', radius + 'px');
+                    }
+                });
+            }
+
+            const shadowSelect = document.getElementById('card_shadow_intensity');
+            if (shadowSelect) {
+                shadowSelect.addEventListener('change', function() {
+                    const shadow = shadowMap[this.value] || shadowMap.medium;
+                    document.documentElement.style.setProperty('--app-card-shadow', shadow);
+                });
+            }
         });
 
         // Função para controlar a exibição das opções de plano de fundo

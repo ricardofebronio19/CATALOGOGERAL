@@ -14,6 +14,28 @@
     <style>
         :root {
             --cor-principal: {{ config_aparencia.cor_principal|default('#ff6600') }};
+            --app-font-size: {{ config_aparencia.interface_font_size|default(16) }}px;
+            --app-card-radius: {{ config_aparencia.card_border_radius|default(18) }}px;
+            --app-font-family:
+            {% if config_aparencia.interface_font_family == 'roboto' %}
+                "Roboto", "Segoe UI", Arial, sans-serif
+            {% elif config_aparencia.interface_font_family == 'arial' %}
+                Arial, "Helvetica Neue", sans-serif
+            {% elif config_aparencia.interface_font_family == 'verdana' %}
+                Verdana, Geneva, sans-serif
+            {% elif config_aparencia.interface_font_family == 'georgia' %}
+                Georgia, "Times New Roman", serif
+            {% else %}
+                "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif
+            {% endif %};
+            --app-card-shadow:
+            {% if config_aparencia.card_shadow_intensity == 'soft' %}
+                0 8px 22px rgba(15, 23, 42, 0.05)
+            {% elif config_aparencia.card_shadow_intensity == 'strong' %}
+                0 24px 48px rgba(15, 23, 42, 0.14)
+            {% else %}
+                0 16px 34px rgba(15, 23, 42, 0.08)
+            {% endif %};
         }
         
         /* Configurações de plano de fundo personalizável */
@@ -83,7 +105,7 @@
     </style>
     {% block head %}{% endblock %}
 </head>
-<body>
+<body class="results-sidebar-{{ config_aparencia.results_sidebar_position|default('right') }}">
     <nav class="top-nav {% if endpoint == 'main.buscar' %}search-results-nav{% endif %}">
         <div class="nav-content-wrapper">
             <div class="nav-left">

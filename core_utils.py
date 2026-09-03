@@ -408,6 +408,18 @@ def _processar_medidas_estruturadas(form_data: dict) -> str:
                 medidas_list.append(f"{label}: {valor}")
             else:
                 medidas_list.append(f"{label}: {valor}mm")
+
+    # Processa campos personalizados adicionados dinamicamente
+    indices = [
+        int(key.rsplit('_', 1)[1])
+        for key in form_data.keys()
+        if key.startswith('custom_medida_label_')
+    ]
+    for index in sorted(indices):
+        label = (form_data.get(f'custom_medida_label_{index}', '') or '').strip()
+        valor = (form_data.get(f'custom_medida_value_{index}', '') or '').strip()
+        if label and valor:
+            medidas_list.append(f"{label.strip().upper()}: {valor}")
     
     # Adiciona medidas adicionais se houver
     medidas_adicionais = form_data.get('medidas_adicionais', '').strip()
@@ -436,7 +448,8 @@ def _parsear_medidas_para_dict(medidas_str: str | None) -> dict:
         'elo': '',
         'estrias_internas': '',
         'estrias_externas': '',
-        'medidas_adicionais': ''
+        'medidas_adicionais': '',
+        'custom_fields': []
     }
     
     if not medidas_str:
@@ -483,10 +496,18 @@ def _parsear_medidas_para_dict(medidas_str: str | None) -> dict:
                 valor = valor.replace('MM', '').replace('mm', '').strip()
                 
                 # Encontra a chave correspondente
+                key_match = False
                 for key_label, key_dict in mapeamento.items():
                     if key_label in label:
                         resultado[key_dict] = valor
+                        key_match = True
                         break
+
+                if not key_match and label and label != 'MEDIDAS ADICIONAIS':
+                    resultado['custom_fields'].append({
+                        'label': label,
+                        'value': valor
+                    })
     
     if adicionais_lines:
         resultado['medidas_adicionais'] = '\n'.join(adicionais_lines)

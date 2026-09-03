@@ -13,13 +13,15 @@
             <p class="results-subtitle">Exibindo {{ pagination.items|length }} de <strong>{{ pagination.total }}</strong> resultados{% if termo %} para "<strong>{{ termo }}</strong>"{% endif %}.</p>
         </div>
         <form action="{{ url_for('main.buscar') }}" method="GET" class="results-search-bar">
-            <input type="search" name="termo" placeholder="Buscar por código, descrição ou aplicação..." value="{{ termo }}">
+            <div class="results-search-inline">
+                <button type="submit" class="button">Pesquisar</button>
+                <input type="search" name="termo" placeholder="Buscar por código, descrição ou aplicação..." value="{{ termo }}">
+            </div>
             {% for key, value in search_args.items() %}
                 {% if key not in ['termo', 'page', 'selected_id'] %}
                     <input type="hidden" name="{{ key }}" value="{{ value }}">
                 {% endif %}
             {% endfor %}
-            <button type="submit" class="button">Pesquisar</button>
         </form>
     </header>
 
@@ -143,7 +145,7 @@
                                 {% if selected_produto.observacoes and selected_produto.observacoes.strip() %}
                                     <div>
                                         <dt>Observação</dt>
-                                        <dd>{{ selected_produto.observacoes }}</dd>
+                                        <dd class="result-observacao-text">{{ selected_produto.observacoes | format_text(termo) }}</dd>
                                     </div>
                                 {% endif %}
                             </dl>
@@ -196,20 +198,26 @@
                         {% elif block == 'applications' and has_applications_data %}
                             <div class="applications-column">
                                 <div class="conversions-card bloco-conversoes-custom">
-                                    <div class="conversions-card-header">Aplicações</div>
+                                    <div class="conversions-card-header">
+                                        <button type="button" class="results-applications-header-toggle" aria-label="Ordenar aplicações">Aplicações</button>
+                                        <div class="results-applications-toolbar">
+                                            <input type="search" id="resultsApplicationsSearchInput" placeholder="Filtrar aplicações..." aria-label="Filtrar aplicações">
+                                        </div>
+                                    </div>
+                                    <div id="resultsApplicationsSearchCount" class="results-applications-count"></div>
                                     <div class="conversions-card-body">
-                                        <table class="conversions-table">
+                                        <table class="conversions-table" id="resultsApplicationsTable">
                                             <thead>
                                                 <tr>
-                                                    <th>Veículo</th>
-                                                    <th>Ano</th>
-                                                    <th>Motor</th>
-                                                    <th>Conf. Motor</th>
+                                                    <th data-sort-key="veiculo" class="sortable-column">Veículo <span class="sort-indicator">↕</span></th>
+                                                    <th data-sort-key="ano" class="sortable-column">Ano <span class="sort-indicator">↕</span></th>
+                                                    <th data-sort-key="motor" class="sortable-column">Motor <span class="sort-indicator">↕</span></th>
+                                                    <th data-sort-key="conf_mtr" class="sortable-column">Conf. Motor <span class="sort-indicator">↕</span></th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 {% for aplicacao in selected_produto.aplicacoes %}
-                                                <tr>
+                                                <tr data-veiculo="{{ aplicacao.veiculo or 'N/A' }}" data-ano="{{ aplicacao.ano or 'N/A' }}" data-motor="{{ aplicacao.motor or 'N/A' }}" data-conf_mtr="{{ aplicacao.conf_mtr or 'N/A' }}">
                                                     <td>{{ aplicacao.veiculo or 'N/A' }}</td>
                                                     <td>{{ aplicacao.ano or 'N/A' }}</td>
                                                     <td>{{ aplicacao.motor or 'N/A' }}</td>
@@ -250,20 +258,26 @@
                     {% if 'applications' not in layout_order and has_applications_data %}
                         <div class="applications-column">
                             <div class="conversions-card bloco-conversoes-custom">
-                                <div class="conversions-card-header">Aplicações</div>
+                                <div class="conversions-card-header">
+                                    <button type="button" class="results-applications-header-toggle" aria-label="Ordenar aplicações">Aplicações</button>
+                                    <div class="results-applications-toolbar">
+                                        <input type="search" id="resultsApplicationsSearchInput" placeholder="Filtrar aplicações..." aria-label="Filtrar aplicações">
+                                    </div>
+                                </div>
+                                <div id="resultsApplicationsSearchCount" class="results-applications-count"></div>
                                 <div class="conversions-card-body">
-                                    <table class="conversions-table">
+                                    <table class="conversions-table" id="resultsApplicationsTable">
                                         <thead>
                                             <tr>
-                                                <th>Veículo</th>
-                                                <th>Ano</th>
-                                                <th>Motor</th>
-                                                <th>Conf. Motor</th>
+                                                <th data-sort-key="veiculo" class="sortable-column">Veículo <span class="sort-indicator">↕</span></th>
+                                                <th data-sort-key="ano" class="sortable-column">Ano <span class="sort-indicator">↕</span></th>
+                                                <th data-sort-key="motor" class="sortable-column">Motor <span class="sort-indicator">↕</span></th>
+                                                <th data-sort-key="conf_mtr" class="sortable-column">Conf. Motor <span class="sort-indicator">↕</span></th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {% for aplicacao in selected_produto.aplicacoes %}
-                                            <tr>
+                                            <tr data-veiculo="{{ aplicacao.veiculo or 'N/A' }}" data-ano="{{ aplicacao.ano or 'N/A' }}" data-motor="{{ aplicacao.motor or 'N/A' }}" data-conf_mtr="{{ aplicacao.conf_mtr or 'N/A' }}">
                                                 <td>{{ aplicacao.veiculo or 'N/A' }}</td>
                                                 <td>{{ aplicacao.ano or 'N/A' }}</td>
                                                 <td>{{ aplicacao.motor or 'N/A' }}</td>
@@ -354,6 +368,11 @@
         <button id="resultsCloseModalBtn" class="button modal-close-btn" type="button" title="Fechar (Esc)">&times;</button>
         <div class="modal-image-container">
             <img id="resultsModalImage" class="modal-image" alt="Imagem ampliada">
+        </div>
+        <div class="modal-zoom-controls">
+            <button id="resultsZoomInBtn" class="button zoom-btn" type="button" title="Zoom +">+</button>
+            <button id="resultsZoomOutBtn" class="button zoom-btn" type="button" title="Zoom −">−</button>
+            <button id="resultsZoomResetBtn" class="button zoom-btn" type="button" title="Resetar zoom">⌂</button>
         </div>
     </div>
 {% endblock %}
@@ -525,6 +544,130 @@ function normalizeTextFilter(value) {
     return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\p{L}\p{N} ]+/gu, ' ').replace(/\s+/g, ' ').trim().toLowerCase();
 }
 
+function normalizeResultsText(value) {
+    if (!value) return '';
+    return String(value)
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^\p{L}\p{N} ]+/gu, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .toLowerCase();
+}
+
+function setupResultsApplicationsFiltersAndSorting() {
+    const input = document.getElementById('resultsApplicationsSearchInput');
+    const table = document.getElementById('resultsApplicationsTable');
+    const countEl = document.getElementById('resultsApplicationsSearchCount');
+
+    if (!input || !table) return;
+
+    const tbody = table.querySelector('tbody');
+    if (!tbody) return;
+
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    const sortState = { key: 'veiculo', direction: 'asc' };
+
+    function updateCount(visibleCount) {
+        if (!countEl) return;
+        const total = rows.length;
+        countEl.textContent = visibleCount === total
+            ? `${total} aplicações`
+            : `${visibleCount} de ${total} aplicações`;
+    }
+
+    function applyFilter() {
+        const searchTerm = normalizeResultsText(input.value);
+        let visibleCount = 0;
+
+        rows.forEach(function(row) {
+            const haystack = [
+                row.dataset.veiculo || '',
+                row.dataset.ano || '',
+                row.dataset.motor || '',
+                row.dataset.conf_mtr || ''
+            ].join(' ');
+
+            const matches = !searchTerm || normalizeResultsText(haystack).includes(searchTerm);
+            row.style.display = matches ? '' : 'none';
+            if (matches) visibleCount++;
+        });
+
+        updateCount(visibleCount);
+    }
+
+    function sortRows(key, direction) {
+        const sortedRows = [...rows].sort(function(a, b) {
+            const aValue = normalizeResultsText(a.dataset[key] || '');
+            const bValue = normalizeResultsText(b.dataset[key] || '');
+
+            if (key === 'ano') {
+                const aNum = Number.parseInt(a.dataset.ano || '0', 10);
+                const bNum = Number.parseInt(b.dataset.ano || '0', 10);
+                if (Number.isNaN(aNum) && Number.isNaN(bNum)) return aValue.localeCompare(bValue);
+                if (Number.isNaN(aNum)) return 1;
+                if (Number.isNaN(bNum)) return -1;
+                return aNum - bNum;
+            }
+
+            const comparison = aValue.localeCompare(bValue);
+            return direction === 'asc' ? comparison : -comparison;
+        });
+
+        sortedRows.forEach(function(row) {
+            tbody.appendChild(row);
+        });
+    }
+
+    function updateSortIndicators() {
+        table.querySelectorAll('th[data-sort-key]').forEach(function(header) {
+            const indicator = header.querySelector('.sort-indicator');
+            if (!indicator) return;
+            const active = sortState.key === header.dataset.sortKey;
+            indicator.textContent = active ? (sortState.direction === 'asc' ? '↑' : '↓') : '↕';
+            header.classList.toggle('sorted', active);
+        });
+    }
+
+    input.addEventListener('input', applyFilter);
+
+    table.querySelectorAll('th[data-sort-key]').forEach(function(header) {
+        header.style.cursor = 'pointer';
+        header.addEventListener('click', function() {
+            const key = header.dataset.sortKey;
+            if (!key) return;
+
+            if (sortState.key === key) {
+                sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc';
+            } else {
+                sortState.key = key;
+                sortState.direction = 'asc';
+            }
+
+            sortRows(sortState.key, sortState.direction);
+            updateSortIndicators();
+        });
+    });
+
+    const headerToggle = document.querySelector('.results-applications-header-toggle');
+    if (headerToggle) {
+        headerToggle.addEventListener('click', function() {
+            if (sortState.key === 'veiculo') {
+                sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc';
+            } else {
+                sortState.key = 'veiculo';
+                sortState.direction = 'asc';
+            }
+
+            sortRows(sortState.key, sortState.direction);
+            updateSortIndicators();
+        });
+    }
+
+    updateSortIndicators();
+    applyFilter();
+}
+
 function setupRelatedProductsVehicleFilter() {
     const input = document.getElementById('relatedVehicleFilterInput');
     const clearBtn = document.getElementById('clearRelatedVehicleFilterBtn');
@@ -576,35 +719,132 @@ function setupResultsImageModal() {
     const modalImage = document.getElementById('resultsModalImage');
     const closeBtn = document.getElementById('resultsCloseModalBtn');
     const trigger = document.getElementById('resultsProductImage');
+    const zoomInBtn = document.getElementById('resultsZoomInBtn');
+    const zoomOutBtn = document.getElementById('resultsZoomOutBtn');
+    const zoomResetBtn = document.getElementById('resultsZoomResetBtn');
 
     if (!modal || !modalImage || !trigger) return;
+
+    let zoomLevel = 1;
+    let panX = 0;
+    let panY = 0;
+    let isDragging = false;
+    let dragStart = { x: 0, y: 0 };
+
+    function updateImageTransform() {
+        modalImage.style.transform = `translate(${panX}px, ${panY}px) scale(${zoomLevel})`;
+        modalImage.style.transformOrigin = 'center center';
+        modalImage.style.cursor = zoomLevel > 1 ? 'move' : 'default';
+    }
+
+    function resetZoomState() {
+        zoomLevel = 1;
+        panX = 0;
+        panY = 0;
+        updateImageTransform();
+    }
+
+    function hideModal() {
+        document.body.classList.remove('modal-open');
+        modal.style.display = 'none';
+        resetZoomState();
+    }
 
     trigger.onclick = function(e) {
         e.preventDefault();
         e.stopPropagation();
         modalImage.src = trigger.src;
+        resetZoomState();
         document.body.classList.add('modal-open');
         modal.style.display = 'flex';
     };
 
     if (closeBtn) {
         closeBtn.onclick = function() {
-            document.body.classList.remove('modal-open');
-            modal.style.display = 'none';
+            hideModal();
         };
     }
 
     modal.onclick = function(e) {
         if (e.target === modal) {
-            document.body.classList.remove('modal-open');
-            modal.style.display = 'none';
+            hideModal();
         }
     };
+
+    if (zoomInBtn) {
+        zoomInBtn.onclick = function(e) {
+            e.stopPropagation();
+            zoomLevel = Math.min(zoomLevel + 0.25, 3);
+            updateImageTransform();
+        };
+    }
+
+    if (zoomOutBtn) {
+        zoomOutBtn.onclick = function(e) {
+            e.stopPropagation();
+            zoomLevel = Math.max(zoomLevel - 0.25, 1);
+            updateImageTransform();
+        };
+    }
+
+    if (zoomResetBtn) {
+        zoomResetBtn.onclick = function(e) {
+            e.stopPropagation();
+            resetZoomState();
+        };
+    }
+
+    modalImage.addEventListener('wheel', function(e) {
+        e.preventDefault();
+        if (e.deltaY < 0) {
+            zoomLevel = Math.min(zoomLevel + 0.1, 3);
+        } else {
+            zoomLevel = Math.max(zoomLevel - 0.1, 1);
+        }
+        updateImageTransform();
+    }, { passive: false });
+
+    modalImage.addEventListener('mousedown', function(e) {
+        if (zoomLevel <= 1) return;
+        isDragging = true;
+        dragStart = { x: e.clientX - panX, y: e.clientY - panY };
+        modalImage.style.cursor = 'grabbing';
+    });
+
+    document.addEventListener('mousemove', function(e) {
+        if (!isDragging || zoomLevel <= 1) return;
+        panX = e.clientX - dragStart.x;
+        panY = e.clientY - dragStart.y;
+        updateImageTransform();
+    });
+
+    document.addEventListener('mouseup', function() {
+        isDragging = false;
+        if (zoomLevel > 1) modalImage.style.cursor = 'move';
+    });
+
+    document.addEventListener('keydown', function(e) {
+        if (modal.style.display !== 'flex') return;
+        if (e.key === 'Escape') {
+            hideModal();
+        } else if (e.key === '+' || e.key === '=') {
+            zoomLevel = Math.min(zoomLevel + 0.25, 3);
+            updateImageTransform();
+        } else if (e.key === '-' || e.key === '_') {
+            zoomLevel = Math.max(zoomLevel - 0.25, 1);
+            updateImageTransform();
+        } else if (e.key === '0') {
+            resetZoomState();
+        }
+    });
+
+    updateImageTransform();
 }
 
 document.addEventListener('DOMContentLoaded', function() {
     setupResultsImageModal();
     setupRelatedProductsVehicleFilter();
+    setupResultsApplicationsFiltersAndSorting();
     updateResultsTableScrollHeight();
 
     document.addEventListener('keydown', function(e) {

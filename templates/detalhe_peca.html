@@ -349,11 +349,11 @@
                                                 ('Largura (mm)', 'largura'),
                                                 ('Altura (mm)', 'altura'),
                                                 ('Comprimento (mm)', 'comprimento'),
-                                                ('Diâmetro Externo (mm)', 'diametro_externo'),
-                                                ('Diâmetro Interno (mm)', 'diametro_interno'),
+                                                ('Diâ. Ext. (mm)', 'diametro_externo'),
+                                                ('Diâ. Int. (mm)', 'diametro_interno'),
                                                 ('Elo', 'elo'),
-                                                ('Estrias Internas', 'estrias_internas'),
-                                                ('Estrias Externas', 'estrias_externas')
+                                                ('Estrias Int. (mm)', 'estrias_internas'),
+                                                ('Estrias Ext. (mm)', 'estrias_externas')
                                             ] %}
                                                 {% if medidas_dict[key] %}
                                                     <span class="measure-item">
@@ -363,6 +363,15 @@
                                                     </span>
                                                 {% endif %}
                                             {% endfor %}
+                                            {% if medidas_dict.get('custom_fields') %}
+                                                {% for custom_field in medidas_dict['custom_fields'] %}
+                                                    <span class="measure-item">
+                                                        <span class="measure-label">{{ custom_field.label }}</span>
+                                                        <span class="measure-separator">:</span>
+                                                        <span class="measure-value">{{ custom_field.value }}</span>
+                                                    </span>
+                                                {% endfor %}
+                                            {% endif %}
                                             {% if medidas_dict.medidas_adicionais %}
                                                 <span class="measure-item measure-item--stacked">
                                                     <span class="measure-label">Medidas adicionais</span>
@@ -382,7 +391,7 @@
                     {% if produto.observacoes %}
                     <div class="info-section similar-section observacoes-section">
                         <h3>⚠️ OBSERVAÇÕES</h3>
-                        <pre class="observacoes-text">{{ produto.observacoes | highlight(termo) }}</pre>
+                        <pre class="observacoes-text">{{ produto.observacoes | format_text(termo) }}</pre>
                     </div>
                     {% endif %}
 

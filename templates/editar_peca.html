@@ -56,6 +56,34 @@
             font-size: 0.9em;
             padding: 8px 12px;
         }
+        .custom-measures-block {
+            margin-top: 15px;
+        }
+        .custom-measures-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: #2b3a55;
+        }
+        .custom-measure-row {
+            display: grid;
+            grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) auto;
+            gap: 10px;
+            align-items: end;
+            margin-bottom: 10px;
+        }
+        .custom-measure-row input {
+            width: 100%;
+        }
+        .remove-custom-measure-btn {
+            background-color: #dc3545;
+            font-size: 0.85em;
+            padding: 10px 12px;
+            white-space: nowrap;
+        }
         .add-app-btn {
             background-color: #17a2b8;
             margin-top: 19px;
@@ -216,11 +244,11 @@
                             <input type="text" id="comprimento" name="comprimento" placeholder="Ex: 200" value="{{ medidas_dict.get('comprimento', '') }}" inputmode="numeric">
                         </div>
                         <div>
-                            <label for="diametro_externo">Diâmetro Externo (mm)</label>
+                            <label for="diametro_externo">Diâ. Ext. (mm)</label>
                             <input type="text" id="diametro_externo" name="diametro_externo" placeholder="Ex: 100" value="{{ medidas_dict.get('diametro_externo', '') }}" inputmode="numeric">
                         </div>
                         <div>
-                            <label for="diametro_interno">Diâmetro Interno (mm)</label>
+                            <label for="diametro_interno">Diâ. Int. (mm)</label>
                             <input type="text" id="diametro_interno" name="diametro_interno" placeholder="Ex: 80" value="{{ medidas_dict.get('diametro_interno', '') }}" inputmode="numeric">
                         </div>
                         <div>
@@ -228,12 +256,28 @@
                             <input type="text" id="elo" name="elo" placeholder="Ex: 12" value="{{ medidas_dict.get('elo', '') }}" inputmode="numeric">
                         </div>
                         <div>
-                            <label for="estrias_internas">Estrias Internas</label>
+                            <label for="estrias_internas">Estrias Int. (mm)</label>
                             <input type="text" id="estrias_internas" name="estrias_internas" placeholder="Ex: 24" value="{{ medidas_dict.get('estrias_internas', '') }}" inputmode="numeric">
                         </div>
                         <div>
-                            <label for="estrias_externas">Estrias Externas</label>
+                            <label for="estrias_externas">Estrias Ext. (mm)</label>
                             <input type="text" id="estrias_externas" name="estrias_externas" placeholder="Ex: 26" value="{{ medidas_dict.get('estrias_externas', '') }}" inputmode="numeric">
+                        </div>
+                    </div>
+                    <div class="custom-measures-block">
+                        <div class="custom-measures-header">
+                            <span>Campos personalizados</span>
+                            <button type="button" id="add-custom-measure-btn" class="button add-app-btn" style="margin: 0;">Adicionar campo +</button>
+                        </div>
+                        <div id="custom-measures-container">
+                            {% set custom_fields = medidas_dict.get('custom_fields', []) %}
+                            {% for custom_field in custom_fields %}
+                            <div class="custom-measure-row">
+                                <input type="text" name="custom_medida_label_{{ loop.index0 }}" value="{{ custom_field.label }}" placeholder="Nome do campo" inputmode="text">
+                                <input type="text" name="custom_medida_value_{{ loop.index0 }}" value="{{ custom_field.value }}" placeholder="Valor (texto ou número)" inputmode="text">
+                                <button type="button" class="remove-custom-measure-btn">Remover</button>
+                            </div>
+                            {% endfor %}
                         </div>
                     </div>
                     <div class="mt-10">
@@ -296,7 +340,7 @@
 
                 <div class="search-field form-full-width">
                     <label for="observacoes">Observações</label>
-                    <textarea id="observacoes" name="observacoes" rows="4" placeholder="Anote detalhes relevantes da peça">{{ produto.observacoes or '' }}</textarea>
+                    <textarea id="observacoes" name="observacoes" rows="4" placeholder="Anote detalhes relevantes da peça. Você pode incluir links como https://exemplo.com">{{ produto.observacoes or '' }}</textarea>
                 </div>
             </div>
 
@@ -352,6 +396,51 @@
                 const imageIds = Array.from(container.querySelectorAll('.image-item[data-id]')).map(item => item.dataset.id);
                 document.getElementById('ordem_imagens').value = imageIds.join(','); // Mantém a lógica JS para reordenação
                 // Atualiza IDs dos similares (já é feito dinamicamente, mas garante)
+            });
+
+            function addCustomMeasureField(label = '', value = '') {
+                const container = document.getElementById('custom-measures-container');
+                if (!container) return;
+
+                const index = container.querySelectorAll('.custom-measure-row').length;
+                const row = document.createElement('div');
+                row.className = 'custom-measure-row';
+
+                const labelInput = document.createElement('input');
+                labelInput.type = 'text';
+                labelInput.inputMode = 'text';
+                labelInput.name = `custom_medida_label_${index}`;
+                labelInput.value = label;
+                labelInput.placeholder = 'Nome do campo';
+
+                const valueInput = document.createElement('input');
+                valueInput.type = 'text';
+                valueInput.inputMode = 'text';
+                valueInput.name = `custom_medida_value_${index}`;
+                valueInput.value = value;
+                valueInput.placeholder = 'Valor (texto ou número)';
+
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'remove-custom-measure-btn';
+                removeBtn.textContent = 'Remover';
+                removeBtn.addEventListener('click', () => row.remove());
+
+                row.appendChild(labelInput);
+                row.appendChild(valueInput);
+                row.appendChild(removeBtn);
+                container.appendChild(row);
+                labelInput.focus();
+            }
+
+            document.getElementById('add-custom-measure-btn').addEventListener('click', function() {
+                addCustomMeasureField();
+            });
+
+            document.getElementById('custom-measures-container').addEventListener('click', function(e) {
+                if (e.target && e.target.classList.contains('remove-custom-measure-btn')) {
+                    e.target.closest('.custom-measure-row').remove();
+                }
             });
 
             document.getElementById('add-aplicacao-btn').addEventListener('click', function() {

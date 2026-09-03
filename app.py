@@ -7,10 +7,10 @@ from datetime import datetime
 
 import requests
 import logging
-from flask import Flask, request, send_from_directory
+from flask import Flask, request, send_from_directory, url_for
 from flask_login import LoginManager, current_user
 from flask_sqlalchemy import SQLAlchemy
-from markupsafe import Markup
+from markupsafe import Markup, escape
 from packaging import version as pkg_version
 
 # Importa o sistema de logging estruturado
@@ -130,6 +130,12 @@ def carregar_config_aparencia():
             config.setdefault("background_position", "center center")  # center, top, bottom, left, right
             config.setdefault("background_size", "cover")  # cover, contain, auto
             config.setdefault("background_opacity", 1.0)  # 0.0 a 1.0
+            # Configurações avançadas de UI
+            config.setdefault("interface_font_family", "segoe")
+            config.setdefault("interface_font_size", 16)
+            config.setdefault("card_border_radius", 18)
+            config.setdefault("card_shadow_intensity", "medium")
+            config.setdefault("results_sidebar_position", "right")
             return config
     except (FileNotFoundError, json.JSONDecodeError):
         # Retorna um dicionário padrão se o arquivo não existir ou ser inválido
@@ -147,6 +153,11 @@ def carregar_config_aparencia():
             "background_position": "center center",
             "background_size": "cover",
             "background_opacity": 1.0,
+            "interface_font_family": "segoe",
+            "interface_font_size": 16,
+            "card_border_radius": 18,
+            "card_shadow_intensity": "medium",
+            "results_sidebar_position": "right",
             "results_layout": {
                 "columns": "minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr)",
                 "order": ["applications", "conversions", "details"]
@@ -156,8 +167,9 @@ def carregar_config_aparencia():
 
 def salvar_config_aparencia(config):
     """Salva as configurações de aparência no arquivo JSON."""
-    with open(CONFIG_FILE, "w") as f:
-        json.dump(config, f, indent=4)
+    os.makedirs(os.path.dirname(CONFIG_FILE), exist_ok=True)
+    with open(CONFIG_FILE, "w", encoding="utf-8") as f:
+        json.dump(config, f, indent=4, ensure_ascii=False)
 
 
 # --- Configuração do Flask-Login ---
@@ -346,6 +358,65 @@ def register_jinja_helpers(app):
             flags=re.IGNORECASE,
         )
         return Markup(highlighted_text)
+
+    @app.template_filter("format_text")
+    def format_text_filter(text, query=None):
+        """Formata texto, transformando URLs e códigos de peças em links clicáveis."""
+        if not text:
+            return ""
+
+        text_value = str(text)
+        code_pattern = re.compile(r"\b[0-9A-Z][0-9A-Z._/-]{2,}\b", flags=re.IGNORECASE)
+        candidate_codes = {
+            token.group(0).upper()
+            for token in code_pattern.finditer(text_value)
+            if not token.group(0).lower().startswith(("http://", "https://", "www."))
+        }
+
+        produto_por_codigo = {}
+        if candidate_codes:
+            from models import Produto
+
+            produtos = (
+                Produto.query.filter(db.func.upper(Produto.codigo).in_(candidate_codes)).all()
+            )
+            produto_por_codigo = {p.codigo.upper(): p.id for p in produtos if p.codigo}
+
+        token_pattern = re.compile(
+            r"(?P<url>(https?://|www\.)[^\s<>()]+)|(?P<code>\b[0-9A-Z][0-9A-Z._/-]{2,}\b)",
+            flags=re.IGNORECASE,
+        )
+
+        chunks = []
+        last_index = 0
+        for match in token_pattern.finditer(text_value):
+            start, end = match.span()
+            chunks.append(escape(text_value[last_index:start]))
+
+            if match.group("url"):
+                raw_url = match.group("url")
+                display_url = raw_url.rstrip(".,;:")
+                safe_url = raw_url
+                if raw_url.startswith("www."):
+                    safe_url = f"https://{raw_url}"
+                chunks.append(
+                    f'<a href="{escape(safe_url)}" target="_blank" rel="noopener noreferrer">{escape(display_url)}</a>'
+                )
+            else:
+                raw_code = match.group("code")
+                produto_id = produto_por_codigo.get(raw_code.upper())
+                if produto_id:
+                    produto_url = url_for("main.detalhe_peca", id=produto_id)
+                    chunks.append(
+                        f'<a href="{escape(produto_url)}" class="observacao-produto-link">{escape(raw_code)}</a>'
+                    )
+                else:
+                    chunks.append(escape(raw_code))
+
+            last_index = end
+
+        chunks.append(escape(text_value[last_index:]))
+        return Markup("".join(chunks))
 
     @app.context_processor
     def inject_global_vars():

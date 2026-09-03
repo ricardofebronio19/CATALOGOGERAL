@@ -460,7 +460,7 @@ def main():
             else:
                 print(f"Arquivo {repo_db} não encontrado no repositório.")
         except Exception as e:
-            print(f"Falha ao copiar DB do repositório: {e}")
+            sys.stderr.write(f"Falha ao copiar DB do repositório: {e}\n")
 
     # Cria a instância da aplicação (depois de possíveis operações no DB)
     global app

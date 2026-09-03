@@ -19,6 +19,90 @@ def test_detalhe_peca_renders_successfully():
     assert response.status_code == 200
 
 
+def test_detalhe_peca_aplica_scroll_no_bloco_conversoes():
+    css_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'static', 'style.css')
+
+    with open(css_path, encoding='utf-8') as css_file:
+        css_content = css_file.read()
+
+    assert 'max-height: 320px' in css_content
+    assert 'overflow-y: auto' in css_content
+
+
+def test_observacoes_with_url_are_rendered_as_links():
+    app = create_app()
+    app.config.update(TESTING=True, WTF_CSRF_ENABLED=False)
+
+    with app.app_context():
+        inicializar_banco(app)
+
+        produto = Produto(
+            nome="Peça com Link",
+            codigo="LINK001",
+            fornecedor="FORN",
+            grupo="GRUPO",
+            observacoes="Veja o catálogo em https://exemplo.com/catalogo",
+        )
+        db.session.add(produto)
+        db.session.commit()
+
+    with app.test_client() as client:
+        response = client.get(f"/peca/{produto.id}")
+
+    assert response.status_code == 200
+    assert b'href="https://exemplo.com/catalogo"' in response.data
+    assert b'target="_blank"' in response.data
+
+
+def test_observacoes_with_product_code_are_rendered_as_internal_links():
+    app = create_app()
+    app.config.update(TESTING=True, WTF_CSRF_ENABLED=False)
+
+    with app.app_context():
+        inicializar_banco(app)
+
+        produto_relacionado = Produto(
+            nome="Peça Destino",
+            codigo="123456",
+            fornecedor="FORN",
+            grupo="GRUPO",
+        )
+        db.session.add(produto_relacionado)
+        db.session.flush()
+
+        produto_origem = Produto(
+            nome="Peça Origem",
+            codigo="ORIG001",
+            fornecedor="FORN",
+            grupo="GRUPO",
+            observacoes="Compatível com 123456",
+        )
+        db.session.add(produto_origem)
+        db.session.commit()
+
+        produto_origem_id = produto_origem.id
+        produto_relacionado_id = produto_relacionado.id
+
+    with app.test_client() as client:
+        response = client.get(f"/peca/{produto_origem_id}")
+
+    assert response.status_code == 200
+    assert f'href="/peca/{produto_relacionado_id}"'.encode() in response.data
+    assert b">123456</a>" in response.data
+
+
+def test_create_app_creates_missing_data_directory_before_writing_config(tmp_path):
+    app_module.APP_DATA_PATH = str(tmp_path / "missing" / "CatalogoDePecas")
+    app_module.UPLOAD_FOLDER = str(tmp_path / "missing" / "CatalogoDePecas" / "uploads")
+    app_module.CONFIG_FILE = str(tmp_path / "missing" / "CatalogoDePecas" / "config.json")
+
+    app = create_app()
+
+    assert os.path.exists(app_module.APP_DATA_PATH)
+    assert os.path.exists(app_module.CONFIG_FILE)
+    assert app.config["SECRET_KEY"]
+
+
 def test_clonar_peca_copies_applications(tmp_path):
     app_module.APP_DATA_PATH = str(tmp_path)
     app_module.UPLOAD_FOLDER = str(tmp_path / "uploads")

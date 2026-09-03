@@ -1,5 +1,6 @@
 body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-family: var(--app-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif);
+    font-size: var(--app-font-size, 16px);
     background-color: #eef2f6;
     margin: 0;
     padding: 0;
@@ -13,9 +14,9 @@ body {
     margin: 18px auto 24px;
     background-color: rgba(255, 255, 255, 0.96);
     padding: clamp(18px, 2vw, 28px);
-    border-radius: 18px;
+    border-radius: var(--app-card-radius, 18px);
     border: 1px solid rgba(203, 213, 225, 0.8);
-    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+    box-shadow: var(--app-card-shadow, 0 18px 40px rgba(15, 23, 42, 0.08));
 }
 
 /* Antes tínhamos transformado o body em flex para suportar footer sticky.
@@ -28,8 +29,8 @@ header {
     padding: 14px 20px;
     margin-bottom: 20px;
     text-align: center;
-    border-radius: 14px;
-    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+    border-radius: var(--app-card-radius, 14px);
+    box-shadow: var(--app-card-shadow, 0 12px 28px rgba(15, 23, 42, 0.12));
 }
 
 h1 {
@@ -40,8 +41,8 @@ h1 {
 
 .search-section {
     background-color: #fff;
-    border-radius: 16px;
-    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+    border-radius: var(--app-card-radius, 16px);
+    box-shadow: var(--app-card-shadow, 0 12px 30px rgba(15, 23, 42, 0.06));
     padding: 22px;
     border: 1px solid #e2e8f0;
     display: flex;
@@ -99,7 +100,7 @@ h1 {
 .form-section-card {
     background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
     border: 1px solid #e2e8f0;
-    border-radius: 16px;
+    border-radius: var(--app-card-radius, 16px);
     padding: 18px;
     width: 100%;
     box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
@@ -357,15 +358,35 @@ main.container { padding-bottom: 30px; }
     align-items: center;
 }
 
-.results-search-bar input[type="search"] {
+.results-search-inline {
+    display: flex;
+    flex: 1 1 360px;
+    min-width: 0;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: nowrap;
+}
+
+.results-search-inline input[type="search"] {
     min-width: 260px;
-    width: 100%;
+    width: auto;
     max-width: 420px;
+    flex: 1 1 320px;
     padding: 12px 14px;
     border: 1px solid #ccd0d9;
     border-radius: 10px;
     background: #fff;
     color: #111827;
+}
+
+.results-search-inline .button,
+.results-search-inline button {
+    margin-top: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    white-space: nowrap;
 }
 
 .results-scroll-control {
@@ -452,6 +473,30 @@ main.container { padding-bottom: 30px; }
     grid-template-columns: minmax(0, 2.1fr) clamp(280px, 29vw, 340px);
     gap: 16px;
     align-items: start;
+}
+
+body.results-sidebar-left .results-top-layout {
+    grid-template-columns: clamp(280px, 29vw, 340px) minmax(0, 2.1fr);
+}
+
+body.results-sidebar-left .results-main-block {
+    order: 2;
+}
+
+body.results-sidebar-left .results-sidebar-block {
+    order: 1;
+}
+
+body.results-sidebar-bottom .results-top-layout {
+    grid-template-columns: 1fr;
+}
+
+body.results-sidebar-bottom .results-main-block {
+    order: 1;
+}
+
+body.results-sidebar-bottom .results-sidebar-block {
+    order: 2;
 }
 
 .results-sidebar-block,
@@ -626,6 +671,20 @@ main.container { padding-bottom: 30px; }
     font-size: 0.9rem;
 }
 
+.search-results-page .result-observacao-text {
+    white-space: pre-wrap;
+}
+
+.search-results-page .result-observacao-text a {
+    color: #0056b3;
+    text-decoration: underline;
+    font-weight: 600;
+}
+
+.search-results-page .result-observacao-text a:hover {
+    color: #003d82;
+}
+
 .search-results-page .product-measures {
     display: grid;
     gap: 6px;
@@ -727,6 +786,10 @@ main.container { padding-bottom: 30px; }
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.03em;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
 }
 
 .conversions-card-body {
@@ -996,13 +1059,21 @@ main.container { padding-bottom: 30px; }
     }
 
     .results-search-bar {
-        flex-direction: column;
-        align-items: stretch;
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
     }
 
-    .results-search-bar input[type="search"] {
+    .results-search-inline {
         width: 100%;
-        max-width: 100%;
+        flex: 1 1 auto;
+    }
+
+    .results-search-inline input[type="search"] {
+        width: auto;
+        max-width: none;
+        min-width: 0;
+        flex: 1 1 auto;
     }
 
     .results-table-card-header {
@@ -1442,6 +1513,17 @@ body.modal-open .product-detail-image {
     padding: 15px !important;
     border-radius: 4px;
     border: 1px solid #f5c6cb;
+    white-space: pre-wrap;
+}
+
+.observacoes-text a {
+    color: #0056b3;
+    text-decoration: underline;
+    font-weight: 600;
+}
+
+.observacoes-text a:hover {
+    color: #003d82;
 }
 
 /* Lista vertical compacta para Veículo / Ano / Motor nas colunas de similares */
@@ -1533,18 +1615,24 @@ body.modal-open .product-detail-image {
 .image-modal {
     display: none;
     position: fixed;
+    inset: 0;
     z-index: 10000;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0,0,0,0.85);
+    width: 100vw;
+    height: 100vh;
+    background: radial-gradient(circle at center, rgba(14, 14, 14, 0.82) 0%, rgba(0, 0, 0, 0.94) 52%, rgba(0, 0, 0, 0.98) 100%);
     justify-content: center;
     align-items: center;
+    overflow: hidden;
+    padding: 28px;
+    box-sizing: border-box;
 }
 
 .image-modal[style*="display: flex"] {
     z-index: 10000 !important;
+}
+
+body.modal-open {
+    overflow: hidden;
 }
 
 /* Desabilita interação na página sob o modal */
@@ -1562,17 +1650,75 @@ body.modal-open .image-modal * {
 /* Imagem do modal */
 .modal-image-container {
     position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: min(90vw, 1100px);
+    height: min(82vh, 820px);
     text-align: center;
     z-index: 10001;
+    flex-shrink: 0;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(212, 175, 55, 0.8);
+    border-radius: 18px;
+    box-shadow: 0 0 0 1px rgba(212, 175, 55, 0.18), 0 30px 80px rgba(0, 0, 0, 0.7);
+    overflow: hidden;
 }
 
 .modal-image {
-    max-width: 85vw;
-    max-height: 80vh;
+    max-width: 100%;
+    max-height: 100%;
     object-fit: contain;
-    transition: none;
+    transition: transform 0.12s ease-out;
     will-change: transform;
     cursor: default;
+    display: block;
+    margin: auto;
+    transform-origin: center center;
+    filter: drop-shadow(0 12px 18px rgba(0, 0, 0, 0.35));
+}
+
+.modal-close-btn {
+    position: fixed !important;
+    top: 22px;
+    right: 22px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.45);
+    color: #f8d76d;
+    border: 1px solid rgba(212, 175, 55, 0.8);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+    font-size: 1.8rem;
+    line-height: 1;
+    z-index: 10003;
+}
+
+.modal-zoom-controls {
+    position: fixed;
+    left: 50%;
+    bottom: 22px;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 8px;
+    background: rgba(20, 20, 20, 0.72);
+    border: 1px solid rgba(212, 175, 55, 0.8);
+    box-shadow: 0 0 0 1px rgba(212, 175, 55, 0.18), 0 12px 30px rgba(0, 0, 0, 0.45);
+    padding: 8px 12px;
+    border-radius: 999px;
+    z-index: 10002;
+    backdrop-filter: blur(4px);
+}
+
+.zoom-btn {
+    min-width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.06);
+    color: #f5d67f;
+    border: 1px solid rgba(212, 175, 55, 0.7);
+    font-size: 1.2rem;
+    font-weight: 700;
 }
 
 /* Controles de zoom - centralizado embaixo */
@@ -2487,11 +2633,12 @@ mark {
 .search-form {
     display: flex;
     gap: 8px;
-    align-items: center;
+    align-items: width; /* Alinha itens para preencher a altura */
     width: 100%;
 }
 .search-form input[type="search"] {
     padding: 10px 12px;
+    height: auto; /* Permite que a altura se ajuste */
     border: 1px solid #cbd5e1;
     border-radius: 10px;
     min-width: 0;
@@ -2656,9 +2803,9 @@ mark {
 .detail-card,
 .related-card {
     border: 1px solid #cbd5e1;
-    border-radius: 18px;
+    border-radius: var(--app-card-radius, 18px);
     background: #fff;
-    box-shadow: 0 12px 30px rgba(15,23,42,0.06);
+    box-shadow: var(--app-card-shadow, 0 12px 30px rgba(15,23,42,0.06));
 }
 
 .selected-product-summary-header,
@@ -3238,9 +3385,70 @@ mark {
     background: #3b82f6 !important; /* Um tom de azul para o cabeçalho */
 }
 
+.results-applications-header-toggle {
+    background: transparent;
+    border: none;
+    color: inherit;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 0;
+    text-align: left;
+    flex-shrink: 0;
+}
+
+.results-applications-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 0;
+    margin-left: auto;
+}
+
+.results-applications-toolbar input {
+    width: min(220px, 100%);
+    padding: 5px 8px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+    font-size: 0.82rem;
+    margin-left: auto;
+}
+
+.results-applications-toolbar input::placeholder {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.results-applications-count {
+    width: 100%;
+    text-align: right;
+    font-size: 0.75rem;
+    color: #5f6f88;
+    padding: 8px 12px 0;
+}
+
+.sortable-column {
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+}
+
+.sortable-column.sorted {
+    background: rgba(59, 130, 246, 0.08);
+}
+
+.sort-indicator {
+    font-size: 0.75rem;
+    opacity: 0.8;
+}
+
 /* Ajusta o padding do corpo do cartão de conversões */
 .conversions-card-body {
     padding: 0 !important; /* Remove o padding para a grade ocupar todo o espaço */
+    max-height: 320px;
+    overflow-y: auto;
 }
 
 /* ===== NOVOS ESTILOS PARA LISTA DE CONVERSÕES (Página de Resultados) ===== */
@@ -3251,6 +3459,7 @@ mark {
     display: flex;
     flex-direction: column;
     gap: 4px; /* Reduzido de 10px para aproximar os itens */
+    max-height: inherit;
 }
 
 .conversion-list-item {
